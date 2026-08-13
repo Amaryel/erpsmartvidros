@@ -12,20 +12,9 @@ export function getCurrentSessionUser(): AppUser | null {
   return session;
 }
 
-export function getCurrentUser(): AppUser {
+export function getCurrentUser(): AppUser | null {
   const session = getCurrentSessionUser();
-  if (session) return session;
-
-  // Se não houver sessão ativa, retorna a conta default superadmin
-  return {
-    id: DEFAULT_USER_ID,
-    email: SUPERADMIN_EMAIL,
-    username: 'amaryel',
-    name: 'Amaryel (Super Admin)',
-    role: 'superadmin',
-    status: 'aprovado',
-    companyId: DEFAULT_COMPANY_ID,
-  };
+  return session;
 }
 
 export function getCurrentCompanyId(): string {
@@ -59,8 +48,16 @@ export function loginUser(
     };
   }
 
-  // Verificar se senha confere (se fornecida)
-  if (password && userAccount.password && userAccount.password !== password) {
+  // Verificar se a senha foi informada
+  if (!password || !password.trim()) {
+    return {
+      success: false,
+      message: 'Por favor, informe a senha para acessar o sistema.',
+    };
+  }
+
+  // Verificar se a senha confere
+  if (userAccount.password && userAccount.password !== password) {
     return {
       success: false,
       message: 'Senha incorreta. Verifique seus dados e tente novamente.',

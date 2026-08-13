@@ -11,7 +11,8 @@ import {
   LayoutDashboard,
   UserCheck,
   LogOut,
-  Lock
+  Lock,
+  Database,
 } from 'lucide-react';
 import { AppUser, CompanyInfo } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -31,6 +32,8 @@ interface NavbarProps {
   onOpenPdvClick: () => void;
   onToggleSidebarMobile: () => void;
   onOpenAuthModal: () => void;
+  onOpenProfileModal?: () => void;
+  onOpenSupabaseSyncModal?: () => void;
   onLogout: () => void;
 }
 
@@ -48,6 +51,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPdvClick,
   onToggleSidebarMobile,
   onOpenAuthModal,
+  onOpenProfileModal,
+  onOpenSupabaseSyncModal,
   onLogout,
 }) => {
   const isSuper = currentUser?.role === 'superadmin' || currentUser?.email.toLowerCase() === 'amaryelcc@gmail.com';
@@ -188,6 +193,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Lado Direito: Botões de Ação + Usuário Logado */}
           <div className="flex items-center gap-2">
+            {onOpenSupabaseSyncModal && (
+              <button
+                onClick={onOpenSupabaseSyncModal}
+                className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 font-bold px-3 py-2 rounded-xl text-xs transition-all"
+                title="Sincronizar Banco Supabase"
+              >
+                <Database className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden lg:inline">Supabase</span>
+              </button>
+            )}
+
             <button
               onClick={onOpenPdvClick}
               className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl shadow-lg active:scale-95 transition-all text-xs"
@@ -199,16 +215,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser ? (
               <div className="flex items-center gap-2 pl-2 border-l border-zinc-800">
                 <button
-                  onClick={onOpenAuthModal}
-                  className="flex items-center gap-2 text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 px-3 py-1.5 rounded-xl transition-all"
-                  title="Gerenciar Conta / Trocar Usuário"
+                  onClick={onOpenProfileModal || onOpenAuthModal}
+                  className="flex items-center gap-2 text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 px-3 py-1.5 rounded-xl transition-all group"
+                  title="Configurar Meu Perfil & Alterar Senha"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs group-hover:bg-amber-500 group-hover:text-zinc-950 transition-colors">
                     {currentUser.username ? currentUser.username[0].toUpperCase() : currentUser.name[0]}
                   </div>
                   <div className="hidden md:block">
-                    <p className="text-[11px] font-bold text-white leading-tight">
+                    <p className="text-[11px] font-bold text-white leading-tight flex items-center gap-1">
                       {currentUser.name.split(' ')[0]}
+                      <span className="text-[10px] text-amber-400">⚙️</span>
                     </p>
                     <p className="text-[9px] text-amber-400 font-mono">
                       @{currentUser.username || 'user'}
@@ -218,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <button
                   onClick={onLogout}
-                  className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-900 rounded-xl transition-colors"
+                  className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-900 rounded-xl transition-colors flex items-center gap-1"
                   title="Sair do Sistema"
                 >
                   <LogOut className="w-4 h-4" />

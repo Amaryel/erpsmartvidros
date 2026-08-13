@@ -380,29 +380,31 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
                     </td>
                     <td className="p-3 text-slate-500">{u.approvedBy || 'Super Admin'}</td>
                     <td className="p-3 text-right">
-                      {u.email.toLowerCase() !== SUPERADMIN_EMAIL.toLowerCase() && (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingUser(u);
-                              setEditUsername(u.username || '');
-                              setEditRole(u.role === 'superadmin' ? 'admin' : u.role);
-                              setEditPassword(u.password || '');
-                            }}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition-all"
-                          >
-                            ✏️ Editar
-                          </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingUser(u);
+                            setEditUsername(u.username || '');
+                            setEditRole(u.role === 'superadmin' ? 'superadmin' : u.role);
+                            setEditPassword(u.password || '');
+                          }}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition-all text-xs"
+                          title="Editar Nome de Usuário, Nível e Senha"
+                        >
+                          ✏️ Editar / Senha
+                        </button>
+                        {u.email.toLowerCase() !== SUPERADMIN_EMAIL.toLowerCase() && (
                           <button
                             type="button"
                             onClick={() => handleDeleteUser(u.id, u.name)}
-                            className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-all"
+                            className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-all text-xs"
+                            title="Remover Usuário"
                           >
                             🗑️
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

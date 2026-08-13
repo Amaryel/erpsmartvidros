@@ -6,12 +6,14 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose?: () => void;
   onSuccessLogin: (user: AppUser) => void;
+  currentUser?: AppUser | null;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   onSuccessLogin,
+  currentUser,
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
@@ -49,14 +51,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleQuickSuperAdminLogin = () => {
-    const res = loginUser(SUPERADMIN_EMAIL, 'admin');
-    if (res.success && res.user) {
-      onSuccessLogin(res.user);
-      if (onClose) onClose();
-    }
-  };
-
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setRegStatusMessage(null);
@@ -83,12 +77,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setRegName('');
       setRegEmail('');
       setRegPassword('');
-      // Se for aprovado automaticamente (Super admin), já efetua o login
-      if (res.user && res.user.status === 'aprovado') {
-        setTimeout(() => {
-          handleQuickSuperAdminLogin();
-        }, 1500);
-      }
     } else {
       setRegStatusMessage({
         type: 'error',
@@ -102,7 +90,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden flex flex-col">
         
         {/* Cabeçalho da Janela de Acesso */}
-        <div className="bg-slate-900 text-white p-6 relative">
+        <div className="bg-slate-900 text-white p-6 relative flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-extrabold text-xl shadow-lg shadow-amber-500/30">
               SV
@@ -112,6 +100,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <p className="text-xs text-slate-400">Autenticação e Controle de Acesso</p>
             </div>
           </div>
+
+          {currentUser && onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-white font-bold text-xl px-2 py-1 rounded-lg transition-colors"
+              title="Fechar"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Abas Alternadoras (Login / Solicitacao de Cadastro) */}
@@ -183,6 +182,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all"
+                  required
                 />
               </div>
 
@@ -192,17 +192,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               >
                 Entrar no Sistema
               </button>
-
-              <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={handleQuickSuperAdminLogin}
-                  className="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 border border-amber-500/30 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-                  Entrar como Super Admin (Amaryel)
-                </button>
-              </div>
             </form>
           ) : (
             <form onSubmit={handleRegisterSubmit} className="space-y-4">

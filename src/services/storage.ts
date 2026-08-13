@@ -105,6 +105,16 @@ export {
   loginUser,
   logoutUser,
   getCurrentSessionUser,
+  setSessionUser,
   isSuperAdmin,
   SUPERADMIN_EMAIL,
+
+  // Sincronização Supabase
+  getSupabaseConfig,
+  saveSupabaseConfig,
+  testSupabaseConnection,
+  pushAllToSupabase,
+  pullAllFromSupabase,
+  syncAllWithSupabase,
+  getLastSyncTime,
 } from './data';

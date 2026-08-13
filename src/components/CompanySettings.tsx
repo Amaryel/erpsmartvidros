@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Save, CheckCircle2 } from 'lucide-react';
+import { Save, CheckCircle2, Database, RefreshCw } from 'lucide-react';
 import { CompanyInfo } from '../types';
 
 interface CompanySettingsProps {
   companyInfo: CompanyInfo;
   onSave: (info: CompanyInfo) => void;
+  onOpenSupabaseSyncModal?: () => void;
 }
 
 export const CompanySettings: React.FC<CompanySettingsProps> = ({
   companyInfo,
   onSave,
+  onOpenSupabaseSyncModal,
 }) => {
   const [name, setName] = useState(companyInfo.name || 'Smart Vidros');
   const [ownerName, setOwnerName] = useState(companyInfo.ownerName || 'James Clayton do Nascimento');
@@ -165,6 +167,32 @@ export const CompanySettings: React.FC<CompanySettingsProps> = ({
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Card de Integração com Supabase */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <Database className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-white">Banco de Dados Supabase (Nuvem)</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Sincronize orçamentos, clientes, vendas e usuários em tempo real com seu projeto Supabase.
+            </p>
+          </div>
+        </div>
+
+        {onOpenSupabaseSyncModal && (
+          <button
+            type="button"
+            onClick={onOpenSupabaseSyncModal}
+            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs shadow-md transition-all shrink-0 active:scale-95"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Gerenciar Sincronização Supabase</span>
+          </button>
+        )}
       </div>
     </div>
   );

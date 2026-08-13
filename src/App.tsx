@@ -19,6 +19,8 @@ import { ProductList } from './components/ProductList';
 import { ServiceList } from './components/ServiceList';
 import { OperationsModule } from './components/OperationsModule';
 import { AuthModal } from './components/AuthModal';
+import { UserProfileModal } from './components/UserProfileModal';
+import { SupabaseSyncModal } from './components/SupabaseSyncModal';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import {
   Quote,
@@ -72,6 +74,8 @@ export default function App() {
   // Autenticação e Sessão de Usuário
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSupabaseSyncModalOpen, setIsSupabaseSyncModalOpen] = useState(false);
   const [pendingUsersCount, setPendingUsersCount] = useState(0);
 
   // Aba Início/Dashboard como Padrão
@@ -116,6 +120,9 @@ export default function App() {
     // Atualizar Usuário Logado & Cadastros Pendentes
     const user = getCurrentSessionUser();
     setCurrentUser(user);
+    if (!user) {
+      setIsAuthModalOpen(true);
+    }
     const allUsers = getUsers();
     setPendingUsersCount(allUsers.filter((u) => u.status === 'pendente').length);
   };
@@ -130,9 +137,11 @@ export default function App() {
   const handleLogout = () => {
     logoutUser();
     setCurrentUser(null);
+    setIsProfileModalOpen(false);
     if (activeTab === 'superadmin') {
       setActiveTab('dashboard');
     }
+    setIsAuthModalOpen(true);
     showToast('Você saiu do sistema.');
     refreshData();
   };
@@ -371,6 +380,8 @@ export default function App() {
           onOpenPdvClick={handleOpenPdvDirect}
           onToggleSidebarMobile={() => setIsSidebarMobileOpen(!isSidebarMobileOpen)}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onOpenProfileModal={() => setIsProfileModalOpen(true)}
+          onOpenSupabaseSyncModal={() => setIsSupabaseSyncModalOpen(true)}
           onLogout={handleLogout}
         />
 
@@ -545,6 +556,7 @@ export default function App() {
             <CompanySettings
               companyInfo={companyInfo}
               onSave={handleSaveCompany}
+              onOpenSupabaseSyncModal={() => setIsSupabaseSyncModalOpen(true)}
             />
           )}
 
@@ -569,9 +581,34 @@ export default function App() {
 
         {/* MODAL DE AUTENTICAÇÃO E CADASTRO */}
         <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
+          isOpen={isAuthModalOpen || !currentUser}
+          onClose={() => {
+            if (currentUser) {
+              setIsAuthModalOpen(false);
+            }
+          }}
           onSuccessLogin={handleSuccessLogin}
+          currentUser={currentUser}
+        />
+
+        {/* MODAL DE PERFIL DE USUÁRIO E ALTERAÇÃO DE SENHA */}
+        <UserProfileModal
+          currentUser={currentUser}
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          onUpdateUser={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            refreshData();
+          }}
+          onShowToast={showToast}
+        />
+
+        {/* MODAL DE SINCRONIZAÇÃO COM SUPABASE */}
+        <SupabaseSyncModal
+          isOpen={isSupabaseSyncModalOpen}
+          onClose={() => setIsSupabaseSyncModalOpen(false)}
+          onDataSynced={refreshData}
+          onShowToast={showToast}
         />
 
         {/* MODAL DE VENDAS / PDV (PONTO DE VENDA) */}
