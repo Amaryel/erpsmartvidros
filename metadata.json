@@ -1,0 +1,6 @@
+{
+  "name": "Smart Vidros",
+  "description": "Sistema Web/PWA para gestão de orçamentos, recibos e PDV - Smart Vidros",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
