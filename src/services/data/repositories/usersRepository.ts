@@ -1,15 +1,15 @@
 import { UserAccount } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
-import { getCurrentCompanyId } from '../auth';
 
 const USERS_KEY = 'smart_vidros_users';
 export const SUPERADMIN_EMAIL = 'amaryelcc@gmail.com';
+const DEFAULT_COMPANY_ID = 'comp-smart-vidros-001';
 
 export const INITIAL_USERS: UserAccount[] = [
   {
     id: 'usr-superadmin-001',
-    companyId: getCurrentCompanyId(),
+    companyId: DEFAULT_COMPANY_ID,
     name: 'Amaryel (Super Admin)',
     email: SUPERADMIN_EMAIL,
     username: 'amaryel',
@@ -23,7 +23,7 @@ export const INITIAL_USERS: UserAccount[] = [
   },
   {
     id: 'usr-admin-001',
-    companyId: getCurrentCompanyId(),
+    companyId: DEFAULT_COMPANY_ID,
     name: 'James Clayton',
     email: 'contato.smartvidros@gmail.com',
     username: 'smartvidros',
@@ -94,7 +94,7 @@ export function registerUser(userData: {
   const now = new Date().toISOString();
   const newUser: UserAccount = {
     id: generateUUID(),
-    companyId: getCurrentCompanyId(),
+    companyId: DEFAULT_COMPANY_ID,
     name: userData.name.trim(),
     email: cleanEmail,
     password: userData.password || '123456',
