@@ -21,6 +21,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,6 +32,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setName(currentUser.name || '');
       setEmail(currentUser.email || '');
       setUsername(currentUser.username || '');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setErrorMsg(null);
@@ -65,8 +67,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       return;
     }
 
+    const currentAccount = allUsers.find((u) => u.id === currentUser.id);
+
     // Se forneceu nova senha, validar
-    if (newPassword || confirmPassword) {
+    if (newPassword || confirmPassword || currentPassword) {
+      if (currentAccount?.password && currentAccount.password !== currentPassword) {
+        setErrorMsg('A senha atual digitada está incorreta.');
+        return;
+      }
       if (newPassword.length < 3) {
         setErrorMsg('A nova senha deve possuir no mínimo 3 caracteres.');
         return;
@@ -101,7 +109,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       // Atualizar a sessão ativa
       setSessionUser(updatedAppUser);
       onUpdateUser(updatedAppUser);
-      onShowToast('Seu perfil e senha foram atualizados com sucesso!');
+      onShowToast('Seu perfil e senha foram atualizados e sincronizados com sucesso!');
       onClose();
     } else {
       setErrorMsg('Ocorreu um erro ao atualizar os dados. Tente novamente.');
@@ -249,8 +257,21 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
 
             <p className="text-[11px] text-slate-500 leading-relaxed">
-              Deixe os campos abaixo em branco para manter a senha atual inalterada.
+              Para alterar sua senha, informe a senha atual e defina a nova senha.
             </p>
+
+            <div>
+              <label className="block text-[11px] font-extrabold text-slate-700 mb-1">
+                Senha Atual
+              </label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder:text-slate-400"
+                placeholder="Informe sua senha atual"
+              />
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -261,7 +282,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   type={showPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder:text-slate-400"
                   placeholder="Nova senha"
                 />
               </div>
@@ -274,7 +295,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder:text-slate-400"
                   placeholder="Repita a nova senha"
                 />
               </div>

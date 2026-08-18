@@ -3,6 +3,7 @@ import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { getCurrentCompanyId, getCurrentUserId } from '../auth';
 import { saveReceipt } from './receiptsRepository';
+import { autoSyncEntityChange } from '../supabaseSync';
 
 const RECEIVABLES_KEY = 'smart_vidros_receivables';
 const RECEIVABLES_COUNTER_KEY = 'smart_vidros_receivables_counter';
@@ -52,6 +53,7 @@ export function saveReceivable(receivable: Receivable): Receivable {
   }
 
   storageAdapter.setItem(RECEIVABLES_KEY, list);
+  autoSyncEntityChange('accounts_receivable', 'upsert', preparedReceivable);
   return preparedReceivable;
 }
 
@@ -76,6 +78,7 @@ export function deleteAccountReceivable(id: string): void {
 export function deleteReceivable(id: string): void {
   const list = getReceivables().filter((r) => r.id !== id);
   storageAdapter.setItem(RECEIVABLES_KEY, list);
+  autoSyncEntityChange('accounts_receivable', 'delete', id);
 }
 
 export function updateInstallmentDueDate(

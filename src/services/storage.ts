@@ -117,4 +117,5 @@ export {
   pullAllFromSupabase,
   syncAllWithSupabase,
   getLastSyncTime,
+  initSupabaseKeepAlive,
 } from './data';

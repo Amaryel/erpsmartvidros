@@ -135,12 +135,12 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
         </div>
 
         {/* ÁREA IMPRESSA (A4 FORMAT) */}
-        <div className="p-5 sm:p-8 bg-white overflow-y-auto flex-1 text-slate-900 font-sans print:p-2" id="printable-quote-area">
+        <div className="p-5 sm:p-8 bg-white overflow-y-auto flex-1 text-slate-900 font-sans print:p-2 notranslate" translate="no" id="printable-quote-area">
           
           {/* Cabeçalho Visual Identidade Smart Vidros */}
-          <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+          <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 notranslate" translate="no">
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 notranslate" translate="no">
               {/* Logo Vidros */}
               <div className="relative w-10 h-10 flex items-center justify-center rounded-lg bg-slate-900 border border-amber-400/60 shadow-inner">
                 <div className="absolute top-1 left-1.5 w-7 h-8 border-2 border-amber-500/40 rounded-sm transform -rotate-6"></div>
@@ -150,15 +150,15 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="font-extrabold tracking-widest text-xl text-amber-400">SMART</span>
-                  <span className="font-light tracking-widest text-lg text-white uppercase">VIDROS</span>
+              <div className="notranslate" translate="no">
+                <div className="flex items-baseline gap-1.5 notranslate" translate="no">
+                  <span className="font-extrabold tracking-widest text-xl text-amber-400 notranslate" translate="no">SMART</span>
+                  <span className="font-light tracking-widest text-lg text-white uppercase notranslate" translate="no">VIDROS</span>
                 </div>
-                <p className="text-xs text-amber-200/90 font-semibold tracking-wide">
+                <p className="text-xs text-amber-200/90 font-semibold tracking-wide notranslate" translate="no">
                   {companyInfo.ownerName || 'James Clayton do Nascimento'}
                 </p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-400 notranslate" translate="no">
                   CNPJ: {companyInfo.cnpj || '51.840.669/0001-22'}
                 </p>
               </div>

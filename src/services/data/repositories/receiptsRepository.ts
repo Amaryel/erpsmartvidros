@@ -3,6 +3,7 @@ import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { getCurrentCompanyId, getCurrentUserId } from '../auth';
 import { addServiceToList } from './servicesRepository';
+import { autoSyncEntityChange } from '../supabaseSync';
 
 const RECEIPTS_KEY = 'smart_vidros_receipts';
 const RECEIPTS_COUNTER_KEY = 'smart_vidros_receipts_counter';
@@ -83,6 +84,7 @@ export function saveReceipt(
       };
       receipts[index] = updatedReceipt;
       storageAdapter.setItem(RECEIPTS_KEY, receipts);
+      autoSyncEntityChange('receipts', 'upsert', updatedReceipt);
       return updatedReceipt;
     }
   }
@@ -99,6 +101,7 @@ export function saveReceipt(
 
   receipts.unshift(newReceipt);
   storageAdapter.setItem(RECEIPTS_KEY, receipts);
+  autoSyncEntityChange('receipts', 'upsert', newReceipt);
   return newReceipt;
 }
 
@@ -118,4 +121,5 @@ export function updateReceipt(
 export function deleteReceipt(id: string): void {
   const receipts = getReceipts().filter((r) => r.id !== id);
   storageAdapter.setItem(RECEIPTS_KEY, receipts);
+  autoSyncEntityChange('receipts', 'delete', id);
 }

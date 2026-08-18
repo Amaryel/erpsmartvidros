@@ -2,6 +2,7 @@ import { CatalogItem } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { getCurrentCompanyId } from '../auth';
+import { autoSyncEntityChange } from '../supabaseSync';
 
 const CATALOG_KEY = 'smart_vidros_catalog';
 
@@ -46,6 +47,8 @@ export function saveCatalogItem(item: Omit<CatalogItem, 'id'> & { id?: string })
   const companyId = item.companyId || getCurrentCompanyId();
   const now = new Date().toISOString();
 
+  let savedItem: CatalogItem | null = null;
+
   if (item.id) {
     const idx = catalog.findIndex((c) => c.id === item.id);
     if (idx !== -1) {
@@ -58,6 +61,7 @@ export function saveCatalogItem(item: Omit<CatalogItem, 'id'> & { id?: string })
         companyId,
         updatedAt: now,
       };
+      savedItem = catalog[idx];
     }
   } else {
     const newItem: CatalogItem = {
@@ -71,9 +75,13 @@ export function saveCatalogItem(item: Omit<CatalogItem, 'id'> & { id?: string })
       updatedAt: now,
     };
     catalog.unshift(newItem);
+    savedItem = newItem;
   }
 
   storageAdapter.setItem(CATALOG_KEY, catalog);
+  if (savedItem) {
+    autoSyncEntityChange('catalog', 'upsert', savedItem);
+  }
   return catalog;
 }
 
@@ -94,5 +102,6 @@ export function deleteProduct(id: string): CatalogItem[] {
 export function deleteCatalogItem(id: string): CatalogItem[] {
   const catalog = getCatalog().filter((c) => c.id !== id);
   storageAdapter.setItem(CATALOG_KEY, catalog);
+  autoSyncEntityChange('catalog', 'delete', id);
   return catalog;
 }

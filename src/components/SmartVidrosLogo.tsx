@@ -41,22 +41,25 @@ export const SmartVidrosLogo: React.FC<SmartVidrosLogoProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`group flex items-center select-none ${
+      translate="no"
+      className={`group flex items-center select-none notranslate ${
         onClick ? 'cursor-pointer active:scale-95 transition-all duration-150' : ''
       } ${className}`}
       title="Início — Smart Vidros"
     >
-      <div className="leading-none">
-        <div className="flex items-baseline gap-1.5">
+      <div className="leading-none notranslate" translate="no">
+        <div className="flex items-baseline gap-1.5 notranslate" translate="no">
           <span
-            className={`tracking-widest drop-shadow-sm ${currentSize.titleMain} ${
+            translate="no"
+            className={`tracking-widest drop-shadow-sm notranslate ${currentSize.titleMain} ${
               variant === 'light' ? 'text-amber-600' : 'text-amber-400 group-hover:text-amber-300 transition-colors'
             }`}
           >
             SMART
           </span>
           <span
-            className={`tracking-wider ${currentSize.titleSub} ${
+            translate="no"
+            className={`tracking-wider notranslate ${currentSize.titleSub} ${
               variant === 'light' ? 'text-slate-900' : 'text-zinc-100 group-hover:text-white transition-colors'
             } uppercase`}
           >

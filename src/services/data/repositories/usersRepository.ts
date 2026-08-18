@@ -1,6 +1,7 @@
 import { UserAccount } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
+import { autoSyncEntityChange } from '../supabaseSync';
 
 const USERS_KEY = 'smart_vidros_users';
 export const SUPERADMIN_EMAIL = 'amaryelcc@gmail.com';
@@ -69,10 +70,12 @@ export function findUserByEmailOrUsername(identifier: string): UserAccount | und
 export function registerUser(userData: {
   name: string;
   email: string;
+  username?: string;
   password?: string;
 }): { success: boolean; message: string; user?: UserAccount } {
   const users = getUsers();
   const cleanEmail = userData.email.trim().toLowerCase();
+  const cleanUsername = userData.username ? userData.username.trim().toLowerCase().replace(/\s+/g, '') : undefined;
 
   // Se for o email do super admin, aprova automaticamente
   const isSuper = cleanEmail === SUPERADMIN_EMAIL.toLowerCase();
@@ -91,12 +94,23 @@ export function registerUser(userData: {
     };
   }
 
+  if (cleanUsername) {
+    const existingUsername = users.find((u) => u.username && u.username.toLowerCase() === cleanUsername);
+    if (existingUsername) {
+      return {
+        success: false,
+        message: `O nome de usuário "@${cleanUsername}" já está em uso por outro usuário.`,
+      };
+    }
+  }
+
   const now = new Date().toISOString();
   const newUser: UserAccount = {
     id: generateUUID(),
     companyId: DEFAULT_COMPANY_ID,
     name: userData.name.trim(),
     email: cleanEmail,
+    username: cleanUsername,
     password: userData.password || '123456',
     role: isSuper ? 'superadmin' : 'operador',
     status: isSuper ? 'aprovado' : 'pendente',
@@ -106,6 +120,7 @@ export function registerUser(userData: {
 
   users.unshift(newUser);
   storageAdapter.setItem(USERS_KEY, users);
+  autoSyncEntityChange('user_accounts', 'upsert', newUser);
 
   return {
     success: true,
@@ -152,6 +167,7 @@ export function approveUser(
 
   users[idx] = updatedUser;
   storageAdapter.setItem(USERS_KEY, users);
+  autoSyncEntityChange('user_accounts', 'upsert', updatedUser);
   return updatedUser;
 }
 
@@ -163,6 +179,7 @@ export function rejectUser(userId: string): UserAccount | null {
   users[idx].status = 'rejeitado';
   users[idx].updatedAt = new Date().toISOString();
   storageAdapter.setItem(USERS_KEY, users);
+  autoSyncEntityChange('user_accounts', 'upsert', users[idx]);
   return users[idx];
 }
 
@@ -181,11 +198,13 @@ export function updateUser(
   };
 
   storageAdapter.setItem(USERS_KEY, users);
+  autoSyncEntityChange('user_accounts', 'upsert', users[idx]);
   return users[idx];
 }
 
 export function deleteUser(id: string): UserAccount[] {
   const users = getUsers().filter((u) => u.id !== id);
   storageAdapter.setItem(USERS_KEY, users);
+  autoSyncEntityChange('user_accounts', 'delete', id);
   return users;
 }

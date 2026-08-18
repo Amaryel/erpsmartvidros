@@ -8,13 +8,25 @@ export const DEFAULT_COMPANY_ID = 'comp-smart-vidros-001';
 export const DEFAULT_USER_ID = 'usr-superadmin-001';
 
 export function getCurrentSessionUser(): AppUser | null {
-  const session = storageAdapter.getItem<AppUser>(AUTH_SESSION_KEY, null);
-  return session;
+  // 1. Verificar primeiro a sessão da aba atual (sessionStorage)
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const sessionData = window.sessionStorage.getItem(AUTH_SESSION_KEY);
+      if (sessionData) {
+        return JSON.parse(sessionData);
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao ler sessionStorage:', err);
+  }
+
+  // 2. Se não estiver no sessionStorage, verificar se o usuário optou por "Manter conectado" (localStorage)
+  const localData = storageAdapter.getItem<AppUser>(AUTH_SESSION_KEY, null);
+  return localData;
 }
 
 export function getCurrentUser(): AppUser | null {
-  const session = getCurrentSessionUser();
-  return session;
+  return getCurrentSessionUser();
 }
 
 export function getCurrentCompanyId(): string {
@@ -37,7 +49,8 @@ export function isSuperAdmin(user?: AppUser | UserAccount | null): boolean {
 
 export function loginUser(
   identifier: string,
-  password?: string
+  password?: string,
+  rememberMe: boolean = true
 ): { success: boolean; message: string; user?: AppUser } {
   const userAccount = findUserByEmailOrUsername(identifier);
 
@@ -90,7 +103,24 @@ export function loginUser(
     companyId: userAccount.companyId,
   };
 
-  storageAdapter.setItem(AUTH_SESSION_KEY, appUser);
+  // Salvar sessão de acordo com a opção de persistência
+  if (rememberMe) {
+    // Manter conectado neste dispositivo (Persistir no LocalStorage)
+    storageAdapter.setItem(AUTH_SESSION_KEY, appUser);
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(appUser));
+      }
+    } catch {}
+  } else {
+    // Apenas nesta sessão do navegador (sessionStorage)
+    storageAdapter.removeItem(AUTH_SESSION_KEY);
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(appUser));
+      }
+    } catch {}
+  }
 
   return {
     success: true,
@@ -101,8 +131,20 @@ export function loginUser(
 
 export function logoutUser(): void {
   storageAdapter.removeItem(AUTH_SESSION_KEY);
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      window.sessionStorage.removeItem(AUTH_SESSION_KEY);
+    }
+  } catch {}
 }
 
-export function setSessionUser(user: AppUser): void {
-  storageAdapter.setItem(AUTH_SESSION_KEY, user);
+export function setSessionUser(user: AppUser, rememberMe: boolean = true): void {
+  if (rememberMe) {
+    storageAdapter.setItem(AUTH_SESSION_KEY, user);
+  }
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      window.sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(user));
+    }
+  } catch {}
 }

@@ -14,6 +14,7 @@ import {
 const SYNC_TIMESTAMP_KEY = 'smart_vidros_last_supabase_sync';
 const SUPABASE_URL_KEY = 'smart_vidros_supabase_url';
 const SUPABASE_KEY_KEY = 'smart_vidros_supabase_key';
+const KEEP_ALIVE_KEY = 'smart_vidros_supabase_last_ping';
 
 export interface SupabaseConfig {
   url: string;
@@ -42,10 +43,14 @@ export function saveSupabaseConfig(url: string, key: string) {
   localStorage.setItem(SUPABASE_KEY_KEY, cleanKey);
 }
 
-
 // Obter Timestamp da Última Sincronização
 export function getLastSyncTime(): string | null {
   return localStorage.getItem(SYNC_TIMESTAMP_KEY);
+}
+
+// Obter Timestamp do Último Keep-Alive
+export function getLastKeepAliveTime(): string | null {
+  return localStorage.getItem(KEEP_ALIVE_KEY);
 }
 
 // Testar Conexão com Supabase
@@ -61,10 +66,206 @@ export async function testSupabaseConnection(customUrl?: string, customKey?: str
       return { success: false, message: `Erro ao conectar no Supabase: ${error.message}` };
     }
 
+    // Registra o ping de keep-alive bem-sucedido
+    localStorage.setItem(KEEP_ALIVE_KEY, new Date().toISOString());
+
     return { success: true, message: 'Conexão com o banco Supabase estabelecida com sucesso!' };
   } catch (err: any) {
     return { success: false, message: `Falha na conexão: ${err.message || 'Erro desconhecido'}` };
   }
+}
+
+// ============================================================
+// KEEP-ALIVE ANTI-INATIVIDADE (PLANO GRATUITO SUPABASE)
+// ============================================================
+export async function pingSupabase(): Promise<{ success: boolean; timestamp: string; message: string }> {
+  try {
+    const client = getSupabaseClient();
+    if (!client) {
+      return { success: false, timestamp: '', message: 'Supabase não conectado.' };
+    }
+    const { error } = await client.from('companies').select('id').limit(1);
+    const now = new Date().toISOString();
+    if (error) {
+      return { success: false, timestamp: now, message: error.message };
+    }
+    localStorage.setItem(KEEP_ALIVE_KEY, now);
+    return { success: true, timestamp: now, message: 'Banco de dados ativo e pronto para uso!' };
+  } catch (err: any) {
+    return { success: false, timestamp: '', message: err.message || 'Erro no ping do banco.' };
+  }
+}
+
+let keepAliveIntervalId: any = null;
+export function initSupabaseKeepAlive(): void {
+  if (keepAliveIntervalId) return;
+  // Dispara um ping leve inicial
+  pingSupabase().catch(() => {});
+  // Repete a cada 4 horas enquanto o app estiver em execução
+  keepAliveIntervalId = setInterval(() => {
+    pingSupabase().catch(() => {});
+  }, 4 * 60 * 60 * 1000);
+}
+
+// ============================================================
+// MAPER DE ENTIDADES LOCAIS PARA TABELAS DO SUPABASE
+// ============================================================
+function mapEntityToSupabaseRow(table: string, entity: any): Record<string, any> | null {
+  if (!entity) return null;
+
+  switch (table) {
+    case 'companies':
+      return {
+        id: entity.id || 'comp-smart-vidros-001',
+        name: entity.name || 'Smart Vidros',
+        owner_name: entity.ownerName || '',
+        cnpj: entity.cnpj || '',
+        phone: entity.phone || '',
+        email: entity.email || '',
+        address: entity.address || '',
+        city: entity.city || '',
+        logo_url: entity.logoUrl || null,
+        updated_at: new Date().toISOString(),
+      };
+
+    case 'user_accounts':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        name: entity.name,
+        email: entity.email,
+        username: entity.username || entity.email.split('@')[0],
+        password: entity.password || '123456',
+        role: entity.role || 'operador',
+        status: entity.status || 'pendente',
+        approved_at: entity.approvedAt || null,
+        approved_by: entity.approvedBy || null,
+        created_at: entity.createdAt || new Date().toISOString(),
+        updated_at: entity.updatedAt || new Date().toISOString(),
+      };
+
+    case 'clients':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        name: entity.name,
+        document: entity.cpfCnpj || null,
+        phone: entity.phone || entity.whatsapp || null,
+        email: entity.email || null,
+        address: entity.address || null,
+        city: entity.city || null,
+        notes: entity.notes || null,
+        created_at: entity.createdAt || new Date().toISOString(),
+        updated_at: entity.updatedAt || new Date().toISOString(),
+      };
+
+    case 'quotes':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        code: entity.code,
+        client_name: entity.clientName || 'Cliente',
+        client_phone: entity.clientPhone || null,
+        total_amount: entity.total || 0,
+        discount_amount: entity.discountAmount || 0,
+        status: entity.status || 'rascunho',
+        items: entity.items || [],
+        notes: entity.notes || null,
+        created_at: entity.createdAt || new Date().toISOString(),
+        updated_at: entity.updatedAt || new Date().toISOString(),
+      };
+
+    case 'sales':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        quote_id: entity.quoteId || null,
+        code: entity.code,
+        client_name: entity.clientName || 'Cliente Balcão',
+        client_phone: entity.clientPhone || null,
+        total_amount: entity.total || 0,
+        payment_method: entity.payments && entity.payments[0] ? entity.payments[0].method : 'PIX',
+        status: entity.status === 'concluida' ? 'concluido' : 'cancelado',
+        items: entity.items || [],
+        notes: entity.notes || null,
+        created_at: entity.createdAt || new Date().toISOString(),
+        finalized_at: entity.updatedAt || new Date().toISOString(),
+      };
+
+    case 'accounts_receivable':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        sale_id: entity.saleId || null,
+        quote_id: entity.quoteId || null,
+        client_name: entity.clientName || 'Cliente',
+        description: entity.notes || `Conta a receber ${entity.saleCode || ''}`,
+        amount: entity.totalAmount || entity.remainingAmount || 0,
+        due_date: entity.installments && entity.installments[0] ? entity.installments[0].dueDate : new Date().toISOString(),
+        status: entity.status || 'pendente',
+        created_at: entity.createdAt || new Date().toISOString(),
+      };
+
+    case 'receipts':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        sale_id: entity.saleId || null,
+        receivable_id: entity.receivableId || null,
+        code: entity.code,
+        client_name: entity.clientName || 'Cliente',
+        amount: entity.amount || 0,
+        payment_method: 'PIX',
+        description: entity.service || null,
+        created_at: entity.createdAt || new Date().toISOString(),
+      };
+
+    case 'catalog':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        name: entity.name,
+        category: entity.category || 'vidros',
+        unit: entity.unit || 'm2',
+        unit_price: entity.unitPrice || entity.pricePerM2 || 0,
+        description: entity.description || null,
+        created_at: entity.createdAt || new Date().toISOString(),
+      };
+
+    default:
+      return null;
+  }
+}
+
+// ============================================================
+// AUTO-SYNC HOOK EM TEMPO REAL
+// ============================================================
+export function autoSyncEntityChange(
+  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'catalog',
+  action: 'upsert' | 'delete',
+  data: any
+): void {
+  // Executa de forma assíncrona em segundo plano sem bloquear a interface
+  setTimeout(async () => {
+    try {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      if (action === 'delete') {
+        const id = typeof data === 'string' ? data : data?.id;
+        if (id) {
+          await client.from(table).delete().eq('id', id);
+        }
+      } else {
+        const mappedRow = mapEntityToSupabaseRow(table, data);
+        if (mappedRow) {
+          await client.from(table).upsert([mappedRow]);
+        }
+      }
+    } catch (err) {
+      console.warn(`[AutoSync] Não foi possível persistir no Supabase (${table}):`, err);
+    }
+  }, 100);
 }
 
 // ============================================================

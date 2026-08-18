@@ -2,6 +2,7 @@ import { CompanyInfo } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import smartVidrosLogoImg from '../../../assets/images/smart_vidros_logo_1786536378370.jpg';
 import { getCurrentCompanyId } from '../auth';
+import { autoSyncEntityChange } from '../supabaseSync';
 
 const COMPANY_KEY = 'smart_vidros_company';
 
@@ -36,4 +37,5 @@ export function saveCompanyInfo(info: CompanyInfo): void {
     updatedAt: now,
   };
   storageAdapter.setItem(COMPANY_KEY, updatedInfo);
+  autoSyncEntityChange('companies', 'upsert', updatedInfo);
 }

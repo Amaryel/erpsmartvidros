@@ -18,7 +18,7 @@ import { ClientList } from './components/ClientList';
 import { ProductList } from './components/ProductList';
 import { ServiceList } from './components/ServiceList';
 import { OperationsModule } from './components/OperationsModule';
-import { AuthModal } from './components/AuthModal';
+import { LoginPage } from './components/LoginPage';
 import { UserProfileModal } from './components/UserProfileModal';
 import { SupabaseSyncModal } from './components/SupabaseSyncModal';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
@@ -53,6 +53,7 @@ import {
   logoutUser,
   getUsers,
   SUPERADMIN_EMAIL,
+  initSupabaseKeepAlive,
 } from './services/storage';
 
 export default function App() {
@@ -104,8 +105,9 @@ export default function App() {
   // Toast Notificação
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Carregar dados iniciais do localStorage
+  // Carregar dados iniciais do localStorage & Iniciar Keep-Alive Supabase
   useEffect(() => {
+    initSupabaseKeepAlive();
     refreshData();
   }, []);
 
@@ -120,16 +122,12 @@ export default function App() {
     // Atualizar Usuário Logado & Cadastros Pendentes
     const user = getCurrentSessionUser();
     setCurrentUser(user);
-    if (!user) {
-      setIsAuthModalOpen(true);
-    }
     const allUsers = getUsers();
     setPendingUsersCount(allUsers.filter((u) => u.status === 'pendente').length);
   };
 
   const handleSuccessLogin = (user: AppUser) => {
     setCurrentUser(user);
-    setIsAuthModalOpen(false);
     showToast(`Bem-vindo, ${user.name}!`);
     refreshData();
   };
@@ -138,12 +136,8 @@ export default function App() {
     logoutUser();
     setCurrentUser(null);
     setIsProfileModalOpen(false);
-    if (activeTab === 'superadmin') {
-      setActiveTab('dashboard');
-    }
-    setIsAuthModalOpen(true);
-    showToast('Você saiu do sistema.');
-    refreshData();
+    setActiveTab('dashboard');
+    showToast('Você saiu do sistema com segurança.');
   };
 
   const showToast = (msg: string) => {
@@ -322,6 +316,21 @@ export default function App() {
     setClientPreFill({ name: clientName, phone: clientPhone });
     setActiveTab('new_receipt');
   };
+
+  // Bloqueio de Segurança / Rota de Login: se o usuário não estiver autenticado, exibir exclusivamente a LoginPage
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-950 font-sans selection:bg-amber-500 selection:text-slate-950">
+        <LoginPage onSuccessLogin={handleSuccessLogin} />
+        {toastMessage && (
+          <div className="fixed bottom-5 right-5 z-[9999] bg-slate-900 text-amber-400 px-4 py-3 rounded-xl font-bold text-xs shadow-2xl flex items-center gap-2 border border-amber-500/50 animate-fade-in">
+            <span>✨</span>
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-amber-500 selection:text-slate-950 flex flex-col">
@@ -563,33 +572,12 @@ export default function App() {
           {/* ABA 11: PAINEL SUPER ADMIN */}
           {activeTab === 'superadmin' && (
             <SuperAdminPanel
-              currentUser={
-                currentUser || {
-                  id: 'super-admin-root',
-                  name: 'Super Admin',
-                  email: SUPERADMIN_EMAIL,
-                  role: 'superadmin',
-                  status: 'aprovado',
-                  createdAt: new Date().toISOString(),
-                }
-              }
+              currentUser={currentUser!}
               onShowToast={showToast}
               onRefreshUsers={refreshData}
             />
           )}
         </main>
-
-        {/* MODAL DE AUTENTICAÇÃO E CADASTRO */}
-        <AuthModal
-          isOpen={isAuthModalOpen || !currentUser}
-          onClose={() => {
-            if (currentUser) {
-              setIsAuthModalOpen(false);
-            }
-          }}
-          onSuccessLogin={handleSuccessLogin}
-          currentUser={currentUser}
-        />
 
         {/* MODAL DE PERFIL DE USUÁRIO E ALTERAÇÃO DE SENHA */}
         <UserProfileModal

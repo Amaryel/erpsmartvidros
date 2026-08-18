@@ -2,6 +2,7 @@ import { Quote } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { getCurrentCompanyId, getCurrentUserId } from '../auth';
+import { autoSyncEntityChange } from '../supabaseSync';
 
 const QUOTES_KEY = 'smart_vidros_quotes';
 const COUNTER_KEY = 'smart_vidros_counter';
@@ -111,6 +112,7 @@ export function saveQuote(
       };
       quotes[index] = updatedQuote;
       storageAdapter.setItem(QUOTES_KEY, quotes);
+      autoSyncEntityChange('quotes', 'upsert', updatedQuote);
       return updatedQuote;
     }
   }
@@ -127,6 +129,7 @@ export function saveQuote(
 
   quotes.unshift(newQuote);
   storageAdapter.setItem(QUOTES_KEY, quotes);
+  autoSyncEntityChange('quotes', 'upsert', newQuote);
   return newQuote;
 }
 
@@ -150,6 +153,7 @@ export function deleteBudget(id: string): void {
 export function deleteQuote(id: string): void {
   const quotes = getQuotes().filter((q) => q.id !== id);
   storageAdapter.setItem(QUOTES_KEY, quotes);
+  autoSyncEntityChange('quotes', 'delete', id);
 }
 
 export function updateQuoteStatus(id: string, newStatus: Quote['status']): Quote | null {
@@ -159,6 +163,7 @@ export function updateQuoteStatus(id: string, newStatus: Quote['status']): Quote
     quotes[index].status = newStatus;
     quotes[index].updatedAt = new Date().toISOString();
     storageAdapter.setItem(QUOTES_KEY, quotes);
+    autoSyncEntityChange('quotes', 'upsert', quotes[index]);
     return quotes[index];
   }
   return null;

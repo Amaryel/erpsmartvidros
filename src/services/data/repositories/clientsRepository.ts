@@ -2,6 +2,7 @@ import { Client } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { getCurrentCompanyId, getCurrentUserId } from '../auth';
+import { autoSyncEntityChange } from '../supabaseSync';
 
 const CLIENTS_KEY = 'smart_vidros_clients';
 
@@ -86,6 +87,7 @@ export function saveClient(
       };
       clients[index] = updatedClient;
       storageAdapter.setItem(CLIENTS_KEY, clients);
+      autoSyncEntityChange('clients', 'upsert', updatedClient);
       return updatedClient;
     }
   }
@@ -106,6 +108,7 @@ export function saveClient(
     const index = clients.findIndex((c) => c.id === existingByName.id);
     clients[index] = updatedClient;
     storageAdapter.setItem(CLIENTS_KEY, clients);
+    autoSyncEntityChange('clients', 'upsert', updatedClient);
     return updatedClient;
   }
 
@@ -120,6 +123,7 @@ export function saveClient(
 
   clients.unshift(newClient);
   storageAdapter.setItem(CLIENTS_KEY, clients);
+  autoSyncEntityChange('clients', 'upsert', newClient);
   return newClient;
 }
 
@@ -140,5 +144,6 @@ export function updateClient(
 export function deleteClient(id: string): Client[] {
   const clients = getClients().filter((c) => c.id !== id);
   storageAdapter.setItem(CLIENTS_KEY, clients);
+  autoSyncEntityChange('clients', 'delete', id);
   return clients;
 }

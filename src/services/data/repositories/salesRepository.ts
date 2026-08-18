@@ -5,6 +5,7 @@ import { getCurrentCompanyId, getCurrentUserId } from '../auth';
 import { getQuotes, saveQuote } from './budgetsRepository';
 import { saveReceivable, deleteReceivable } from './accountsReceivableRepository';
 import { saveReceipt, deleteReceipt } from './receiptsRepository';
+import { autoSyncEntityChange } from '../supabaseSync';
 
 const SALES_KEY = 'smart_vidros_sales';
 const SALES_COUNTER_KEY = 'smart_vidros_sales_counter';
@@ -279,6 +280,7 @@ export function finalizeSale(
     sales.unshift(finalSale);
   }
   storageAdapter.setItem(SALES_KEY, sales);
+  autoSyncEntityChange('sales', 'upsert', finalSale);
 
   // 4. Se a venda veio de um orçamento, atualizar o orçamento com status 'convertido'
   if (finalSale.quoteId) {
@@ -291,6 +293,7 @@ export function finalizeSale(
       quotes[qIdx].convertedSaleCode = finalSale.code;
       quotes[qIdx].updatedAt = now;
       storageAdapter.setItem('smart_vidros_quotes', quotes);
+      autoSyncEntityChange('quotes', 'upsert', quotes[qIdx]);
     }
   }
 
@@ -329,6 +332,7 @@ export function deleteSale(id: string): void {
 
   const updatedSales = sales.filter((s) => s.id !== id);
   storageAdapter.setItem(SALES_KEY, updatedSales);
+  autoSyncEntityChange('sales', 'delete', id);
 }
 
 export function updateWorkDetails(

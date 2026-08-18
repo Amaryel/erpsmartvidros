@@ -232,11 +232,11 @@ export const ReceiptViewModal: React.FC<ReceiptViewModalProps> = ({
         )}
 
         {/* ÁREA DE IMPRESSÃO A4 */}
-        <div className="p-5 sm:p-8 bg-white overflow-y-auto flex-1 text-slate-900 font-sans print:p-2" id="printable-receipt-area">
+        <div className="p-5 sm:p-8 bg-white overflow-y-auto flex-1 text-slate-900 font-sans print:p-2 notranslate" translate="no" id="printable-receipt-area">
           
           {/* Cabeçalho Centralizado da Empresa Smart Vidros */}
-          <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 text-center mb-4">
-            <div className="flex flex-col items-center justify-center gap-1.5 mb-2">
+          <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 text-center mb-4 notranslate" translate="no">
+            <div className="flex flex-col items-center justify-center gap-1.5 mb-2 notranslate" translate="no">
               <div className="relative w-10 h-10 flex items-center justify-center rounded-lg bg-slate-900 border border-amber-400/60 shadow-inner">
                 <div className="absolute top-1 left-1.5 w-7 h-8 border-2 border-amber-500/40 rounded-sm transform -rotate-6"></div>
                 <div className="absolute top-1.5 left-2 w-7 h-8 border-2 border-amber-400/70 rounded-sm transform -rotate-3"></div>
@@ -245,15 +245,15 @@ export const ReceiptViewModal: React.FC<ReceiptViewModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-baseline justify-center gap-1.5">
-                  <span className="font-extrabold tracking-widest text-xl text-amber-400">SMART</span>
-                  <span className="font-light tracking-widest text-lg text-white uppercase">VIDROS</span>
+              <div className="notranslate" translate="no">
+                <div className="flex items-baseline justify-center gap-1.5 notranslate" translate="no">
+                  <span className="font-extrabold tracking-widest text-xl text-amber-400 notranslate" translate="no">SMART</span>
+                  <span className="font-light tracking-widest text-lg text-white uppercase notranslate" translate="no">VIDROS</span>
                 </div>
-                <p className="text-xs text-amber-200/90 font-semibold tracking-wide">
+                <p className="text-xs text-amber-200/90 font-semibold tracking-wide notranslate" translate="no">
                   {ownerName}
                 </p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-400 notranslate" translate="no">
                   CNPJ: {cnpj}
                 </p>
               </div>

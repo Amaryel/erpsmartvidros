@@ -325,14 +325,15 @@ export const downloadPdfElement = async (elementId: string, filename: string): P
     iframeDoc.open();
     iframeDoc.write(`
       <!DOCTYPE html>
-      <html>
+      <html lang="pt-BR" class="notranslate" translate="no">
         <head>
           <meta charset="utf-8">
+          <meta name="google" content="notranslate">
           <title>${filename}</title>
           <style>${ISOLATED_IFRAME_CSS}</style>
         </head>
-        <body>
-          <div id="pdf-root">
+        <body class="notranslate" translate="no">
+          <div id="pdf-root" class="notranslate" translate="no">
             ${targetElement.innerHTML}
           </div>
         </body>
