@@ -55,7 +55,8 @@ interface PosModalProps {
   onFinalizeSale: (
     sale: Sale,
     installmentsConfig: { count: number; dueDates: string[]; amounts: number[] },
-    emitReceipt: boolean
+    emitReceipt: boolean,
+    generateContract?: boolean
   ) => void;
 }
 
@@ -124,8 +125,9 @@ export const PosModal: React.FC<PosModalProps> = ({
   const [installmentDueDates, setInstallmentDueDates] = useState<string[]>([]);
   const [installmentAmounts, setInstallmentAmounts] = useState<number[]>([]);
 
-  // Diálogo de confirmação de recibo
-  const [showReceiptPrompt, setShowReceiptPrompt] = useState(false);
+  // Diálogos de confirmação pós-venda (Recibo e Contrato)
+  const [postSaleStep, setPostSaleStep] = useState<'receipt' | 'contract' | null>(null);
+  const [emitReceiptChoice, setEmitReceiptChoice] = useState<boolean>(true);
   const [completedSaleResult, setCompletedSaleResult] = useState<Sale | null>(null);
 
   // Seleção rápida do catálogo
@@ -410,7 +412,7 @@ export const PosModal: React.FC<PosModalProps> = ({
     };
 
     setCompletedSaleResult(saleObject);
-    setShowReceiptPrompt(true);
+    setPostSaleStep('receipt');
   };
 
   // Submeter Venda
@@ -439,9 +441,9 @@ export const PosModal: React.FC<PosModalProps> = ({
     executeFinalizeSale();
   };
 
-  // Confirmar com ou sem recibo
-  const handleConfirmFinalize = (emitReceipt: boolean) => {
+  const handleFinalizeWithReceipt = () => {
     if (!completedSaleResult) return;
+    setPostSaleStep(null);
     onFinalizeSale(
       completedSaleResult,
       {
@@ -449,7 +451,53 @@ export const PosModal: React.FC<PosModalProps> = ({
         dueDates: installmentDueDates,
         amounts: installmentAmounts,
       },
-      emitReceipt
+      true,
+      false
+    );
+  };
+
+  const handleFinalizeWithContract = () => {
+    if (!completedSaleResult) return;
+    setPostSaleStep(null);
+    onFinalizeSale(
+      completedSaleResult,
+      {
+        count: installmentCount,
+        dueDates: installmentDueDates,
+        amounts: installmentAmounts,
+      },
+      false,
+      true
+    );
+  };
+
+  const handleFinalizeWithBoth = () => {
+    if (!completedSaleResult) return;
+    setPostSaleStep(null);
+    onFinalizeSale(
+      completedSaleResult,
+      {
+        count: installmentCount,
+        dueDates: installmentDueDates,
+        amounts: installmentAmounts,
+      },
+      true,
+      true
+    );
+  };
+
+  const handleFinalizeSimple = () => {
+    if (!completedSaleResult) return;
+    setPostSaleStep(null);
+    onFinalizeSale(
+      completedSaleResult,
+      {
+        count: installmentCount,
+        dueDates: installmentDueDates,
+        amounts: installmentAmounts,
+      },
+      false,
+      false
     );
   };
 
@@ -1190,36 +1238,86 @@ export const PosModal: React.FC<PosModalProps> = ({
         />
       )}
 
-      {/* Confirmar Emissão de Recibo após Finalizar */}
-      {showReceiptPrompt && (
-        <div className="fixed inset-0 z-60 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-amber-400 text-center animate-in zoom-in-95">
-            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle2 className="w-8 h-8" />
+      {/* MODAL PÓS-VENDA: ESCOLHA DE AÇÃO / DOCUMENTOS */}
+      {completedSaleResult && postSaleStep && (
+        <div className="fixed inset-0 z-60 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 border-2 border-emerald-500/40 text-center animate-in zoom-in-95">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="w-10 h-10" />
             </div>
 
             <div>
-              <h3 className="text-xl font-extrabold text-slate-900">Venda Concluída!</h3>
+              <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-black uppercase px-3 py-0.5 rounded-full">
+                Venda Registrada com Sucesso
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-2">
+                O que deseja fazer agora?
+              </h3>
               <p className="text-xs text-slate-600 mt-1">
-                Deseja emitir e visualizar o <strong>Comprovante / Recibo</strong> desta venda agora?
+                Cliente: <strong className="text-slate-900">{completedSaleResult.clientName}</strong> • Total: <strong className="text-emerald-700">R$ {completedSaleResult.total.toFixed(2)}</strong>
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="space-y-2.5 pt-2 text-left">
+              {/* Opção 1: Emitir & Visualizar Recibo */}
               <button
                 type="button"
-                onClick={() => handleConfirmFinalize(false)}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition-colors"
+                onClick={handleFinalizeWithReceipt}
+                className="w-full p-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-between shadow-md hover:shadow-lg transition-all cursor-pointer group"
               >
-                Não Emitir Recibo
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-slate-950 text-amber-400 shrink-0">
+                    <ReceiptText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="block font-black text-sm text-slate-950">Sim, Emitir Recibo (PDF)</span>
+                    <span className="block text-[11px] font-medium text-slate-800">
+                      Gera o recibo na tela para salvar, imprimir ou enviar
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
+
+              {/* Opção 2: Gerar Contrato */}
               <button
                 type="button"
-                onClick={() => handleConfirmFinalize(true)}
-                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                onClick={handleFinalizeWithContract}
+                className="w-full p-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm flex items-center justify-between shadow-md hover:shadow-lg transition-all cursor-pointer group border border-slate-700"
               >
-                <ReceiptText className="w-4 h-4" />
-                <span>Sim, Emitir Recibo</span>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="block font-black text-sm text-white">Gerar Contrato de Serviço</span>
+                    <span className="block text-[11px] font-medium text-slate-300">
+                      Abrir formulário e gerar contrato da obra
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
+              </button>
+
+              {/* Opção 3: Ambos */}
+              <button
+                type="button"
+                onClick={handleFinalizeWithBoth}
+                className="w-full p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-between transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <span>📄 Emitir Recibo & 📜 Gerar Contrato</span>
+                </span>
+                <span className="text-[10px] uppercase font-bold text-slate-500">Ambos</span>
+              </button>
+
+              {/* Opção 4: Apenas Concluir */}
+              <button
+                type="button"
+                onClick={handleFinalizeSimple}
+                className="w-full py-2.5 text-center text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+              >
+                Concluir sem emitir documentos agora
               </button>
             </div>
           </div>

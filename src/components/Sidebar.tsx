@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   PlusCircle,
+  Scroll,
+  DollarSign,
   X
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -23,6 +25,8 @@ export type ActiveTab =
   | 'quotes'
   | 'new_quote'
   | 'sales'
+  | 'cash'
+  | 'contracts'
   | 'receivables'
   | 'receipts'
   | 'new_receipt'
@@ -42,6 +46,7 @@ interface SidebarProps {
   setIsMobileOpen: (open: boolean) => void;
   quotesCount: number;
   salesCount: number;
+  contractsCount?: number;
   receivablesCount: number;
   receiptsCount: number;
   pendingUsersCount?: number;
@@ -60,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsMobileOpen,
   quotesCount,
   salesCount,
+  contractsCount = 0,
   receivablesCount,
   receiptsCount,
   pendingUsersCount = 0,
@@ -94,6 +100,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Vendas / PDV',
       icon: ShoppingBag,
       badge: salesCount,
+    },
+    {
+      id: 'cash' as ActiveTab,
+      label: 'Caixa / Financeiro',
+      icon: DollarSign,
+      badge: null,
+    },
+    {
+      id: 'contracts' as ActiveTab,
+      label: 'Contratos',
+      icon: Scroll,
+      badge: contractsCount > 0 ? contractsCount : null,
     },
     {
       id: 'receipts' as ActiveTab,

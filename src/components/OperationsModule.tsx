@@ -4,6 +4,7 @@ import {
   Sale,
   Receivable,
   ManagerTask,
+  WorkLogEntry,
 } from '../types';
 import {
   getQuotes,
@@ -14,6 +15,7 @@ import {
   toggleManagerTask,
   deleteManagerTask,
   updateWorkDetails,
+  addWorkLogEntry,
   payReceivableInstallment,
 } from '../services/storage';
 import {
@@ -34,13 +36,22 @@ import {
   Package,
   ArrowRight,
   Check,
+  History,
+  User,
+  Send,
+  Shield,
+  Tag,
 } from 'lucide-react';
 
 interface OperationsModuleProps {
   onOpenReceivablesTab?: () => void;
+  onRefresh?: () => void;
 }
 
-export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceivablesTab }) => {
+export const OperationsModule: React.FC<OperationsModuleProps> = ({
+  onOpenReceivablesTab,
+  onRefresh,
+}) => {
   const [activeTab, setActiveTab] = useState<'obras' | 'cobrancas' | 'tarefas'>('obras');
 
   // Data State
@@ -62,7 +73,23 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
     deliveryDate: string;
     internalNotes: string;
     workStatus: 'pendente' | 'em_producao' | 'pronto' | 'entregue';
+    logNote?: string;
   } | null>(null);
+
+  // Modal de Histórico e Registro de Atendimento / Ticket
+  const [viewingTicketHistory, setViewingTicketHistory] = useState<{
+    type: 'sale' | 'quote' | 'task';
+    id: string;
+    code: string;
+    clientName: string;
+    workStatus?: string;
+    deliveryDate?: string;
+    workLogs: WorkLogEntry[];
+  } | null>(null);
+
+  // Anotação rápida dentro do Modal de Histórico
+  const [quickNoteText, setQuickNoteText] = useState('');
+  const [quickNoteAuthor, setQuickNoteAuthor] = useState('Gestor Smart Vidros');
 
   // Nova Tarefa State
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -97,6 +124,7 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
       itemsCount: s.items?.length || 0,
       items: s.items || [],
       date: s.date,
+      workLogs: s.workLogs || [],
     })),
     ...quotes
       .filter((q) => q.status !== 'convertido' && q.status !== 'cancelado')
@@ -113,6 +141,7 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
         itemsCount: q.items?.length || 0,
         items: q.items || [],
         date: q.date,
+        workLogs: q.workLogs || [],
       })),
   ];
 
@@ -202,16 +231,19 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
     });
     setNewTaskTitle('');
     setTasks(getManagerTasks());
+    onRefresh?.();
   };
 
   const handleToggleTask = (id: string) => {
     const updated = toggleManagerTask(id);
     setTasks(updated);
+    onRefresh?.();
   };
 
   const handleDeleteTask = (id: string) => {
     const updated = deleteManagerTask(id);
     setTasks(updated);
+    onRefresh?.();
   };
 
   const handleSaveObraEdits = (e: React.FormEvent) => {
@@ -222,10 +254,61 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
       deliveryDate: editingObra.deliveryDate || undefined,
       internalNotes: editingObra.internalNotes,
       workStatus: editingObra.workStatus,
+      logNote: editingObra.logNote?.trim() || undefined,
     });
 
     setEditingObra(null);
     loadAllData();
+    onRefresh?.();
+  };
+
+  const handleSaveQuickTicketNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!viewingTicketHistory || !quickNoteText.trim()) return;
+
+    if (viewingTicketHistory.type === 'task') {
+      const allTasks = getManagerTasks();
+      const t = allTasks.find((x) => x.id === viewingTicketHistory.id);
+      if (t) {
+        const logs = t.taskLogs ? [...t.taskLogs] : [];
+        logs.unshift({
+          id: 'log-' + Date.now(),
+          date: new Date().toISOString(),
+          authorName: quickNoteAuthor || 'Gestor Smart Vidros',
+          action: 'Anotação / Registro na Tarefa',
+          notes: quickNoteText.trim(),
+        });
+        saveManagerTask({ ...t, taskLogs: logs });
+        setViewingTicketHistory({ ...viewingTicketHistory, workLogs: logs });
+      }
+    } else {
+      addWorkLogEntry(
+        viewingTicketHistory.type,
+        viewingTicketHistory.id,
+        {
+          notes: quickNoteText.trim(),
+          action: 'Atendimento / Contato com Cliente',
+          authorName: quickNoteAuthor || 'Gestor Smart Vidros',
+        }
+      );
+      loadAllData();
+      const updatedSales = getSales();
+      const updatedQuotes = getQuotes();
+      const item =
+        viewingTicketHistory.type === 'sale'
+          ? updatedSales.find((s) => s.id === viewingTicketHistory.id)
+          : updatedQuotes.find((q) => q.id === viewingTicketHistory.id);
+      if (item) {
+        setViewingTicketHistory({
+          ...viewingTicketHistory,
+          workLogs: item.workLogs || [],
+        });
+      }
+    }
+
+    setQuickNoteText('');
+    loadAllData();
+    onRefresh?.();
   };
 
   const formatCurrency = (val: number) =>
@@ -507,28 +590,52 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
                     </div>
 
                     {/* Rodapé do Card: Ações */}
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                       <span className="text-xs font-black text-slate-800 font-mono">
                         {formatCurrency(obra.total)}
                       </span>
 
-                      <button
-                        onClick={() =>
-                          setEditingObra({
-                            type: obra.type,
-                            id: obra.id,
-                            code: obra.code,
-                            clientName: obra.clientName,
-                            deliveryDate: obra.deliveryDate,
-                            internalNotes: obra.internalNotes,
-                            workStatus: obra.workStatus,
-                          })
-                        }
-                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Atualizar Status</span>
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setViewingTicketHistory({
+                              type: obra.type,
+                              id: obra.id,
+                              code: obra.code,
+                              clientName: obra.clientName,
+                              workStatus: obra.workStatus,
+                              deliveryDate: obra.deliveryDate,
+                              workLogs: obra.workLogs || [],
+                            })
+                          }
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Ver Histórico de Alterações e Atendimentos do Ticket"
+                        >
+                          <History className="w-3.5 h-3.5 text-slate-600" />
+                          <span>Histórico ({obra.workLogs?.length || 0})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditingObra({
+                              type: obra.type,
+                              id: obra.id,
+                              code: obra.code,
+                              clientName: obra.clientName,
+                              deliveryDate: obra.deliveryDate,
+                              internalNotes: obra.internalNotes,
+                              workStatus: obra.workStatus,
+                              logNote: '',
+                            })
+                          }
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Status</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -796,6 +903,23 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setViewingTicketHistory({
+                            type: 'task',
+                            id: task.id,
+                            code: `TAREFA-${task.id.slice(-4)}`,
+                            clientName: task.title,
+                            workLogs: task.taskLogs || [],
+                          })
+                        }
+                        className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+                        title="Ver Histórico de Alterações da Tarefa"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
+
                       <span
                         className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
                           task.priority === 'alta'
@@ -826,7 +950,7 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
       {/* MODAL EDITAR DETALHES / STATUS DA OBRA */}
       {editingObra && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-lg w-full border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-lg w-full border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <span className="text-[10px] font-bold text-amber-700 uppercase block">Acompanhamento Operacional</span>
@@ -876,7 +1000,7 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
                   Anotações Internas da Obra (Instalação, Perfis, Equipe)
                 </label>
                 <textarea
-                  rows={4}
+                  rows={3}
                   value={editingObra.internalNotes}
                   onChange={(e) => setEditingObra({ ...editingObra, internalNotes: e.target.value })}
                   placeholder="Ex: Medidas ajustadas no local, cor do alumínio branco, faltou silicone para acabamento..."
@@ -884,19 +1008,184 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({ onOpenReceiv
                 />
               </div>
 
+              {/* Novo Campo: Registro para o Histórico do Ticket */}
+              <div className="p-3 bg-amber-50/70 border border-amber-300/80 rounded-2xl space-y-1.5">
+                <label className="block text-xs font-extrabold text-amber-950 uppercase flex items-center gap-1.5">
+                  <History className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Motivo da Alteração / Registro no Histórico do Ticket</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingObra.logNote || ''}
+                  onChange={(e) => setEditingObra({ ...editingObra, logNote: e.target.value })}
+                  placeholder="Ex: Cliente ligou pedindo para adiar para sexta-feira às 14h..."
+                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                />
+                <p className="text-[10px] text-amber-800 font-medium">
+                  💡 Fica registrado no histórico da obra com data e hora para caso o cliente ligue perguntando sobre o status do pedido.
+                </p>
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingObra(null)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl"
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl cursor-pointer shadow-sm"
                 >
                   Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE HISTÓRICO & AUDITORIA DE TICKETS / ATENDIMENTO */}
+      {viewingTicketHistory && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full border border-slate-200 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150 overflow-hidden">
+            {/* Topo do Modal */}
+            <div className="p-5 bg-gradient-to-r from-slate-900 via-zinc-900 to-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                      Histórico do Ticket
+                    </span>
+                    <span className="font-mono font-bold text-amber-300 text-xs">
+                      {viewingTicketHistory.code}
+                    </span>
+                  </div>
+                  <h3 className="font-black text-white text-base sm:text-lg leading-tight mt-0.5">
+                    {viewingTicketHistory.clientName}
+                  </h3>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setViewingTicketHistory(null);
+                  setQuickNoteText('');
+                }}
+                className="text-slate-400 hover:text-white text-2xl font-bold p-1 leading-none cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Linha do Tempo de Alterações (Timeline) */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1 bg-slate-50/50">
+              {viewingTicketHistory.workLogs.length === 0 ? (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                  <History className="w-10 h-10 text-slate-300 mx-auto" />
+                  <h4 className="font-extrabold text-slate-800 text-sm">Nenhuma alteração registrada ainda</h4>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Todas as mudanças de status, alterações de datas e notas de atendimento registradas nesta obra aparecerão listadas aqui com data e hora.
+                  </p>
+                </div>
+              ) : (
+                <div className="relative pl-6 border-l-2 border-amber-300 space-y-4">
+                  {viewingTicketHistory.workLogs.map((log, idx) => {
+                    const logDate = new Date(log.date);
+                    const formattedDate = !isNaN(logDate.getTime())
+                      ? `${logDate.toLocaleDateString('pt-BR')} às ${logDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                      : log.date;
+
+                    return (
+                      <div key={log.id || idx} className="relative group">
+                        {/* Marcador na linha do tempo */}
+                        <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-amber-500 border-2 border-white shadow-xs"></div>
+
+                        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-black text-slate-900">
+                                {log.action || 'Atualização'}
+                              </span>
+                              {log.authorName && (
+                                <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                  <User className="w-3 h-3 text-slate-400" />
+                                  <span>{log.authorName}</span>
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-mono font-medium">
+                              {formattedDate}
+                            </span>
+                          </div>
+
+                          {/* Diffs de Status / Prazo */}
+                          {(log.previousStatus || log.newStatus || log.previousDeliveryDate || log.newDeliveryDate) && (
+                            <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                              {log.previousStatus && log.newStatus && log.previousStatus !== log.newStatus && (
+                                <div className="bg-amber-50 text-amber-900 border border-amber-200 px-2.5 py-1 rounded-lg">
+                                  <span>Status: </span>
+                                  <span className="line-through text-slate-500 mr-1">{log.previousStatus}</span>
+                                  <span>➔ </span>
+                                  <span className="text-amber-950 font-black">{log.newStatus}</span>
+                                </div>
+                              )}
+                              {log.previousDeliveryDate && log.newDeliveryDate && log.previousDeliveryDate !== log.newDeliveryDate && (
+                                <div className="bg-blue-50 text-blue-900 border border-blue-200 px-2.5 py-1 rounded-lg">
+                                  <span>Prazo: </span>
+                                  <span className="line-through text-slate-500 mr-1">{formatDate(log.previousDeliveryDate)}</span>
+                                  <span>➔ </span>
+                                  <span className="text-blue-950 font-black">{formatDate(log.newDeliveryDate)}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Notas / Mensagens da Alteração */}
+                          {log.notes && (
+                            <p className="text-xs text-slate-800 bg-slate-50 p-2.5 rounded-xl border border-slate-100 whitespace-pre-line leading-relaxed">
+                              {log.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Formulário Inferior para Registrar Nova Nota / Atendimento */}
+            <form onSubmit={handleSaveQuickTicketNote} className="p-4 bg-white border-t border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5">
+                  <Send className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Registrar Atendimento / Nova Anotação no Ticket</span>
+                </label>
+                <span className="text-[10px] text-slate-500">Gravado com data e hora atual</span>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  required
+                  value={quickNoteText}
+                  onChange={(e) => setQuickNoteText(e.target.value)}
+                  placeholder="Ex: Cliente ligou perguntando do prazo. Informado que a equipe vai amanhã às 14h..."
+                  className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+
+                <button
+                  type="submit"
+                  disabled={!quickNoteText.trim()}
+                  className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Registrar</span>
                 </button>
               </div>
             </form>

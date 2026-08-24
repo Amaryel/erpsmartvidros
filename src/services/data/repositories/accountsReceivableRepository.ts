@@ -3,6 +3,7 @@ import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { getCurrentCompanyId, getCurrentUserId } from '../auth';
 import { saveReceipt } from './receiptsRepository';
+import { recordReceivableCashPayment } from './cashRepository';
 import { autoSyncEntityChange } from '../supabaseSync';
 
 const RECEIVABLES_KEY = 'smart_vidros_receivables';
@@ -197,6 +198,22 @@ export function payReceivableInstallment(
     saleFiadoAmount: rec.remainingAmount,
     paymentMethodsSummary,
     notes: `Baixa realizada no parcelamento. Formas: ${paymentMethodsSummary}`,
+  });
+
+  // Registrar entradas no Módulo de Caixa
+  paymentsList.forEach((p) => {
+    if (p.amount > 0 && p.method !== 'fiado') {
+      recordReceivableCashPayment(
+        rec.id,
+        rec.saleCode,
+        rec.clientName,
+        inst.number,
+        p.method,
+        p.amount,
+        today,
+        p.notes
+      );
+    }
   });
 
   return { receivable: rec, receipt };

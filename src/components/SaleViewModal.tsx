@@ -24,6 +24,8 @@ interface SaleViewModalProps {
   onOpenQuote?: (quoteId: string) => void;
   onOpenReceipt?: (receiptId: string) => void;
   onOpenReceivable?: (receivableId: string) => void;
+  onOpenContract?: (saleId: string) => void;
+  onGenerateContract?: (sale: Sale) => void;
 }
 
 export const SaleViewModal: React.FC<SaleViewModalProps> = ({
@@ -33,6 +35,8 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
   onOpenQuote,
   onOpenReceipt,
   onOpenReceivable,
+  onOpenContract,
+  onGenerateContract,
 }) => {
   const [copiedText, setCopiedText] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -173,6 +177,16 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
                 <span>Ver Contas a Receber</span>
               </button>
             )}
+
+            {onOpenContract && (
+              <button
+                onClick={() => onOpenContract(sale.id)}
+                className="flex items-center gap-1 text-amber-800 hover:text-amber-950 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-md transition-colors shadow-sm font-bold"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-600" />
+                <span>Ver / Gerar Contrato</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -254,7 +268,7 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-medium">
                   {(sale.items || []).map((item, index) => (
-                    <tr key={index}>
+                    <tr key={index} className="break-inside-avoid">
                       <td className="p-2.5">
                         <strong className="text-slate-900 font-bold block">{item.name}</strong>
                         {item.description && (
@@ -284,7 +298,7 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
           </div>
 
           {/* Detalhamento dos Pagamentos e Totais */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 break-inside-avoid totals-box">
             
             {/* Formas de Pagamento Utilizadas */}
             <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-2">
@@ -343,7 +357,7 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
           </div>
 
           {/* Linha de Assinatura */}
-          <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center">
+          <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center signature-box break-inside-avoid">
             <div>
               <div className="w-48 mx-auto border-b border-slate-900 mb-1"></div>
               <p className="text-xs font-bold text-slate-900">{companyInfo.ownerName || 'James Clayton do Nascimento'}</p>

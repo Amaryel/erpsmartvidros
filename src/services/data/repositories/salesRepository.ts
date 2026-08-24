@@ -1,10 +1,11 @@
-import { Sale, Quote, Receivable, Receipt, SalePayment, Installment, PaymentMethod } from '../../../types';
+import { Sale, Quote, Receivable, Receipt, SalePayment, Installment, PaymentMethod, WorkLogEntry } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { getCurrentCompanyId, getCurrentUserId } from '../auth';
 import { getQuotes, saveQuote } from './budgetsRepository';
 import { saveReceivable, deleteReceivable } from './accountsReceivableRepository';
 import { saveReceipt, deleteReceipt } from './receiptsRepository';
+import { recordSaleCashPayments } from './cashRepository';
 import { autoSyncEntityChange } from '../supabaseSync';
 
 const SALES_KEY = 'smart_vidros_sales';
@@ -62,6 +63,7 @@ export function updateSale(id: string, updates: Partial<Omit<Sale, 'id' | 'creat
 
   sales[idx] = updated;
   storageAdapter.setItem(SALES_KEY, sales);
+  autoSyncEntityChange('sales', 'upsert', updated);
   return updated;
 }
 
@@ -159,6 +161,18 @@ export function finalizeSale(
   const userId = sale.userId || getCurrentUserId();
 
   const existingIdx = sales.findIndex((s) => s.id === sale.id);
+  const initialLogs: WorkLogEntry[] = sale.workLogs && sale.workLogs.length > 0 ? [...sale.workLogs] : [
+    {
+      id: generateUUID(),
+      date: now,
+      authorName: 'Sistema',
+      action: 'Venda Concluída no PDV',
+      newStatus: sale.workStatus || 'pendente',
+      newDeliveryDate: sale.deliveryDate,
+      notes: 'Ticket de acompanhamento da obra iniciado na finalização da venda.',
+    },
+  ];
+
   const finalSale: Sale = {
     ...sale,
     companyId,
@@ -167,6 +181,7 @@ export function finalizeSale(
     createdAt: sale.createdAt || now,
     code: sale.code || getNextSaleCode(),
     status: 'concluida',
+    workLogs: initialLogs,
   };
 
   let receivable: Receivable | undefined = undefined;
@@ -282,6 +297,17 @@ export function finalizeSale(
   storageAdapter.setItem(SALES_KEY, sales);
   autoSyncEntityChange('sales', 'upsert', finalSale);
 
+  // 3.1 Registrar pagamentos à vista/imediatos no Módulo de Caixa
+  if (finalSale.payments && finalSale.payments.length > 0) {
+    recordSaleCashPayments(
+      finalSale.id,
+      finalSale.code,
+      finalSale.clientName || 'Cliente',
+      finalSale.date,
+      finalSale.payments
+    );
+  }
+
   // 4. Se a venda veio de um orçamento, atualizar o orçamento com status 'convertido'
   if (finalSale.quoteId) {
     const quotes = getQuotes();
@@ -342,17 +368,124 @@ export function updateWorkDetails(
     deliveryDate?: string;
     internalNotes?: string;
     workStatus?: 'pendente' | 'em_producao' | 'pronto' | 'entregue';
+    logNote?: string;
+    authorName?: string;
   }
 ): void {
+  const now = new Date().toISOString();
+  const author = details.authorName || 'Gestor';
+
   if (type === 'sale') {
-    updateSale(id, details);
+    const sale = getSales().find((s) => s.id === id);
+    if (sale) {
+      const prevStatus = sale.workStatus || 'pendente';
+      const prevDate = sale.deliveryDate;
+      const currentLogs: WorkLogEntry[] = sale.workLogs ? [...sale.workLogs] : [];
+
+      const statusLabels: Record<string, string> = {
+        pendente: 'Pendente',
+        em_producao: 'Em Produção',
+        pronto: 'Pronto / Ag. Instalação',
+        entregue: 'Concluído / Entregue',
+      };
+
+      const statusChanged = details.workStatus && details.workStatus !== prevStatus;
+      const dateChanged = details.deliveryDate !== undefined && details.deliveryDate !== prevDate;
+      const noteAdded = Boolean(details.logNote?.trim());
+
+      if (statusChanged || dateChanged || noteAdded) {
+        let actionDesc = 'Atualização do Ticket';
+        if (statusChanged && dateChanged) {
+          actionDesc = `Status para [${statusLabels[details.workStatus!] || details.workStatus}] e novo prazo`;
+        } else if (statusChanged) {
+          actionDesc = `Status alterado: ${statusLabels[prevStatus] || prevStatus} ➔ ${statusLabels[details.workStatus!] || details.workStatus}`;
+        } else if (dateChanged) {
+          actionDesc = `Prazo de entrega alterado para ${details.deliveryDate ? details.deliveryDate.split('-').reverse().join('/') : 'Não definido'}`;
+        } else if (noteAdded) {
+          actionDesc = 'Registro de Acompanhamento / Nota';
+        }
+
+        currentLogs.unshift({
+          id: generateUUID(),
+          date: now,
+          authorName: author,
+          action: actionDesc,
+          previousStatus: prevStatus,
+          newStatus: details.workStatus || prevStatus,
+          previousDeliveryDate: prevDate,
+          newDeliveryDate: details.deliveryDate,
+          notes: details.logNote?.trim() || details.internalNotes?.trim() || undefined,
+        });
+      }
+
+      updateSale(id, {
+        deliveryDate: details.deliveryDate,
+        internalNotes: details.internalNotes,
+        workStatus: details.workStatus,
+        workLogs: currentLogs,
+      });
+    }
   } else {
     const quote = getQuotes().find((q) => q.id === id);
     if (quote) {
+      const prevStatus = quote.workStatus || 'pendente';
+      const prevDate = quote.deliveryDate;
+      const currentLogs: WorkLogEntry[] = quote.workLogs ? [...quote.workLogs] : [];
+
+      const statusLabels: Record<string, string> = {
+        pendente: 'Pendente',
+        em_producao: 'Em Produção',
+        pronto: 'Pronto / Ag. Instalação',
+        entregue: 'Concluído / Entregue',
+      };
+
+      const statusChanged = details.workStatus && details.workStatus !== prevStatus;
+      const dateChanged = details.deliveryDate !== undefined && details.deliveryDate !== prevDate;
+      const noteAdded = Boolean(details.logNote?.trim());
+
+      if (statusChanged || dateChanged || noteAdded) {
+        let actionDesc = 'Atualização do Ticket';
+        if (statusChanged && dateChanged) {
+          actionDesc = `Status para [${statusLabels[details.workStatus!] || details.workStatus}] e novo prazo`;
+        } else if (statusChanged) {
+          actionDesc = `Status alterado: ${statusLabels[prevStatus] || prevStatus} ➔ ${statusLabels[details.workStatus!] || details.workStatus}`;
+        } else if (dateChanged) {
+          actionDesc = `Prazo de entrega alterado para ${details.deliveryDate ? details.deliveryDate.split('-').reverse().join('/') : 'Não definido'}`;
+        } else if (noteAdded) {
+          actionDesc = 'Registro de Acompanhamento / Nota';
+        }
+
+        currentLogs.unshift({
+          id: generateUUID(),
+          date: now,
+          authorName: author,
+          action: actionDesc,
+          previousStatus: prevStatus,
+          newStatus: details.workStatus || prevStatus,
+          previousDeliveryDate: prevDate,
+          newDeliveryDate: details.deliveryDate,
+          notes: details.logNote?.trim() || details.internalNotes?.trim() || undefined,
+        });
+      }
+
       saveQuote({
         ...quote,
-        ...details,
+        deliveryDate: details.deliveryDate,
+        internalNotes: details.internalNotes,
+        workStatus: details.workStatus,
+        workLogs: currentLogs,
       });
     }
   }
+}
+
+export function addWorkLogEntry(
+  type: 'sale' | 'quote',
+  id: string,
+  entry: { action?: string; notes: string; authorName?: string }
+): void {
+  updateWorkDetails(type, id, {
+    logNote: entry.notes,
+    authorName: entry.authorName,
+  });
 }

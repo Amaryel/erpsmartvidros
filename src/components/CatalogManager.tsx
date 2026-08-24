@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Check, Package, Info, AlertTriangle, X } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, Trash2, Edit2, Check, Package, Info, AlertTriangle, X, Camera, Upload, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { CatalogItem, ProductType } from '../types';
+import { getSmartProductImage } from '../services/data/repositories/productsRepository';
 
 interface CatalogManagerProps {
   catalog: CatalogItem[];
@@ -18,7 +19,11 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
   const [description, setDescription] = useState('');
   const [type, setType] = useState<ProductType>('dimensao');
   const [defaultPrice, setDefaultPrice] = useState<number>(150);
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<CatalogItem | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleConfirmDelete = () => {
     if (deleteConfirmItem) {
@@ -33,6 +38,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
     setDescription(item.description || '');
     setType(item.type);
     setDefaultPrice(item.defaultPrice);
+    setImageUrl(item.imageUrl || '');
   };
 
   const handleCancelEdit = () => {
@@ -41,11 +47,50 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
     setDescription('');
     setType('dimensao');
     setDefaultPrice(150);
+    setImageUrl('');
+  };
+
+  const handleImageFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          setImageUrl(canvas.toDataURL('image/jpeg', 0.82));
+        }
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+
+    const finalImage = imageUrl.trim() || getSmartProductImage(name, description);
 
     onSaveItem({
       id: editingId || undefined,
@@ -53,6 +98,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
       description: description.trim() || undefined,
       type,
       defaultPrice,
+      imageUrl: finalImage,
     });
 
     handleCancelEdit();
@@ -62,9 +108,9 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-20 space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Catálogo de Preços Base</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Catálogo de Preços & Produtos</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Cadastre os produtos e preços padrão de referência para importar rapidamente nos novos orçamentos.
+            Cadastre os produtos com fotos reais e preços padrão de referência para importar rapidamente nos novos orçamentos.
           </p>
         </div>
       </div>
@@ -86,6 +132,70 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            
+            {/* Foto do Item */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-700 uppercase">
+                Foto do Produto
+              </label>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])}
+                className="hidden"
+              />
+              <input
+                type="file"
+                ref={cameraInputRef}
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])}
+                className="hidden"
+              />
+
+              {imageUrl ? (
+                <div className="relative rounded-xl overflow-hidden aspect-video border border-slate-200 bg-slate-100">
+                  <img src={imageUrl} alt="Produto" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="absolute top-2 right-2 p-1 bg-rose-600 text-white rounded-lg text-[10px] font-bold shadow"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="p-2 border border-dashed border-amber-300 rounded-xl bg-amber-50 text-amber-900 font-bold flex flex-col items-center gap-1"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Câmera</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 border border-dashed border-slate-300 rounded-xl bg-slate-50 text-slate-700 font-bold flex flex-col items-center gap-1"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Galeria</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => name && setImageUrl(getSmartProductImage(name, description))}
+                    className="p-2 border border-dashed border-blue-200 rounded-xl bg-blue-50 text-blue-900 font-bold flex flex-col items-center gap-1"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Sugerir</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
                 Tipo do Produto
@@ -141,7 +251,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Preço Padrão ({type === 'dimensao' ? 'R$ por m²' : 'R$ por Unidade'})
+                Preço Padrão ({type === 'dimensao' ? 'R$/m²' : 'R$/un'})
               </label>
               <input
                 type="number"
@@ -150,11 +260,11 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                 required
                 value={defaultPrice}
                 onChange={(e) => setDefaultPrice(parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm font-mono focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono font-bold text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
               />
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
+            <div className="pt-2 flex gap-2">
               {editingId && (
                 <button
                   type="button"
@@ -187,19 +297,34 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                 key={item.id}
                 className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-4"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-slate-900">{item.name}</span>
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
-                      {item.type === 'dimensao' ? 'Área m²' : 'Unidade'}
-                    </span>
-                  </div>
-                  {item.description && (
-                    <p className="text-xs text-slate-500">{item.description}</p>
+                <div className="flex items-center gap-3">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                      <ImageIcon className="w-5 h-5" />
+                    </div>
                   )}
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-slate-900">{item.name}</span>
+                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                        {item.type === 'dimensao' ? 'Área m²' : 'Unidade'}
+                      </span>
+                    </div>
+                    {item.description && (
+                      <p className="text-xs text-slate-500">{item.description}</p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right">
                     <p className="text-[10px] text-slate-400 font-semibold uppercase">Preço Padrão</p>
                     <p className="text-sm font-extrabold font-mono text-amber-600">

@@ -44,6 +44,18 @@ export interface QuoteItem {
   totalPrice: number; // Calculado
 }
 
+export interface WorkLogEntry {
+  id: string;
+  date: string; // ISO string
+  authorName?: string; // Nome do responsável/usuário que alterou
+  action: string; // Ex: 'Alteração de Status', 'Mudança de Prazo', 'Anotação Interna', 'Criação do Ticket'
+  previousStatus?: 'pendente' | 'em_producao' | 'pronto' | 'entregue';
+  newStatus?: 'pendente' | 'em_producao' | 'pronto' | 'entregue';
+  previousDeliveryDate?: string;
+  newDeliveryDate?: string;
+  notes?: string;
+}
+
 export interface Quote {
   id: string;
   companyId?: string;
@@ -70,9 +82,12 @@ export interface Quote {
   deliveryDate?: string; // YYYY-MM-DD - Data prevista de entrega/execução
   internalNotes?: string; // Anotações internas da obra/serviço (para a equipe)
   workStatus?: 'pendente' | 'em_producao' | 'pronto' | 'entregue'; // Status da obra/execução
+  workLogs?: WorkLogEntry[]; // Histórico de alterações e eventos do ticket
   convertedAt?: string;
   convertedSaleId?: string;
   convertedSaleCode?: string;
+  contractId?: string;
+  contractCode?: string;
 }
 
 export interface CatalogItem {
@@ -85,6 +100,7 @@ export interface CatalogItem {
   unit?: string; // 'm²', 'unidade', 'peça', 'm', 'barra', 'caixa', 'serviço', etc.
   defaultPrice: number; // Preço padrão por m² ou por unidade
   status: 'ativo' | 'inativo';
+  imageUrl?: string; // Imagem/Foto do produto (URL ou Base64 capturado do aparelho)
   createdAt?: string;
   updatedAt?: string;
 }
@@ -183,10 +199,13 @@ export interface Sale {
   status: 'concluida' | 'cancelada';
   receivableId?: string;
   receiptId?: string;
+  contractId?: string;
+  contractCode?: string;
   notes?: string;
   deliveryDate?: string; // YYYY-MM-DD - Data prevista de entrega/execução
   internalNotes?: string; // Anotações internas da obra/serviço (para a equipe)
   workStatus?: 'pendente' | 'em_producao' | 'pronto' | 'entregue'; // Status da obra/execução
+  workLogs?: WorkLogEntry[]; // Histórico de alterações e eventos do ticket da obra
   hasChangesFromQuote?: boolean;
 }
 
@@ -198,6 +217,8 @@ export interface ManagerTask {
   dueDate?: string; // YYYY-MM-DD
   priority: 'alta' | 'media' | 'baixa';
   completed: boolean;
+  notes?: string;
+  taskLogs?: WorkLogEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -265,5 +286,156 @@ export interface AuthSession {
   user: AppUser | null;
   isAuthenticated: boolean;
 }
+
+export type ContractStatus = 'ativo' | 'rascunho' | 'concluido' | 'cancelado';
+
+export interface Contract {
+  id: string;
+  companyId?: string;
+  userId?: string;
+  code: string; // ex: Contrato Nº 000001
+  saleId?: string;
+  saleCode?: string;
+  quoteId?: string;
+  quoteCode?: string;
+  clientId?: string;
+  clientName: string;
+  clientDocument?: string; // CPF ou CNPJ
+  clientAddress?: string;
+  clientCity?: string;
+  clientState?: string;
+  clientPhone?: string;
+  clientEmail?: string;
+
+  // Dados da Contratada
+  contractorName: string; // SMART VIDROS
+  contractorDocument: string; // CNPJ 51.840.669/0001-22
+  contractorAddress: string; // Rua Povoado Novo Paquetá, Sussuapara – PI
+
+  // Cláusulas e Textos do Contrato
+  title: string;
+  objectClauseText: string; // Cláusula 1 - Objeto dinâmico
+  totalAmount: number; // Valor total da venda/contrato
+  totalAmountInWords: string; // Valor total por extenso
+  paymentClauseText: string; // Cláusula 3 - Formas de pagamento dinâmicas
+  executionDeadlineText: string; // Cláusula 4 - Prazo de execução
+  obligationsContractorText: string; // Cláusula 5 - Obrigações da Contratada
+  obligationsClientText: string; // Cláusula 6 - Obrigações da Contratante
+  rescissionText: string; // Cláusula 7 - Rescisão
+  jurisdictionText: string; // Cláusula 8 - Foro
+  defaultClauseText: string; // Cláusula 9 - Inadimplência
+  cancellationClauseText: string; // Cláusula 10 - Rescisão e Não Ressarcimento
+
+  cityDate: string; // Ex: "Picos – PI, 18 de agosto de 2026"
+  date: string; // YYYY-MM-DD
+  status: ContractStatus;
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+}
+
+// ============================================================
+// MÓDULO CAIXA & FLUXO FINANCEIRO
+// ============================================================
+
+export type CashTransactionType = 'entrada' | 'saida';
+
+export type CashPaymentMethod =
+  | 'dinheiro'
+  | 'pix'
+  | 'cartao_credito'
+  | 'cartao_debito'
+  | 'transferencia'
+  | 'cheque'
+  | 'outro';
+
+export interface CashCategoryItem {
+  id: string;
+  name: string;
+  type: 'entrada' | 'saida' | 'ambos';
+  isDefault?: boolean;
+}
+
+export interface CashTransaction {
+  id: string;
+  companyId: string;
+  userId: string;
+  userName?: string;
+  type: CashTransactionType;
+  amount: number;
+  categoryId: string;
+  categoryName: string;
+  description: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:MM
+  paymentMethod: CashPaymentMethod;
+  notes?: string;
+  
+  // Relacionamentos e Rastreabilidade
+  saleId?: string;
+  saleCode?: string;
+  receivableId?: string;
+  receivableCode?: string;
+  clientId?: string;
+  clientName?: string;
+  cashSessionId?: string; // Vínculo opcional com sessão de caixa diário
+
+  // Auditoria e Integridade
+  status: 'ativo' | 'cancelado';
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
+  editedAt?: string;
+  editedBy?: string;
+  editReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CashInitialBalanceHistory {
+  date: string;
+  amount: number;
+  setBy: string;
+  notes?: string;
+  timestamp: string;
+}
+
+export interface CashInitialBalance {
+  id: string;
+  companyId: string;
+  amount: number;
+  date: string; // YYYY-MM-DD
+  notes?: string;
+  setBy: string;
+  createdAt: string;
+  updatedAt: string;
+  history?: CashInitialBalanceHistory[];
+}
+
+export interface CashSession {
+  id: string;
+  companyId: string;
+  date: string; // YYYY-MM-DD
+  openedAt: string; // ISO
+  closedAt?: string; // ISO
+  openedBy: string;
+  openedByUserId?: string;
+  closedBy?: string;
+  closedByUserId?: string;
+  initialBalance: number;
+  expectedBalance?: number;
+  countedBalance?: number;
+  difference?: number;
+  differenceType?: 'sobra' | 'falta' | 'exato';
+  differenceNotes?: string;
+  notes?: string;
+  status: 'aberto' | 'fechado';
+  totalEntries?: number;
+  totalExits?: number;
+  byPaymentMethod?: Record<string, number>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 

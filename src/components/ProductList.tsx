@@ -1,5 +1,20 @@
 import React, { useState } from 'react';
-import { Package, Plus, Search, Edit2, Trash2, CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
+import {
+  Package,
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Info,
+  AlertTriangle,
+  X,
+  Camera,
+  Maximize2,
+  Sparkles,
+  Layers
+} from 'lucide-react';
 import { CatalogItem } from '../types';
 import { ProductFormModal } from './ProductFormModal';
 import { saveCatalogItem, deleteCatalogItem } from '../services/storage';
@@ -17,6 +32,7 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<CatalogItem | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<CatalogItem | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
   // Filtrar apenas itens de categoria 'produto'
   const products = catalog.filter((c) => c.category === 'produto' || c.category === undefined);
@@ -60,10 +76,10 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Package className="w-6 h-6 text-amber-500" />
-            <span>Cadastro de Produtos</span>
+            <span>Catálogo de Produtos & Vidros</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Cadastre os produtos simples e com dimensões calculados por m² para uso nos orçamentos e PDV.
+            Cadastre os produtos simples e com dimensões (m²), com fotos reais direto do aparelho, para uso em orçamentos e PDV.
           </p>
         </div>
 
@@ -96,7 +112,7 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-900">
         <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
         <div className="leading-relaxed">
-          <strong>Preço Padrão de Referência:</strong> Os preços cadastrados funcionam como sugestão ao selecionar o produto em orçamentos ou vendas. O valor pode ser alterado livremente para cada item individual na venda sem alterar este cadastro.
+          <strong>Fotos Reais & Preço Padrão:</strong> As fotos e imagens auxiliam na rápida identificação dos itens na oficina e pelos clientes. O valor cadastrado serve como preço base de referência, ajustável livremente a cada venda.
         </div>
       </div>
 
@@ -109,7 +125,7 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
               filterType === 'all' ? 'bg-amber-500 text-slate-950 shadow-sm font-extrabold' : 'text-slate-600'
             }`}
           >
-            Todos os Tipos
+            Todos os Tipos ({products.length})
           </button>
           <button
             onClick={() => setFilterType('dimensao')}
@@ -157,8 +173,8 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
         </div>
       </div>
 
-      {/* Grid de Produtos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Grid de Produtos com Imagens */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredProducts.length === 0 ? (
           <div className="col-span-full bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-400 italic text-xs">
             Nenhum produto cadastrado com os filtros selecionados.
@@ -170,76 +186,116 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
             return (
               <div
                 key={product.id}
-                className={`bg-white border rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between transition-all ${
-                  isAtivo ? 'border-slate-200 hover:border-amber-400' : 'border-slate-200 opacity-60 bg-slate-50/50'
+                className={`bg-white border rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between transition-all ${
+                  isAtivo ? 'border-slate-200 hover:border-amber-400 hover:shadow-md' : 'border-slate-200 opacity-60 bg-slate-50/50'
                 }`}
               >
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-extrabold text-sm text-slate-900">{product.name}</h3>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-900">
-                          {product.type === 'dimensao' ? 'm² (Dimensões)' : 'Unidade Simples'}
+                {/* Imagem do Produto */}
+                <div className="relative aspect-video bg-slate-100 overflow-hidden group cursor-pointer"
+                  onClick={() => {
+                    if (product.imageUrl) {
+                      setPreviewImage({ url: product.imageUrl, title: product.name });
+                    } else {
+                      setEditingProduct(product);
+                      setIsFormOpen(true);
+                    }
+                  }}
+                >
+                  {product.imageUrl ? (
+                    <>
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <span className="bg-white/90 backdrop-blur-sm text-slate-900 font-extrabold text-[11px] px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
+                          <Maximize2 className="w-3.5 h-3.5" />
+                          <span>Ampliar Foto</span>
                         </span>
-                        <span
-                          className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded flex items-center gap-1 ${
-                            isAtivo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
-                          }`}
-                        >
-                          {isAtivo ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                          <span>{isAtivo ? 'Ativo' : 'Inativo'}</span>
-                        </span>
                       </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1 bg-slate-50">
+                      <Camera className="w-8 h-8 text-slate-300" />
+                      <span className="text-[10px] font-bold">Toque para adicionar foto</span>
                     </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingProduct(product);
-                          setIsFormOpen(true);
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-                        title="Editar Produto"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirmItem(product)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Excluir Produto"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {product.description && (
-                    <p className="text-xs text-slate-500 leading-relaxed">{product.description}</p>
                   )}
-                </div>
 
-                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Preço Padrão</span>
-                    <span className="font-extrabold font-mono text-amber-600 text-sm">
-                      R$ {product.defaultPrice.toFixed(2)}{' '}
-                      <span className="text-[10px] text-slate-400 font-sans">/{product.unit || (product.type === 'dimensao' ? 'm²' : 'un')}</span>
+                  {/* Badges sobre a foto */}
+                  <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-slate-950/80 backdrop-blur-sm text-white shadow">
+                      {product.type === 'dimensao' ? 'm² (Dimensões)' : 'Unidade'}
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => handleToggleStatus(product)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      isAtivo
-                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-                        : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                    }`}
-                  >
-                    {isAtivo ? 'Inativar' : 'Ativar'}
-                  </button>
+                  <div className="absolute top-2.5 right-2.5">
+                    <span
+                      className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-lg backdrop-blur-sm flex items-center gap-1 shadow ${
+                        isAtivo ? 'bg-emerald-600/90 text-white' : 'bg-slate-700/90 text-white'
+                      }`}
+                    >
+                      {isAtivo ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                      <span>{isAtivo ? 'Ativo' : 'Inativo'}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Conteúdo do Card */}
+                <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                  <div className="space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-extrabold text-sm text-slate-900 leading-snug line-clamp-1">{product.name}</h3>
+                      
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => {
+                            setEditingProduct(product);
+                            setIsFormOpen(true);
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Editar Produto e Foto"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmItem(product)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Excluir Produto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {product.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{product.description}</p>
+                    )}
+                  </div>
+
+                  {/* Preço e Status Toggle */}
+                  <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs mt-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Preço Padrão</span>
+                      <span className="font-extrabold font-mono text-amber-600 text-sm">
+                        R$ {product.defaultPrice.toFixed(2)}{' '}
+                        <span className="text-[10px] text-slate-400 font-sans">/{product.unit || (product.type === 'dimensao' ? 'm²' : 'un')}</span>
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => handleToggleStatus(product)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        isAtivo
+                          ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                      }`}
+                    >
+                      {isAtivo ? 'Inativar' : 'Ativar'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -247,7 +303,7 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
         )}
       </div>
 
-      {/* Modal de Formulário de Produto */}
+      {/* Modal de Formulário de Produto com Upload/Câmera */}
       {isFormOpen && (
         <ProductFormModal
           initialData={editingProduct}
@@ -256,8 +312,42 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
             setEditingProduct(null);
           }}
           onSave={handleSaveSuccess}
-          title={editingProduct ? 'Editar Produto' : 'Cadastrar Novo Produto'}
+          title={editingProduct ? 'Editar Produto & Fotos' : 'Cadastrar Novo Produto'}
         />
+      )}
+
+      {/* Modal Lightbox de Visualização em Tela Cheia */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden max-w-2xl w-full p-4 space-y-3 animate-in fade-in zoom-in duration-200 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between text-white border-b border-slate-800 pb-3">
+              <h3 className="font-extrabold text-sm flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>{previewImage.title}</span>
+              </h3>
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden bg-black max-h-[70vh] flex items-center justify-center">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="w-full h-auto max-h-[68vh] object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de Exclusão */}
@@ -279,7 +369,7 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
 
             <p className="text-sm text-slate-700 leading-relaxed">
               Tem certeza que deseja remover o produto{' '}
-              <strong className="text-slate-900 font-bold">"{deleteConfirmItem.name}"</strong> do cadastro?
+              <strong className="text-slate-900 font-bold">"{deleteConfirmItem.name}"</strong> do catálogo?
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">

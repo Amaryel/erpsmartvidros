@@ -25,4 +25,6 @@ export * from './repositories/accountsReceivableRepository';
 export * from './repositories/companyRepository';
 export * from './repositories/managerTasksRepository';
 export * from './repositories/usersRepository';
+export * from './repositories/contractsRepository';
+export * from './repositories/cashRepository';
 export * from './supabaseSync';

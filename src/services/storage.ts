@@ -59,6 +59,7 @@ export {
   deleteSale,
   getNextSaleCode,
   updateWorkDetails,
+  addWorkLogEntry,
 
   // Pagamentos
   getPaymentsBySale,
@@ -118,4 +119,39 @@ export {
   syncAllWithSupabase,
   getLastSyncTime,
   initSupabaseKeepAlive,
+
+  // Contratos
+  getContracts,
+  getContractById,
+  getContractBySaleId,
+  getContractByQuoteId,
+  getNextContractCode,
+  saveContract,
+  deleteContract,
+  generateContractFromSale,
+  generateContractFromQuote,
+  buildObjectClauseText,
+  buildPaymentClauseText,
+  buildExecutionDeadlineText,
+  CONTRACT_CLAUSE_TEMPLATES,
+
+  // Caixa & Controle Financeiro
+  getCashTransactions,
+  getCashTransactionById,
+  createCashTransaction,
+  updateCashTransaction,
+  cancelCashTransaction,
+  getCashInitialBalance,
+  setCashInitialBalance,
+  getCashCategories,
+  saveCashCategory,
+  deleteCashCategory,
+  getCashSessions,
+  getCurrentOpenCashSession,
+  openCashSession,
+  closeCashSession,
+  calculateCashSummary,
+  recordSaleCashPayments,
+  recordReceivableCashPayment,
+  DEFAULT_CASH_CATEGORIES,
 } from './data';

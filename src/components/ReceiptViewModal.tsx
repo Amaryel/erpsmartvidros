@@ -306,7 +306,7 @@ export const ReceiptViewModal: React.FC<ReceiptViewModalProps> = ({
           </div>
 
           {/* Texto do Recibo Oficial */}
-          <div className="bg-white border-2 border-slate-900 rounded-xl p-4 sm:p-5 shadow-xs mb-4">
+          <div className="bg-white border-2 border-slate-900 rounded-xl p-4 sm:p-5 shadow-xs mb-4 break-inside-avoid">
             <div className="border-b-2 border-slate-900 pb-2 mb-3 text-center">
               <h2 className="text-lg font-black uppercase tracking-widest text-slate-900">
                 RECIBO DE PAGAMENTO
@@ -330,7 +330,7 @@ export const ReceiptViewModal: React.FC<ReceiptViewModalProps> = ({
 
           {/* Resumo Financeiro da Venda, Formas de Pagamento & Parcelas */}
           {(receipt.saleTotalAmount !== undefined || receipt.paymentMethodsSummary || associatedSale || associatedReceivable) && (
-            <div className="border border-slate-300 rounded-xl overflow-hidden text-xs mb-4">
+            <div className="border border-slate-300 rounded-xl overflow-hidden text-xs mb-4 break-inside-avoid totals-box">
               <div className="bg-slate-900 text-amber-400 font-bold uppercase text-[11px] tracking-wider px-4 py-2.5 flex items-center justify-between">
                 <span>Situação Financeira da Venda</span>
                 {associatedSale?.code && (

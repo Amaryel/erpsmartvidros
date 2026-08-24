@@ -14,9 +14,13 @@ import {
   Building2,
   DollarSign,
   Users,
-  Wrench
+  Wrench,
+  Mic,
+  Minus,
+  Scale
 } from 'lucide-react';
 import { Quote, Sale, Receivable, Receipt, CompanyInfo } from '../types';
+import { calculateCashSummary } from '../services/data/repositories/cashRepository';
 import smartVidrosLogoImg from '../assets/images/smart_vidros_logo_1786536378370.jpg';
 
 interface DashboardProps {
@@ -57,6 +61,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   
   const totalFiadoPendente = receivables.reduce((sum, r) => sum + r.remainingAmount, 0);
   const totalRecibosValor = receipts.reduce((sum, r) => sum + r.amount, 0);
+
+  // Resumo do Módulo de Caixa / Fluxo Diário
+  const cashSummary = calculateCashSummary();
 
   // Vendas Recentes (Últimas 5)
   const recentSales = [...sales].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
@@ -188,6 +195,134 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span>Novo Orçamento</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* MÓDULO DE CAIXA E FLUXO DIÁRIO - CARD DE DESTAQUE */}
+      <div className="bg-gradient-to-br from-zinc-950 via-slate-900 to-zinc-950 border-2 border-amber-500/40 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          
+          {/* Dados de Saldo e Movimento */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-amber-500 text-slate-950 rounded-xl font-bold shadow-md">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white tracking-tight flex items-center gap-2">
+                  <span>Caixa & Movimento Financeiro</span>
+                  {cashSummary.activeSession ? (
+                    <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                      Caixa Aberto
+                    </span>
+                  ) : (
+                    <span className="bg-zinc-800 text-zinc-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      Saldo Contínuo
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  Saldo real apurado com base no saldo inicial e movimentações registradas
+                </p>
+              </div>
+            </div>
+
+            {/* Grid de Valores do Caixa */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+              
+              {/* Saldo Atual */}
+              <div className="bg-zinc-900/80 border border-amber-500/30 p-3.5 rounded-2xl">
+                <span className="text-[10px] font-extrabold uppercase text-amber-400 tracking-wider block">
+                  Saldo Atual em Caixa
+                </span>
+                <div className="text-xl font-black font-mono text-white mt-0.5">
+                  R$ {cashSummary.currentBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              {/* Entradas Hoje */}
+              <div className="bg-zinc-900/80 border border-zinc-800 p-3.5 rounded-2xl">
+                <span className="text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider block">
+                  Entradas Hoje
+                </span>
+                <div className="text-xl font-black font-mono text-emerald-400 mt-0.5">
+                  + R$ {cashSummary.todayEntries.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              {/* Saídas Hoje */}
+              <div className="bg-zinc-900/80 border border-zinc-800 p-3.5 rounded-2xl">
+                <span className="text-[10px] font-extrabold uppercase text-rose-400 tracking-wider block">
+                  Saídas Hoje
+                </span>
+                <div className="text-xl font-black font-mono text-rose-400 mt-0.5">
+                  - R$ {cashSummary.todayExits.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              {/* Resultado do Dia */}
+              <div className="bg-zinc-900/80 border border-zinc-800 p-3.5 rounded-2xl">
+                <span className="text-[10px] font-extrabold uppercase text-zinc-400 tracking-wider block">
+                  Resultado do Dia
+                </span>
+                <div
+                  className={`text-xl font-black font-mono mt-0.5 ${
+                    cashSummary.todayResult >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  }`}
+                >
+                  {cashSummary.todayResult >= 0 ? '+' : ''} R${' '}
+                  {cashSummary.todayResult.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Botões de Ação Rápida no Caixa */}
+          <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigate('cash')}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Mic className="w-4 h-4 text-slate-950" />
+                <span>Lançar por Áudio</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigate('cash')}
+                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl border border-zinc-700 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span>Ver Caixa</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigate('cash')}
+                className="flex-1 px-3.5 py-2 bg-emerald-600/90 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition-colors flex items-center justify-center gap-1"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>+ Entrada</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigate('cash')}
+                className="flex-1 px-3.5 py-2 bg-rose-600/90 hover:bg-rose-500 text-white font-black text-xs rounded-xl transition-colors flex items-center justify-center gap-1"
+              >
+                <Minus className="w-3.5 h-3.5" />
+                <span>- Despesa</span>
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
 

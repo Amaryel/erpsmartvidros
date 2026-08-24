@@ -22,6 +22,10 @@ import { LoginPage } from './components/LoginPage';
 import { UserProfileModal } from './components/UserProfileModal';
 import { SupabaseSyncModal } from './components/SupabaseSyncModal';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
+import { ContractList } from './components/ContractList';
+import { ContractGeneratorModal } from './components/ContractGeneratorModal';
+import { ContractViewModal } from './components/ContractViewModal';
+import { CashModule } from './components/CashModule';
 import {
   Quote,
   CompanyInfo,
@@ -31,6 +35,7 @@ import {
   Sale,
   Receivable,
   AppUser,
+  Contract,
 } from './types';
 import {
   getQuotes,
@@ -54,11 +59,16 @@ import {
   getUsers,
   SUPERADMIN_EMAIL,
   initSupabaseKeepAlive,
+  getContracts,
+  deleteContract,
+  getContractBySaleId,
+  getContractById,
 } from './services/storage';
 
 export default function App() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
@@ -98,6 +108,12 @@ export default function App() {
   const [posInitialQuote, setPosInitialQuote] = useState<Quote | null>(null);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
 
+  // Estados para Contratos
+  const [generatorSale, setGeneratorSale] = useState<Sale | null>(null);
+  const [editingContract, setEditingContract] = useState<Contract | null>(null);
+  const [isNewContractOpen, setIsNewContractOpen] = useState(false);
+  const [viewingContract, setViewingContract] = useState<Contract | null>(null);
+
   // Estados para Recibos
   const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null);
   const [viewingReceipt, setViewingReceipt] = useState<Receipt | null>(null);
@@ -114,6 +130,7 @@ export default function App() {
   const refreshData = () => {
     setQuotes(getQuotes());
     setSales(getSales());
+    setContracts(getContracts());
     setReceivables(getReceivables());
     setReceipts(getReceipts());
     setCatalog(getCatalog());
@@ -202,7 +219,8 @@ export default function App() {
   const handleFinalizeSaleFromPdv = (
     saleObject: Sale,
     installmentsConfig: { count: number; dueDates: string[]; amounts: number[] },
-    emitReceipt: boolean
+    emitReceipt: boolean,
+    generateContract?: boolean
   ) => {
     const result = finalizeSale(saleObject, installmentsConfig, emitReceipt);
     refreshData();
@@ -212,7 +230,13 @@ export default function App() {
     if (emitReceipt && result.receipt) {
       setViewingReceipt(result.receipt);
       setActiveTab('receipts');
+      if (generateContract) {
+        setGeneratorSale(result.sale);
+      }
       showToast(`Venda ${result.sale.code} finalizada! Recibo ${result.receipt.code} emitido.`);
+    } else if (generateContract) {
+      setGeneratorSale(result.sale);
+      showToast(`Venda ${result.sale.code} concluída! Abrindo Gerador de Contrato...`);
     } else {
       setActiveTab('sales');
       showToast(`Venda ${result.sale.code} finalizada com sucesso!`);
@@ -223,6 +247,46 @@ export default function App() {
     deleteSale(saleId);
     refreshData();
     showToast('Registro de venda removido.');
+  };
+
+  // --- MÓDULO DE CONTRATOS ---
+  const handleContractSaveSuccess = (savedContract: Contract) => {
+    refreshData();
+    setGeneratorSale(null);
+    setEditingContract(null);
+    setIsNewContractOpen(false);
+    setViewingContract(savedContract);
+    setActiveTab('contracts');
+    showToast(`Contrato ${savedContract.code} salvo com sucesso!`);
+  };
+
+  const handleDeleteContract = (contractId: string) => {
+    deleteContract(contractId);
+    refreshData();
+    showToast('Contrato excluído com sucesso.');
+  };
+
+  const handleOpenContractFromSaleId = (saleId: string) => {
+    const existingContract = getContractBySaleId(saleId);
+    if (existingContract) {
+      setViewingContract(existingContract);
+    } else {
+      const sale = sales.find((s) => s.id === saleId);
+      if (sale) {
+        setGeneratorSale(sale);
+      } else {
+        showToast('Venda não encontrada para gerar contrato.');
+      }
+    }
+  };
+
+  const handleOpenContractFromId = (contractId: string) => {
+    const c = getContractById(contractId);
+    if (c) {
+      setViewingContract(c);
+    } else {
+      showToast('Contrato não encontrado.');
+    }
   };
 
   // --- MÓDULO DE CONTAS A RECEBER ---
@@ -345,6 +409,7 @@ export default function App() {
         setIsMobileOpen={setIsSidebarMobileOpen}
         quotesCount={quotes.length}
         salesCount={sales.length}
+        contractsCount={contracts.length}
         receivablesCount={receivables.length}
         receiptsCount={receipts.length}
         pendingUsersCount={pendingUsersCount}
@@ -374,6 +439,7 @@ export default function App() {
           setActiveTab={setActiveTab}
           quotesCount={quotes.length}
           salesCount={sales.length}
+          contractsCount={contracts.length}
           receivablesCount={receivables.length}
           receiptsCount={receipts.length}
           currentUser={currentUser}
@@ -425,6 +491,7 @@ export default function App() {
           {activeTab === 'operations' && (
             <OperationsModule
               onOpenReceivablesTab={() => setActiveTab('receivables')}
+              onRefresh={refreshData}
             />
           )}
 
@@ -477,6 +544,28 @@ export default function App() {
               onOpenQuote={handleOpenQuoteFromId}
               onOpenReceipt={handleOpenReceiptFromId}
               onOpenReceivable={handleOpenReceivableFromId}
+              onOpenContract={handleOpenContractFromSaleId}
+            />
+          )}
+
+          {/* ABA MÓDULO: CAIXA & CONTROLE FINANCEIRO */}
+          {activeTab === 'cash' && (
+            <CashModule currentUser={currentUser} />
+          )}
+
+          {/* ABA NOVO MÓDULO: CONTRATOS */}
+          {activeTab === 'contracts' && (
+            <ContractList
+              contracts={contracts}
+              sales={sales}
+              companyInfo={companyInfo}
+              onNewContract={() => setIsNewContractOpen(true)}
+              onEditContract={(contract) => setEditingContract(contract)}
+              onViewContract={(c) => setViewingContract(c)}
+              onDeleteContract={handleDeleteContract}
+              onGenerateFromSale={(sale) => setGeneratorSale(sale)}
+              onOpenSale={handleOpenSaleFromId}
+              onOpenQuote={handleOpenQuoteFromId}
             />
           )}
 
@@ -612,6 +701,56 @@ export default function App() {
           />
         )}
 
+        {/* MODAL GERADOR DE CONTRATOS A PARTIR DE VENDA */}
+        {generatorSale && (
+          <ContractGeneratorModal
+            initialSale={generatorSale}
+            sale={generatorSale}
+            companyInfo={companyInfo}
+            onClose={() => setGeneratorSale(null)}
+            onSaveSuccess={handleContractSaveSuccess}
+          />
+        )}
+
+        {/* MODAL EDITAR CONTRATO EXISTENTE */}
+        {editingContract && (
+          <ContractGeneratorModal
+            initialContract={editingContract}
+            contract={editingContract}
+            companyInfo={companyInfo}
+            onClose={() => setEditingContract(null)}
+            onSaveSuccess={handleContractSaveSuccess}
+          />
+        )}
+
+        {/* MODAL NOVO CONTRATO AVULSO */}
+        {isNewContractOpen && (
+          <ContractGeneratorModal
+            companyInfo={companyInfo}
+            onClose={() => setIsNewContractOpen(false)}
+            onSaveSuccess={handleContractSaveSuccess}
+          />
+        )}
+
+        {/* MODAL DE VISUALIZAÇÃO & IMPRESSÃO/PDF DO CONTRATO */}
+        {viewingContract && (
+          <ContractViewModal
+            contract={viewingContract}
+            companyInfo={companyInfo}
+            onClose={() => setViewingContract(null)}
+            onEdit={(c) => {
+              setViewingContract(null);
+              setEditingContract(c);
+            }}
+            onDelete={(id) => {
+              handleDeleteContract(id);
+              setViewingContract(null);
+            }}
+            onOpenSale={handleOpenSaleFromId}
+            onOpenQuote={handleOpenQuoteFromId}
+          />
+        )}
+
         {/* MODAL DE VISUALIZAÇÃO DA VENDA */}
         {viewingSale && (
           <SaleViewModal
@@ -621,6 +760,7 @@ export default function App() {
             onOpenQuote={handleOpenQuoteFromId}
             onOpenReceipt={handleOpenReceiptFromId}
             onOpenReceivable={handleOpenReceivableFromId}
+            onOpenContract={handleOpenContractFromSaleId}
           />
         )}
 
@@ -659,7 +799,7 @@ export default function App() {
 
         {/* Rodapé do Sistema */}
         <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 print:hidden mt-auto">
-          <p>Smart Vidros — Módulo ERP de Orçamentos, Vendas, PDV, Contas a Receber e Recibos © {new Date().getFullYear()}</p>
+          <p>Smart Vidros — Módulo ERP de Orçamentos, Vendas, PDV, Contratos, Contas a Receber e Recibos © {new Date().getFullYear()}</p>
         </footer>
       </div>
     </div>

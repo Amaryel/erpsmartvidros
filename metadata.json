@@ -1,7 +1,12 @@
 {
   "name": "ERP Smart Vidros",
-  "description": "Sistema ERP Completo de Gestão de Vidraçaria, Orçamentos, Vendas, PDV e Recibos - Smart Vidros",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "description": "Sistema ERP Completo de Gestão de Vidraçaria, Orçamentos, Vendas, PDV, Caixa e Fluxo Financeiro com Lançamento por Áudio, Contratos, Contas a Receber e Recibos - Smart Vidros",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
 

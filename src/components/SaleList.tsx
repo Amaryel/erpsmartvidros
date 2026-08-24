@@ -24,6 +24,7 @@ interface SaleListProps {
   onOpenQuote?: (quoteId: string) => void;
   onOpenReceipt?: (receiptId: string) => void;
   onOpenReceivable?: (receivableId: string) => void;
+  onOpenContract?: (saleId: string) => void;
 }
 
 export const SaleList: React.FC<SaleListProps> = ({
@@ -35,6 +36,7 @@ export const SaleList: React.FC<SaleListProps> = ({
   onOpenQuote,
   onOpenReceipt,
   onOpenReceivable,
+  onOpenContract,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -224,6 +226,16 @@ export const SaleList: React.FC<SaleListProps> = ({
                             title="Ver Lançamento no Contas a Receber"
                           >
                             A Receber
+                          </button>
+                        )}
+
+                        {onOpenContract && (
+                          <button
+                            onClick={() => onOpenContract(sale.id)}
+                            className="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-400 px-2 py-0.5 rounded hover:bg-amber-200 transition-colors"
+                            title="Ver ou Gerar Contrato desta Venda"
+                          >
+                            Contrato
                           </button>
                         )}
                       </div>

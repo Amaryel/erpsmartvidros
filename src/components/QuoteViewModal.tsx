@@ -211,7 +211,7 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
                 {quote.items.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-slate-50">
+                  <tr key={item.id} className="hover:bg-slate-50 break-inside-avoid">
                     <td className="py-2 px-3 font-mono font-bold text-slate-400">{index + 1}</td>
                     <td className="py-2 px-3">
                       <div className="font-bold text-slate-900">{item.name}</div>
@@ -236,7 +236,7 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
           </div>
 
           {/* Totais do Orçamento */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-4 break-inside-avoid totals-box">
             <div className="text-xs text-slate-500 max-w-md">
               {quote.notes && (
                 <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3 text-amber-900">

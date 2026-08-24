@@ -87,7 +87,7 @@
   }
 
   /* Evitar quebra desnecessária de elementos principais */
-  table, tr, td, th, .break-inside-avoid {
+  table, tr, td, th, .break-inside-avoid, .contract-clause, .clausula, .signature-box, .totals-box {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }

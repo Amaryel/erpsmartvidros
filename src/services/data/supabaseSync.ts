@@ -232,6 +232,20 @@ function mapEntityToSupabaseRow(table: string, entity: any): Record<string, any>
         created_at: entity.createdAt || new Date().toISOString(),
       };
 
+    case 'contracts':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        sale_id: entity.saleId || null,
+        quote_id: entity.quoteId || null,
+        code: entity.code,
+        client_name: entity.clientName || 'Cliente',
+        total_amount: entity.totalAmount || 0,
+        status: entity.status || 'ativo',
+        created_at: entity.createdAt || new Date().toISOString(),
+        updated_at: entity.updatedAt || new Date().toISOString(),
+      };
+
     default:
       return null;
   }
@@ -241,7 +255,7 @@ function mapEntityToSupabaseRow(table: string, entity: any): Record<string, any>
 // AUTO-SYNC HOOK EM TEMPO REAL
 // ============================================================
 export function autoSyncEntityChange(
-  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'catalog',
+  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'catalog' | 'contracts',
   action: 'upsert' | 'delete',
   data: any
 ): void {

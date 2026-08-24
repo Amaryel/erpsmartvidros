@@ -13,6 +13,7 @@ import {
   LogOut,
   Lock,
   Database,
+  Scroll,
 } from 'lucide-react';
 import { AppUser, CompanyInfo } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -23,6 +24,7 @@ interface NavbarProps {
   setActiveTab: (tab: ActiveTab) => void;
   quotesCount: number;
   salesCount: number;
+  contractsCount?: number;
   receivablesCount: number;
   receiptsCount: number;
   currentUser?: AppUser | null;
@@ -42,6 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   quotesCount,
   salesCount,
+  contractsCount = 0,
   receivablesCount,
   receiptsCount,
   currentUser,

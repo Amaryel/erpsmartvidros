@@ -39,21 +39,34 @@ export function getManagerTasks(): ManagerTask[] {
 }
 
 export function saveManagerTask(
-  taskData: Omit<ManagerTask, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+  taskData: Omit<ManagerTask, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; logNote?: string; authorName?: string }
 ): ManagerTask {
   const tasks = getManagerTasks();
   const now = new Date().toISOString();
   const companyId = taskData.companyId || getCurrentCompanyId();
   const userId = taskData.userId || getCurrentUserId();
+  const author = taskData.authorName || 'Gestor';
 
   if (taskData.id) {
     const idx = tasks.findIndex((t) => t.id === taskData.id);
     if (idx !== -1) {
+      const currentLogs = tasks[idx].taskLogs ? [...tasks[idx].taskLogs] : [];
+      if (taskData.logNote || taskData.title !== tasks[idx].title || taskData.priority !== tasks[idx].priority) {
+        currentLogs.unshift({
+          id: generateUUID(),
+          date: now,
+          authorName: author,
+          action: taskData.logNote ? 'Anotação / Atualização da Tarefa' : 'Edição da Tarefa',
+          notes: taskData.logNote || taskData.notes,
+        });
+      }
+
       const updated: ManagerTask = {
         ...tasks[idx],
         ...taskData,
         companyId,
         userId,
+        taskLogs: currentLogs,
         updatedAt: now,
       };
       tasks[idx] = updated;
@@ -62,11 +75,22 @@ export function saveManagerTask(
     }
   }
 
+  const initialLogs = [
+    {
+      id: generateUUID(),
+      date: now,
+      authorName: author,
+      action: 'Tarefa Criada',
+      notes: taskData.notes || 'Tarefa adicionada ao painel do gestor.',
+    },
+  ];
+
   const newTask: ManagerTask = {
     ...taskData,
     id: generateUUID(),
     companyId,
     userId,
+    taskLogs: initialLogs,
     createdAt: now,
     updatedAt: now,
   };
@@ -76,12 +100,24 @@ export function saveManagerTask(
   return newTask;
 }
 
-export function toggleManagerTask(id: string): ManagerTask[] {
+export function toggleManagerTask(id: string, authorName?: string): ManagerTask[] {
   const tasks = getManagerTasks();
   const idx = tasks.findIndex((t) => t.id === id);
   if (idx !== -1) {
-    tasks[idx].completed = !tasks[idx].completed;
-    tasks[idx].updatedAt = new Date().toISOString();
+    const newStatus = !tasks[idx].completed;
+    const now = new Date().toISOString();
+    const currentLogs = tasks[idx].taskLogs ? [...tasks[idx].taskLogs] : [];
+
+    currentLogs.unshift({
+      id: generateUUID(),
+      date: now,
+      authorName: authorName || 'Gestor',
+      action: newStatus ? 'Tarefa marcada como Concluída' : 'Tarefa reaberta / Em andamento',
+    });
+
+    tasks[idx].completed = newStatus;
+    tasks[idx].taskLogs = currentLogs;
+    tasks[idx].updatedAt = now;
     storageAdapter.setItem(TASKS_KEY, tasks);
   }
   return tasks;
