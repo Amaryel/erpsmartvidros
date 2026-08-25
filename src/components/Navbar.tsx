@@ -9,11 +9,12 @@ import {
   ShieldCheck,
   Menu,
   LayoutDashboard,
-  UserCheck,
   LogOut,
   Lock,
   Database,
   Scroll,
+  Briefcase,
+  Wallet
 } from 'lucide-react';
 import { AppUser, CompanyInfo } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -100,6 +101,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('operations')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'operations'
+                  ? 'bg-amber-500 text-zinc-950 font-extrabold shadow-md'
+                  : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Obras</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('quotes')}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === 'quotes' || activeTab === 'new_quote'
@@ -109,15 +122,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <FileText className="w-3.5 h-3.5" />
               <span>Orçamentos</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'quotes' || activeTab === 'new_quote'
-                    ? 'bg-zinc-950/20 text-zinc-950'
-                    : 'bg-zinc-800 text-amber-400'
-                }`}
-              >
-                {quotesCount}
-              </span>
+              {quotesCount > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    activeTab === 'quotes' || activeTab === 'new_quote'
+                      ? 'bg-zinc-950/20 text-zinc-950'
+                      : 'bg-zinc-800 text-amber-400'
+                  }`}
+                >
+                  {quotesCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -130,13 +145,48 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>Vendas & PDV</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'sales' ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-amber-400'
-                }`}
-              >
-                {salesCount}
-              </span>
+              {salesCount > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    activeTab === 'sales' ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-amber-400'
+                  }`}
+                >
+                  {salesCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('cash')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'cash'
+                  ? 'bg-amber-500 text-zinc-950 font-extrabold shadow-md'
+                  : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              <Wallet className="w-3.5 h-3.5" />
+              <span>Caixa</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('contracts')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'contracts'
+                  ? 'bg-amber-500 text-zinc-950 font-extrabold shadow-md'
+                  : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              <Scroll className="w-3.5 h-3.5" />
+              <span>Contratos</span>
+              {contractsCount > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    activeTab === 'contracts' ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-indigo-400'
+                  }`}
+                >
+                  {contractsCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -149,13 +199,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>A Receber</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'receivables' ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-amber-400'
-                }`}
-              >
-                {receivablesCount}
-              </span>
+              {receivablesCount > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    activeTab === 'receivables' ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-rose-400'
+                  }`}
+                >
+                  {receivablesCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -168,15 +220,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <ReceiptText className="w-3.5 h-3.5" />
               <span>Recibos</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'receipts' || activeTab === 'new_receipt'
-                    ? 'bg-zinc-950/20 text-zinc-950'
-                    : 'bg-zinc-800 text-amber-400'
-                }`}
-              >
-                {receiptsCount}
-              </span>
+              {receiptsCount > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    activeTab === 'receipts' || activeTab === 'new_receipt'
+                      ? 'bg-zinc-950/20 text-zinc-950'
+                      : 'bg-zinc-800 text-emerald-400'
+                  }`}
+                >
+                  {receiptsCount}
+                </span>
+              )}
             </button>
 
             {isSuper && (
@@ -196,6 +250,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Lado Direito: Botões de Ação + Usuário Logado */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={onNewQuoteClick}
+              className="hidden md:flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-amber-500/30 hover:border-amber-400 font-extrabold px-3 py-2 rounded-xl transition-all text-xs"
+              title="Novo Orçamento Rápido"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>+ Orçamento</span>
+            </button>
+
             {onOpenSupabaseSyncModal && (
               <button
                 onClick={onOpenSupabaseSyncModal}
@@ -210,6 +273,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenPdvClick}
               className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl shadow-lg active:scale-95 transition-all text-xs"
+              title="Abrir Ponto de Venda"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>+ PDV</span>

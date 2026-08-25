@@ -17,7 +17,8 @@ import {
   Wrench,
   Mic,
   Minus,
-  Scale
+  Scale,
+  Scroll
 } from 'lucide-react';
 import { Quote, Sale, Receivable, Receipt, CompanyInfo } from '../types';
 import { calculateCashSummary } from '../services/data/repositories/cashRepository';
@@ -588,13 +589,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <span>Acesso Rápido aos Módulos</span>
         </h2>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <button
             onClick={() => onNavigate('operations')}
-            className="flex flex-col items-center p-4 rounded-xl border-2 border-amber-400 bg-amber-50/80 hover:bg-amber-100 transition-all text-center group shadow-xs"
+            className="flex flex-col items-center p-3.5 rounded-xl border-2 border-amber-400 bg-amber-50/80 hover:bg-amber-100 transition-all text-center group shadow-xs"
           >
-            <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 group-hover:scale-110 transition-transform mb-2 shadow-xs">
-              <Wrench className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 group-hover:scale-110 transition-transform mb-1.5 shadow-xs">
+              <Wrench className="w-4 h-4" />
             </div>
             <span className="font-black text-xs text-slate-950">Obras & Operações</span>
             <span className="text-[10px] text-amber-800 font-bold">Acompanhamento</span>
@@ -602,10 +603,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={() => onNavigate('quotes')}
-            className="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-2">
-              <FileText className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
+              <FileText className="w-4 h-4" />
             </div>
             <span className="font-extrabold text-xs text-slate-900">Orçamentos</span>
             <span className="text-[10px] text-slate-500">{quotes.length} salvos</span>
@@ -613,21 +614,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={() => onNavigate('sales')}
-            className="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-2">
-              <ShoppingBag className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
+              <ShoppingBag className="w-4 h-4" />
             </div>
             <span className="font-extrabold text-xs text-slate-900">Vendas & PDV</span>
             <span className="text-[10px] text-slate-500">{sales.length} vendas</span>
           </button>
 
           <button
-            onClick={() => onNavigate('receivables')}
-            className="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            onClick={() => onNavigate('cash')}
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-2">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-emerald-600 group-hover:scale-110 transition-transform mb-1.5">
+              <DollarSign className="w-4 h-4" />
+            </div>
+            <span className="font-extrabold text-xs text-slate-900">Caixa Diário</span>
+            <span className="text-[10px] text-slate-500">Fluxo & Movimento</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('contracts')}
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+          >
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-indigo-600 group-hover:scale-110 transition-transform mb-1.5">
+              <Scroll className="w-4 h-4" />
+            </div>
+            <span className="font-extrabold text-xs text-slate-900">Contratos</span>
+            <span className="text-[10px] text-slate-500">Geração & PDF</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('receivables')}
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+          >
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-rose-600 group-hover:scale-110 transition-transform mb-1.5">
+              <ShieldCheck className="w-4 h-4" />
             </div>
             <span className="font-extrabold text-xs text-slate-900">A Receber</span>
             <span className="text-[10px] text-slate-500">{receivables.length} contas</span>
@@ -635,32 +658,54 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={() => onNavigate('receipts')}
-            className="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-2">
-              <ReceiptText className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
+              <ReceiptText className="w-4 h-4" />
             </div>
             <span className="font-extrabold text-xs text-slate-900">Recibos</span>
             <span className="text-[10px] text-slate-500">{receipts.length} emitidos</span>
           </button>
 
           <button
-            onClick={() => onNavigate('catalog')}
-            className="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            onClick={() => onNavigate('clients')}
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-2">
-              <Package className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-blue-600 group-hover:scale-110 transition-transform mb-1.5">
+              <Users className="w-4 h-4" />
             </div>
-            <span className="font-extrabold text-xs text-slate-900">Catálogo</span>
-            <span className="text-[10px] text-slate-500">Produtos & Serviços</span>
+            <span className="font-extrabold text-xs text-slate-900">Clientes</span>
+            <span className="text-[10px] text-slate-500">Histórico & Ficha</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('products')}
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+          >
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
+              <Package className="w-4 h-4" />
+            </div>
+            <span className="font-extrabold text-xs text-slate-900">Produtos & Vidros</span>
+            <span className="text-[10px] text-slate-500">Catálogo com Fotos</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('services')}
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+          >
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 group-hover:scale-110 transition-transform mb-1.5">
+              <Wrench className="w-4 h-4" />
+            </div>
+            <span className="font-extrabold text-xs text-slate-900">Serviços</span>
+            <span className="text-[10px] text-slate-500">Mão de Obra</span>
           </button>
 
           <button
             onClick={() => onNavigate('company')}
-            className="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-2">
-              <Building2 className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
+              <Building2 className="w-4 h-4" />
             </div>
             <span className="font-extrabold text-xs text-slate-900">Empresa</span>
             <span className="text-[10px] text-slate-500">Dados & Logo</span>

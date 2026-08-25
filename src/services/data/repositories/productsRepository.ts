@@ -197,7 +197,7 @@ export function getCatalog(): CatalogItem[] {
   }
 
   let updated = false;
-  const processed = data.map((i) => {
+  const processed: CatalogItem[] = data.map((i) => {
     const category = i.category || (i.name.toLowerCase().includes('serviço') || i.name.toLowerCase().includes('instalacao') ? 'servico' : 'produto');
     const unit = i.unit || (i.type === 'dimensao' ? 'm²' : 'unidade');
     const status = i.status || 'ativo';
