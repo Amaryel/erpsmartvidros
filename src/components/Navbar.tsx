@@ -42,6 +42,7 @@ interface NavbarProps {
   onOpenAuthModal: () => void;
   onOpenProfileModal?: () => void;
   onOpenSupabaseSyncModal?: () => void;
+  onOpenPublicCatalog?: () => void;
   onLogout: () => void;
 }
 
@@ -61,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuthModal,
   onOpenProfileModal,
   onOpenSupabaseSyncModal,
+  onOpenPublicCatalog,
   onLogout,
 }) => {
   const isSuper =
@@ -377,6 +379,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <Wrench className="w-4 h-4 text-slate-400" />
                     <span>Serviços & Mão de Obra</span>
                   </button>
+
+                  {onOpenPublicCatalog && (
+                    <div className="pt-1 mt-1 border-t border-zinc-800">
+                      <button
+                        onClick={() => {
+                          setOpenDropdown(null);
+                          onOpenPublicCatalog();
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      >
+                        <span className="text-amber-400">✨</span>
+                        <span>Vitrine Pública (Cliente)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

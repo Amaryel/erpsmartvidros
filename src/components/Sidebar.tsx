@@ -72,6 +72,7 @@ interface SidebarProps {
   companyInfo: CompanyInfo;
   onNewQuoteClick: () => void;
   onOpenPdvClick: () => void;
+  onOpenPublicCatalog?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -91,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   companyInfo,
   onNewQuoteClick,
   onOpenPdvClick,
+  onOpenPublicCatalog,
 }) => {
   const isSuper =
     currentUser?.role === 'superadmin' ||
@@ -361,6 +363,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ))}
         </nav>
+
+        {/* Acesso Rápido à Vitrine Pública */}
+        {onOpenPublicCatalog && (
+          <div className="p-3 border-t border-zinc-800/80 shrink-0">
+            <button
+              onClick={onOpenPublicCatalog}
+              className={`w-full flex items-center ${
+                isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-2.5'
+              } rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all shadow-sm`}
+              title="Abrir Vitrine Pública (Link do Cliente)"
+            >
+              <span className="text-amber-400 text-sm">✨</span>
+              {!isCollapsed && <span className="truncate">Vitrine do Cliente</span>}
+            </button>
+          </div>
+        )}
 
         {/* Rodapé da Sidebar: Recolher / Expandir no Tablet/Desktop */}
         <div className="p-3 border-t border-zinc-800/80 shrink-0 hidden lg:block">

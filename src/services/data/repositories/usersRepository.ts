@@ -4,7 +4,7 @@ import { generateUUID } from '../uuid';
 import { autoSyncEntityChange } from '../supabaseSync';
 import { getDefaultPermissions } from '../../../utils/permissions';
 
-const USERS_KEY = 'smart_vidros_users';
+export const USERS_KEY = 'smart_vidros_users';
 export const SUPERADMIN_EMAIL = 'amaryelcc@gmail.com';
 const DEFAULT_COMPANY_ID = 'comp-smart-vidros-001';
 
@@ -72,6 +72,17 @@ export function getUsers(): UserAccount[] {
     storageAdapter.setItem(USERS_KEY, data);
   }
   return data;
+}
+
+export function upsertUserInRepository(user: UserAccount): void {
+  const users = getUsers();
+  const idx = users.findIndex((u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+  if (idx !== -1) {
+    users[idx] = { ...users[idx], ...user };
+  } else {
+    users.push(user);
+  }
+  storageAdapter.setItem(USERS_KEY, users);
 }
 
 export function getUserById(id: string): UserAccount | undefined {

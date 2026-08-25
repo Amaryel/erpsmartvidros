@@ -1,18 +1,22 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Edit2, Check, Package, Info, AlertTriangle, X, Camera, Upload, Sparkles, Image as ImageIcon } from 'lucide-react';
-import { CatalogItem, ProductType } from '../types';
+import { Plus, Trash2, Edit2, Check, Package, Info, AlertTriangle, X, Camera, Upload, Sparkles, Image as ImageIcon, Share2, Copy, ExternalLink, MessageCircle } from 'lucide-react';
+import { CatalogItem, ProductType, CompanyInfo } from '../types';
 import { getSmartProductImage } from '../services/data/repositories/productsRepository';
 
 interface CatalogManagerProps {
   catalog: CatalogItem[];
+  companyInfo?: CompanyInfo;
   onSaveItem: (item: Omit<CatalogItem, 'id'> & { id?: string }) => void;
   onDeleteItem: (id: string) => void;
+  onOpenPublicCatalog?: () => void;
 }
 
 export const CatalogManager: React.FC<CatalogManagerProps> = ({
   catalog,
+  companyInfo,
   onSaveItem,
   onDeleteItem,
+  onOpenPublicCatalog,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -21,6 +25,15 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
   const [defaultPrice, setDefaultPrice] = useState<number>(150);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<CatalogItem | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const publicLink = `${window.location.origin}${window.location.pathname}?catalogo=publico`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(publicLink);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -106,12 +119,65 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-20 space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Catálogo de Preços & Produtos</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Cadastre os produtos com fotos reais e preços padrão de referência para importar rapidamente nos novos orçamentos.
           </p>
+        </div>
+
+        {onOpenPublicCatalog && (
+          <button
+            type="button"
+            onClick={onOpenPublicCatalog}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-amber-500/20 transition-all self-start sm:self-auto"
+          >
+            <span>✨</span>
+            <span>Ver Vitrine do Cliente</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* CARD DE COMPARTILHAMENTO DO CATÁLOGO PÚBLICO */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-zinc-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="bg-amber-500 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+              Link Público para Clientes
+            </span>
+            <h3 className="font-extrabold text-sm text-white">Catálogo Online Sem Necessidade de Login</h3>
+          </div>
+          <p className="text-xs text-zinc-300 max-w-xl leading-relaxed">
+            Envie o link do catálogo para seus clientes verem fotos, modelos de boxes, espelhos, portas e solicitarem cotação direta no seu WhatsApp!
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded-xl text-xs font-bold transition-all border border-zinc-700"
+          >
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-amber-400" />}
+            <span>{copiedLink ? 'Link Copiado!' : 'Copiar Link'}</span>
+          </button>
+
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(
+              `Olá! Conheça nosso Catálogo Digital da *${companyInfo?.name || 'Smart Vidros'}*!\n\n` +
+              `Veja nossos modelos de boxes de vidro, espelhos decorativos, portas, janelas e esquadrias de alumínio sob medida no link abaixo:\n` +
+              `🔗 ${publicLink}\n\n` +
+              `Faça sua cotação direto pelo catálogo ou tire suas dúvidas pelo WhatsApp!`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-950/40"
+          >
+            <MessageCircle className="w-3.5 h-3.5 fill-white" />
+            <span>Enviar no WhatsApp</span>
+          </a>
         </div>
       </div>
 

@@ -26,6 +26,7 @@ import { ContractList } from './components/ContractList';
 import { ContractGeneratorModal } from './components/ContractGeneratorModal';
 import { ContractViewModal } from './components/ContractViewModal';
 import { CashModule } from './components/CashModule';
+import { PublicCatalogView } from './components/PublicCatalogView';
 import {
   Quote,
   CompanyInfo,
@@ -120,6 +121,46 @@ export default function App() {
 
   // Toast Notificação
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Modo Catálogo Público / Vitrine Virtual para Clientes
+  const [isPublicCatalogView, setIsPublicCatalogView] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const search = window.location.search || '';
+    const hash = window.location.hash || '';
+    return (
+      search.includes('catalogo=publico') ||
+      search.includes('catalogo=1') ||
+      search.includes('public=catalog') ||
+      search.includes('vitrine=1') ||
+      hash === '#catalogo' ||
+      hash === '#vitrine'
+    );
+  });
+
+  // Listener para histórico e parâmetros de URL
+  useEffect(() => {
+    const checkPublicCatalogUrl = () => {
+      const search = window.location.search || '';
+      const hash = window.location.hash || '';
+      if (
+        search.includes('catalogo=publico') ||
+        search.includes('catalogo=1') ||
+        search.includes('public=catalog') ||
+        search.includes('vitrine=1') ||
+        hash === '#catalogo' ||
+        hash === '#vitrine'
+      ) {
+        setIsPublicCatalogView(true);
+      }
+    };
+
+    window.addEventListener('popstate', checkPublicCatalogUrl);
+    window.addEventListener('hashchange', checkPublicCatalogUrl);
+    return () => {
+      window.removeEventListener('popstate', checkPublicCatalogUrl);
+      window.removeEventListener('hashchange', checkPublicCatalogUrl);
+    };
+  }, []);
 
   // Carregar dados iniciais do localStorage & Iniciar Keep-Alive Supabase
   useEffect(() => {
@@ -381,11 +422,58 @@ export default function App() {
     setActiveTab('new_receipt');
   };
 
-  // Bloqueio de Segurança / Rota de Login: se o usuário não estiver autenticado, exibir exclusivamente a LoginPage
+  // Se estiver no Modo Catálogo Público (para clientes e visitantes)
+  if (isPublicCatalogView) {
+    return (
+      <div className="min-h-screen bg-slate-950 font-sans selection:bg-amber-500 selection:text-slate-950">
+        {/* Se o usuário for da equipe e estiver logado, exibir banner discreto no topo para retornar ao painel */}
+        {currentUser && (
+          <div className="bg-amber-500 text-slate-950 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md sticky top-0 z-50">
+            <div className="flex items-center gap-2">
+              <span>👁️</span>
+              <span>Você está visualizando a Vitrine Pública como seu cliente a enxerga.</span>
+            </div>
+            <button
+              onClick={() => setIsPublicCatalogView(false)}
+              className="px-3 py-1 bg-slate-950 hover:bg-slate-900 text-amber-400 rounded-lg text-xs font-extrabold transition-all"
+            >
+              ← Voltar ao Sistema ({currentUser.name})
+            </button>
+          </div>
+        )}
+
+        <PublicCatalogView
+          catalog={catalog}
+          companyInfo={companyInfo}
+          onOpenLogin={() => {
+            if (currentUser) {
+              setIsPublicCatalogView(false);
+            } else {
+              // Limpar da url e abrir login
+              window.history.pushState({}, '', window.location.pathname);
+              setIsPublicCatalogView(false);
+            }
+          }}
+        />
+
+        {toastMessage && (
+          <div className="fixed bottom-5 right-5 z-[9999] bg-slate-900 text-amber-400 px-4 py-3 rounded-xl font-bold text-xs shadow-2xl flex items-center gap-2 border border-amber-500/50 animate-fade-in">
+            <span>✨</span>
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Bloqueio de Segurança / Rota de Login: se o usuário não estiver autenticado, exibir a LoginPage com opção de ver o catálogo público
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-950 font-sans selection:bg-amber-500 selection:text-slate-950">
-        <LoginPage onSuccessLogin={handleSuccessLogin} />
+        <LoginPage
+          onSuccessLogin={handleSuccessLogin}
+          onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
+        />
         {toastMessage && (
           <div className="fixed bottom-5 right-5 z-[9999] bg-slate-900 text-amber-400 px-4 py-3 rounded-xl font-bold text-xs shadow-2xl flex items-center gap-2 border border-amber-500/50 animate-fade-in">
             <span>✨</span>
@@ -420,6 +508,7 @@ export default function App() {
           setActiveTab('new_quote');
         }}
         onOpenPdvClick={handleOpenPdvDirect}
+        onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
       />
 
       {/* Conteúdo Principal com Recuo Adaptativo para a Sidebar */}
@@ -457,6 +546,7 @@ export default function App() {
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
           onOpenSupabaseSyncModal={() => setIsSupabaseSyncModalOpen(true)}
+          onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
           onLogout={handleLogout}
         />
 
@@ -646,8 +736,10 @@ export default function App() {
           {activeTab === 'catalog' && (
             <CatalogManager
               catalog={catalog}
+              companyInfo={companyInfo}
               onSaveItem={handleSaveCatalogItem}
               onDeleteItem={handleDeleteCatalogItem}
+              onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
             />
           )}
 

@@ -18,9 +18,10 @@ import { loginUser, registerUser, SUPERADMIN_EMAIL } from '../services/storage';
 
 interface LoginPageProps {
   onSuccessLogin: (user: AppUser) => void;
+  onOpenPublicCatalog?: () => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPublicCatalog }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
   // Formulário de Login
@@ -389,6 +390,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
                 <span>Enviar Solicitação de Cadastro</span>
               </button>
             </form>
+          )}
+
+          {/* Divisor e Botão de Acesso ao Catálogo Público */}
+          {onOpenPublicCatalog && (
+            <div className="mt-6 pt-5 border-t border-slate-800/80 text-center">
+              <button
+                type="button"
+                onClick={onOpenPublicCatalog}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 hover:from-amber-500/20 hover:to-amber-500/30 text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 group shadow-lg"
+              >
+                <span>✨</span>
+                <span>Ver Catálogo Digital da Vidraçaria (Acesso Livre)</span>
+                <span className="text-amber-400 group-hover:translate-x-0.5 transition-transform">→</span>
+              </button>
+            </div>
           )}
         </div>
 
