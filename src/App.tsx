@@ -517,6 +517,7 @@ export default function App() {
           {/* ABA 3: NOVO/EDITAR ORÇAMENTO */}
           {activeTab === 'new_quote' && (
             <QuoteForm
+              currentUser={currentUser}
               initialQuote={
                 editingQuote ??
                 (clientPreFill
@@ -574,6 +575,7 @@ export default function App() {
             <ReceivablesList
               receivables={receivables}
               companyInfo={companyInfo}
+              currentUser={currentUser}
               onRefresh={refreshData}
               onDeleteReceivable={handleDeleteReceivable}
               onOpenSale={handleOpenSaleFromId}
@@ -692,6 +694,7 @@ export default function App() {
         {isPosOpen && (
           <PosModal
             initialQuote={posInitialQuote}
+            currentUser={currentUser}
             companyInfo={companyInfo}
             onClose={() => {
               setIsPosOpen(false);

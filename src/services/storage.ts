@@ -98,6 +98,7 @@ export {
   getUsers,
   getUserById,
   findUserByEmailOrUsername,
+  createUser,
   registerUser,
   approveUser,
   rejectUser,

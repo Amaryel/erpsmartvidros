@@ -17,10 +17,12 @@ import {
   X,
   Briefcase,
   Layers,
-  Wallet
+  Wallet,
+  UserCheck
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
-import { AppUser, CompanyInfo } from '../types';
+import { AppUser, CompanyInfo, SystemModuleId } from '../types';
+import { hasModuleAccess, SUPERADMIN_EMAIL } from '../utils/permissions';
 
 export type ActiveTab =
   | 'dashboard'
@@ -90,9 +92,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewQuoteClick,
   onOpenPdvClick,
 }) => {
-  const isSuper = currentUser?.role === 'superadmin' || currentUser?.email.toLowerCase() === 'amaryelcc@gmail.com';
+  const isSuper =
+    currentUser?.role === 'superadmin' ||
+    (currentUser?.email && currentUser.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
 
-  const menuGroups: MenuGroup[] = [
+  const canManageUsers =
+    isSuper ||
+    currentUser?.role === 'admin' ||
+    currentUser?.permissions?.canManageUsers === true;
+
+  const rawMenuGroups: MenuGroup[] = [
     {
       groupTitle: 'Visão Geral',
       items: [
@@ -179,19 +188,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      groupTitle: 'Sistema',
+      groupTitle: 'Sistema & Equipe',
       items: [
         {
           id: 'company',
           label: 'Dados da Empresa',
           icon: Building2,
         },
-        ...(isSuper
+        ...(canManageUsers
           ? [
               {
                 id: 'superadmin' as ActiveTab,
-                label: 'Painel Super Admin',
-                icon: ShieldCheck,
+                label: isSuper ? 'Painel Super Admin' : 'Gestão de Usuários',
+                icon: isSuper ? ShieldCheck : UserCheck,
                 badge: pendingUsersCount > 0 ? pendingUsersCount : null,
                 badgeColor: 'bg-amber-500 text-slate-950 font-black animate-pulse',
               },
@@ -200,6 +209,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
   ];
+
+  // Filtra itens de acordo com as permissões do usuário logado
+  const menuGroups: MenuGroup[] = rawMenuGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => hasModuleAccess(currentUser, item.id as SystemModuleId)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const handleSelectTab = (tab: ActiveTab) => {
     setActiveTab(tab);

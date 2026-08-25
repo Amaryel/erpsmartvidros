@@ -1,7 +1,8 @@
-import { UserAccount } from '../../../types';
+import { UserAccount, UserRole, UserPermissions } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { autoSyncEntityChange } from '../supabaseSync';
+import { getDefaultPermissions } from '../../../utils/permissions';
 
 const USERS_KEY = 'smart_vidros_users';
 export const SUPERADMIN_EMAIL = 'amaryelcc@gmail.com';
@@ -17,6 +18,7 @@ export const INITIAL_USERS: UserAccount[] = [
     password: 'admin',
     role: 'superadmin',
     status: 'aprovado',
+    permissions: getDefaultPermissions('superadmin'),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     approvedAt: new Date().toISOString(),
@@ -25,16 +27,35 @@ export const INITIAL_USERS: UserAccount[] = [
   {
     id: 'usr-admin-001',
     companyId: DEFAULT_COMPANY_ID,
-    name: 'James Clayton',
+    name: 'James Clayton (Admin)',
     email: 'contato.smartvidros@gmail.com',
     username: 'smartvidros',
     password: '123',
     role: 'admin',
     status: 'aprovado',
+    permissions: getDefaultPermissions('admin'),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     approvedAt: new Date().toISOString(),
     approvedBy: 'Amaryel',
+  },
+  {
+    id: 'usr-vendedor-001',
+    companyId: DEFAULT_COMPANY_ID,
+    name: 'Carlos Mendes (Vendedor)',
+    email: 'vendedor@smartvidros.com',
+    username: 'vendedor',
+    password: '123',
+    role: 'vendedor',
+    status: 'aprovado',
+    permissions: {
+      ...getDefaultPermissions('vendedor'),
+      maxDiscountPercent: 10,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    approvedAt: new Date().toISOString(),
+    approvedBy: 'James Clayton',
   },
 ];
 
@@ -67,6 +88,120 @@ export function findUserByEmailOrUsername(identifier: string): UserAccount | und
   );
 }
 
+export function createUser(userData: {
+  name: string;
+  email: string;
+  username?: string;
+  password?: string;
+  role: UserRole;
+  permissions?: UserPermissions;
+  createdBy?: string;
+}): { success: boolean; message: string; user?: UserAccount } {
+  const users = getUsers();
+  const cleanEmail = userData.email.trim().toLowerCase();
+  
+  if (!cleanEmail) {
+    return {
+      success: false,
+      message: 'O e-mail do colaborador é obrigatório.',
+    };
+  }
+
+  if (!userData.name || !userData.name.trim()) {
+    return {
+      success: false,
+      message: 'O nome do colaborador é obrigatório.',
+    };
+  }
+
+  // Resolver username limpo e único
+  let cleanUsername = userData.username ? userData.username.trim().toLowerCase().replace(/\s+/g, '') : '';
+  if (!cleanUsername) {
+    const base = userData.name.trim().split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '') || 'usuario';
+    cleanUsername = base;
+    let counter = 1;
+    while (users.some((u) => u.username && u.username.toLowerCase() === cleanUsername)) {
+      counter++;
+      cleanUsername = `${base}${counter}`;
+    }
+  } else {
+    // Se o usuário digitou um username que já existe
+    const existingUsername = users.find((u) => u.username && u.username.toLowerCase() === cleanUsername);
+    if (existingUsername) {
+      return {
+        success: false,
+        message: `O nome de usuário "@${cleanUsername}" já está em uso por outro colaborador. Escolha outro username.`,
+      };
+    }
+  }
+
+  const role = userData.role || 'vendedor';
+  const permissions = userData.permissions || getDefaultPermissions(role);
+  const now = new Date().toISOString();
+
+  // Verificar se o e-mail já existe
+  const existingIdx = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+  if (existingIdx !== -1) {
+    const existing = users[existingIdx];
+    if (existing.status === 'aprovado') {
+      return {
+        success: false,
+        message: `Já existe um colaborador ativo cadastrado com o e-mail "${cleanEmail}".`,
+      };
+    }
+
+    // Se estava pendente ou rejeitado, ativa e atualiza
+    const updatedUser: UserAccount = {
+      ...existing,
+      name: userData.name.trim(),
+      username: cleanUsername,
+      role,
+      password: userData.password || existing.password || '123456',
+      status: 'aprovado',
+      permissions,
+      approvedAt: now,
+      approvedBy: userData.createdBy || 'Administrador',
+      updatedAt: now,
+    };
+
+    users[existingIdx] = updatedUser;
+    storageAdapter.setItem(USERS_KEY, users);
+    autoSyncEntityChange('user_accounts', 'upsert', updatedUser);
+
+    return {
+      success: true,
+      message: `Colaborador "${updatedUser.name}" aprovado e ativado com sucesso como ${updatedUser.role.toUpperCase()}!`,
+      user: updatedUser,
+    };
+  }
+
+  const newUser: UserAccount = {
+    id: generateUUID(),
+    companyId: DEFAULT_COMPANY_ID,
+    name: userData.name.trim(),
+    email: cleanEmail,
+    username: cleanUsername,
+    password: userData.password || '123456',
+    role,
+    status: 'aprovado',
+    permissions,
+    approvedAt: now,
+    approvedBy: userData.createdBy || 'Administrador',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  users.push(newUser);
+  storageAdapter.setItem(USERS_KEY, users);
+  autoSyncEntityChange('user_accounts', 'upsert', newUser);
+
+  return {
+    success: true,
+    message: `Colaborador "${newUser.name}" cadastrado com sucesso como ${newUser.role.toUpperCase()}!`,
+    user: newUser,
+  };
+}
+
 export function registerUser(userData: {
   name: string;
   email: string;
@@ -85,7 +220,7 @@ export function registerUser(userData: {
     if (existing.status === 'pendente') {
       return {
         success: false,
-        message: 'Este e-mail já possui um cadastro pendente aguardando aprovação do Super Admin.',
+        message: 'Este e-mail já possui um cadastro pendente aguardando aprovação do Administrador.',
       };
     }
     return {
@@ -105,6 +240,7 @@ export function registerUser(userData: {
   }
 
   const now = new Date().toISOString();
+  const role: UserRole = isSuper ? 'superadmin' : 'vendedor';
   const newUser: UserAccount = {
     id: generateUUID(),
     companyId: DEFAULT_COMPANY_ID,
@@ -112,10 +248,13 @@ export function registerUser(userData: {
     email: cleanEmail,
     username: cleanUsername,
     password: userData.password || '123456',
-    role: isSuper ? 'superadmin' : 'operador',
+    role,
     status: isSuper ? 'aprovado' : 'pendente',
+    permissions: getDefaultPermissions(role),
     createdAt: now,
     updatedAt: now,
+    approvedAt: isSuper ? now : undefined,
+    approvedBy: isSuper ? 'Sistema' : undefined,
   };
 
   users.unshift(newUser);
@@ -126,15 +265,20 @@ export function registerUser(userData: {
     success: true,
     message: isSuper
       ? 'Conta de Super Admin cadastrada e aprovada automaticamente!'
-      : 'Cadastro realizado com sucesso! Sua solicitação foi enviada para aprovação do Super Admin.',
+      : 'Cadastro realizado com sucesso! Sua solicitação foi enviada para aprovação do Administrador.',
     user: newUser,
   };
 }
 
 export function approveUser(
   userId: string,
-  approvalData?: { username?: string; role?: 'admin' | 'operador'; password?: string },
-  approvedBy: string = 'Super Admin'
+  approvalData?: {
+    username?: string;
+    role?: UserRole;
+    password?: string;
+    permissions?: UserPermissions;
+  },
+  approvedBy: string = 'Administrador'
 ): UserAccount | null {
   const users = getUsers();
   const idx = users.findIndex((u) => u.id === userId);
@@ -143,23 +287,25 @@ export function approveUser(
   const now = new Date().toISOString();
   const user = users[idx];
 
-  // Se for fornecido um nome de usuário (username), remove caracteres especiais/espaços
   let cleanUsername = approvalData?.username
     ? approvalData.username.trim().toLowerCase().replace(/\s+/g, '')
     : user.username;
 
-  // Se não tiver username, cria um baseado no primeiro nome + sufixo
   if (!cleanUsername) {
     const firstName = user.name.split(' ')[0].toLowerCase().replace(/[^a-z0-0]/g, '');
     cleanUsername = firstName + Math.floor(100 + Math.random() * 900);
   }
 
+  const role = approvalData?.role || user.role || 'vendedor';
+  const permissions = approvalData?.permissions || user.permissions || getDefaultPermissions(role);
+
   const updatedUser: UserAccount = {
     ...user,
     status: 'aprovado',
     username: cleanUsername,
-    role: approvalData?.role || user.role || 'operador',
+    role,
     password: approvalData?.password || user.password || '123456',
+    permissions,
     approvedAt: now,
     approvedBy,
     updatedAt: now,
@@ -208,3 +354,4 @@ export function deleteUser(id: string): UserAccount[] {
   autoSyncEntityChange('user_accounts', 'delete', id);
   return users;
 }
+

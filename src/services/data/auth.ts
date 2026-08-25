@@ -1,6 +1,7 @@
 import { AppUser, UserAccount } from '../../types';
 import { storageAdapter } from './storageAdapter';
-import { findUserByEmailOrUsername, SUPERADMIN_EMAIL } from './repositories/usersRepository';
+import { findUserByEmailOrUsername, getUserById, SUPERADMIN_EMAIL } from './repositories/usersRepository';
+import { getUserPermissions } from '../../utils/permissions';
 
 const AUTH_SESSION_KEY = 'smart_vidros_auth_session';
 
@@ -8,12 +9,14 @@ export const DEFAULT_COMPANY_ID = 'comp-smart-vidros-001';
 export const DEFAULT_USER_ID = 'usr-superadmin-001';
 
 export function getCurrentSessionUser(): AppUser | null {
+  let sessionUser: AppUser | null = null;
+
   // 1. Verificar primeiro a sessão da aba atual (sessionStorage)
   try {
     if (typeof window !== 'undefined' && window.sessionStorage) {
       const sessionData = window.sessionStorage.getItem(AUTH_SESSION_KEY);
       if (sessionData) {
-        return JSON.parse(sessionData);
+        sessionUser = JSON.parse(sessionData);
       }
     }
   } catch (err) {
@@ -21,8 +24,27 @@ export function getCurrentSessionUser(): AppUser | null {
   }
 
   // 2. Se não estiver no sessionStorage, verificar se o usuário optou por "Manter conectado" (localStorage)
-  const localData = storageAdapter.getItem<AppUser>(AUTH_SESSION_KEY, null);
-  return localData;
+  if (!sessionUser) {
+    sessionUser = storageAdapter.getItem<AppUser>(AUTH_SESSION_KEY, null);
+  }
+
+  if (sessionUser) {
+    // Sincronizar permissões e cargo atualizados do banco/repositório
+    const liveAccount = getUserById(sessionUser.id) || findUserByEmailOrUsername(sessionUser.email);
+    if (liveAccount) {
+      sessionUser = {
+        ...sessionUser,
+        name: liveAccount.name,
+        role: liveAccount.role,
+        status: liveAccount.status,
+        permissions: getUserPermissions(liveAccount),
+      };
+    } else {
+      sessionUser.permissions = getUserPermissions(sessionUser);
+    }
+  }
+
+  return sessionUser;
 }
 
 export function getCurrentUser(): AppUser | null {
@@ -82,7 +104,7 @@ export function loginUser(
     return {
       success: false,
       message:
-        'Sua conta está em análise aguardando liberação do Super Admin (amaryelcc@gmail.com). Assim que for aprovada, você poderá acessar o sistema.',
+        'Sua conta está em análise aguardando liberação do Administrador. Assim que for aprovada, você poderá acessar o sistema.',
     };
   }
 
@@ -93,6 +115,8 @@ export function loginUser(
     };
   }
 
+  const permissions = getUserPermissions(userAccount);
+
   const appUser: AppUser = {
     id: userAccount.id,
     email: userAccount.email,
@@ -101,6 +125,7 @@ export function loginUser(
     role: userAccount.role,
     status: userAccount.status,
     companyId: userAccount.companyId,
+    permissions,
   };
 
   // Salvar sessão de acordo com a opção de persistência

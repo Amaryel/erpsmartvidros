@@ -39,9 +39,11 @@ import {
   CatalogItem,
   CompanyInfo,
   Quote,
-  Client
+  Client,
+  AppUser
 } from '../types';
 import { getCatalog, createSaleFromQuote, getClients, findClientByName, updateQuoteStatus } from '../services/storage';
+import { validateUserDiscount, getUserPermissions } from '../utils/permissions';
 import { UnregisteredClientPromptModal } from './UnregisteredClientPromptModal';
 import { ClientFormModal } from './ClientFormModal';
 import { ClientSelect } from './ClientSelect';
@@ -50,6 +52,7 @@ import { ImportQuoteModal } from './ImportQuoteModal';
 interface PosModalProps {
   initialQuote?: Quote | null;
   initialSale?: Sale | null;
+  currentUser?: AppUser | null;
   companyInfo: CompanyInfo;
   onClose: () => void;
   onFinalizeSale: (
@@ -63,6 +66,7 @@ interface PosModalProps {
 export const PosModal: React.FC<PosModalProps> = ({
   initialQuote,
   initialSale,
+  currentUser,
   companyInfo,
   onClose,
   onFinalizeSale,
@@ -427,6 +431,18 @@ export const PosModal: React.FC<PosModalProps> = ({
     if (!isBalanceValid) {
       alert('O valor total das formas de pagamento deve ser exatamente igual ao total da venda.');
       return;
+    }
+
+    // Validação de Limite de Desconto por Nível de Usuário (Vendedor, Funcionário, Admin)
+    if (discountAmount > 0) {
+      const discCheck = validateUserDiscount(currentUser, subtotal, discountAmount);
+      if (!discCheck.valid) {
+        alert(
+          discCheck.errorMessage ||
+            `O desconto informado ultrapassa o limite máximo permitido de ${discCheck.maxAllowedPercent}% (R$ ${discCheck.maxAllowedAmount.toFixed(2)}).`
+        );
+        return;
+      }
     }
 
     const trimmedName = clientName.trim();
@@ -922,7 +938,24 @@ export const PosModal: React.FC<PosModalProps> = ({
 
                   {/* Campo de Desconto */}
                   <div className="flex items-center justify-between gap-2 pt-1">
-                    <span className="text-zinc-300 font-medium">Desconto:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-zinc-300 font-medium">Desconto:</span>
+                      {(() => {
+                        const perms = getUserPermissions(currentUser);
+                        if (currentUser?.role === 'superadmin' || currentUser?.role === 'admin') {
+                          return (
+                            <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800 px-1 rounded">
+                              100%
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="text-[9px] text-amber-300 font-extrabold bg-amber-950/60 border border-amber-800 px-1 rounded">
+                            Máx {perms.maxDiscountPercent}%
+                          </span>
+                        );
+                      })()}
+                    </div>
                     <div className="flex items-center gap-1">
                       <div className="inline-flex rounded-lg bg-zinc-800 p-0.5 border border-zinc-700">
                         <button
@@ -958,9 +991,22 @@ export const PosModal: React.FC<PosModalProps> = ({
                   </div>
 
                   {discountAmount > 0 && (
-                    <div className="flex justify-between text-red-400 font-semibold text-[11px] pt-0.5">
-                      <span>Desconto Aplicado:</span>
-                      <span>- R$ {discountAmount.toFixed(2)}</span>
+                    <div className="space-y-1 pt-0.5">
+                      <div className="flex justify-between text-red-400 font-semibold text-[11px]">
+                        <span>Desconto Aplicado:</span>
+                        <span>- R$ {discountAmount.toFixed(2)}</span>
+                      </div>
+                      {(() => {
+                        const check = validateUserDiscount(currentUser, subtotal, discountAmount);
+                        if (!check.valid) {
+                          return (
+                            <div className="text-[10px] text-red-400 font-bold bg-red-950/50 border border-red-800 p-1 rounded text-center">
+                              ⚠️ Desconto acima do limite ({check.maxAllowedPercent}%)
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   )}
 

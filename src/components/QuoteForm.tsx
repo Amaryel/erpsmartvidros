@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, ArrowLeft, Eye, Calculator, Info, CheckCircle2, UserPlus, PackagePlus, Wrench } from 'lucide-react';
-import { Quote, QuoteItem, ProductType, DiscountType, QuoteStatus, CatalogItem, DownPaymentType, PaymentMethod, Client } from '../types';
+import { Plus, Trash2, Save, ArrowLeft, Eye, Calculator, Info, CheckCircle2, UserPlus, PackagePlus, Wrench, ShieldAlert, Percent } from 'lucide-react';
+import { Quote, QuoteItem, ProductType, DiscountType, QuoteStatus, CatalogItem, DownPaymentType, PaymentMethod, Client, AppUser } from '../types';
 import { getCatalog, getClients, findClientByName } from '../services/storage';
+import { validateUserDiscount, getUserPermissions } from '../utils/permissions';
 import { UnregisteredClientPromptModal } from './UnregisteredClientPromptModal';
 import { ClientFormModal } from './ClientFormModal';
 import { ProductFormModal } from './ProductFormModal';
@@ -10,6 +11,7 @@ import { ClientSelect } from './ClientSelect';
 
 interface QuoteFormProps {
   initialQuote?: Quote | null;
+  currentUser?: AppUser | null;
   onSave: (quoteData: Omit<Quote, 'id' | 'code' | 'createdAt' | 'updatedAt'> & { id?: string; code?: string }) => void;
   onCancel: () => void;
   onPreview: (tempQuote: Quote) => void;
@@ -17,6 +19,7 @@ interface QuoteFormProps {
 
 export const QuoteForm: React.FC<QuoteFormProps> = ({
   initialQuote,
+  currentUser,
   onSave,
   onCancel,
   onPreview,
@@ -257,6 +260,18 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
           setValidationError(`O Valor Unitário do produto "${item.name}" deve ser preenchido.`);
           return false;
         }
+      }
+    }
+
+    // Validação de Limite de Desconto por Nível de Usuário
+    if (discountAmount > 0) {
+      const discCheck = validateUserDiscount(currentUser, subtotal, discountAmount);
+      if (!discCheck.valid) {
+        setValidationError(
+          discCheck.errorMessage ||
+            `O desconto informado ultrapassa o limite máximo permitido de ${discCheck.maxAllowedPercent}% (R$ ${discCheck.maxAllowedAmount.toFixed(2)}).`
+        );
+        return false;
       }
     }
 
@@ -870,7 +885,24 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span>Desconto:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>Desconto:</span>
+                      {(() => {
+                        const perms = getUserPermissions(currentUser);
+                        if (currentUser?.role === 'superadmin' || currentUser?.role === 'admin') {
+                          return (
+                            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                              Admin (100%)
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="text-[10px] text-amber-800 font-extrabold bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                            Limite: {perms.maxDiscountPercent}%
+                          </span>
+                        );
+                      })()}
+                    </div>
                     <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                       <button
                         type="button"
@@ -905,8 +937,22 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                     />
                   </div>
                   {discountAmount > 0 && (
-                    <div className="text-right text-xs font-semibold text-emerald-600 font-mono">
-                      - R$ {discountAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      {(() => {
+                        const check = validateUserDiscount(currentUser, subtotal, discountAmount);
+                        if (!check.valid) {
+                          return (
+                            <span className="text-[11px] text-red-600 font-bold flex items-center gap-1">
+                              <ShieldAlert className="w-3.5 h-3.5" />
+                              Limite excedido (máx {check.maxAllowedPercent}%)
+                            </span>
+                          );
+                        }
+                        return <span></span>;
+                      })()}
+                      <span className="text-right font-semibold text-emerald-600">
+                        - R$ {discountAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
                     </div>
                   )}
                 </div>

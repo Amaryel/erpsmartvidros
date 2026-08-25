@@ -254,8 +254,38 @@ export interface Receipt {
 }
 
 // Estruturas de Usuários, Autenticação e Controle de Acesso
-export type UserRole = 'superadmin' | 'admin' | 'operador';
+export type UserRole = 'superadmin' | 'admin' | 'vendedor' | 'funcionario' | 'operador';
 export type UserStatus = 'pendente' | 'aprovado' | 'rejeitado';
+
+export type SystemModuleId =
+  | 'dashboard'
+  | 'operations'
+  | 'quotes'
+  | 'sales'
+  | 'cash'
+  | 'contracts'
+  | 'receivables'
+  | 'receipts'
+  | 'clients'
+  | 'products'
+  | 'services'
+  | 'company'
+  | 'users';
+
+export interface UserPermissions {
+  // Módulos que o usuário pode acessar
+  allowedModules: SystemModuleId[];
+  
+  // Limites comerciais e descontos
+  maxDiscountPercent: number; // Porcentagem máxima permitida (ex: 5, 10, 15, 100)
+  canGiveDiscount?: boolean; // Se tem permissão para aplicar desconto
+  
+  // Permissões operacionais
+  canSettleReceivables?: boolean; // Se pode dar baixa em contas a receber / fiado
+  canCancelSales?: boolean; // Se pode cancelar vendas e orçamentos
+  canManageUsers?: boolean; // Se pode cadastrar e configurar outros usuários (admin / superadmin)
+  canAccessSensitiveSettings?: boolean; // Se pode alterar chaves sensíveis como Supabase (somente superadmin)
+}
 
 export interface UserAccount {
   id: string;
@@ -266,6 +296,7 @@ export interface UserAccount {
   password?: string;
   role: UserRole;
   status: UserStatus;
+  permissions?: UserPermissions;
   createdAt: string;
   updatedAt: string;
   approvedAt?: string;
@@ -280,6 +311,7 @@ export interface AppUser {
   role: UserRole;
   status: UserStatus;
   companyId: string;
+  permissions?: UserPermissions;
 }
 
 export interface AuthSession {

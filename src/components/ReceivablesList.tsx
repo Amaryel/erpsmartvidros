@@ -16,12 +16,14 @@ import {
   Plus,
   X
 } from 'lucide-react';
-import { Receivable, Installment, PaymentMethod, CompanyInfo } from '../types';
+import { Receivable, Installment, PaymentMethod, CompanyInfo, AppUser } from '../types';
 import { payReceivableInstallment, updateInstallmentDueDate } from '../services/storage';
+import { getUserPermissions } from '../utils/permissions';
 
 interface ReceivablesListProps {
   receivables: Receivable[];
   companyInfo: CompanyInfo;
+  currentUser?: AppUser | null;
   onRefresh: () => void;
   onDeleteReceivable: (id: string) => void;
   onOpenSale?: (saleId: string) => void;
@@ -40,6 +42,7 @@ interface SplitPaymentRow {
 export const ReceivablesList: React.FC<ReceivablesListProps> = ({
   receivables,
   companyInfo,
+  currentUser,
   onRefresh,
   onDeleteReceivable,
   onOpenSale,
@@ -47,6 +50,8 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
   onOpenReceipt,
   onShowToast,
 }) => {
+  const perms = getUserPermissions(currentUser);
+  const canSettle = perms.canSettleReceivables !== false;
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'pendente' | 'parcial' | 'pago'>('todos');
 
@@ -467,13 +472,22 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
 
                         {/* Botão Dar Baixa */}
                         {!isPaid ? (
-                          <button
-                            onClick={() => handleOpenPayModal(rec, inst)}
-                            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-1.5 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1 mt-1"
-                          >
-                            <CreditCard className="w-3.5 h-3.5" />
-                            <span>Dar Baixa (R$ {remainingInInst.toFixed(2)})</span>
-                          </button>
+                          canSettle ? (
+                            <button
+                              onClick={() => handleOpenPayModal(rec, inst)}
+                              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-1.5 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1 mt-1"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Dar Baixa (R$ {remainingInInst.toFixed(2)})</span>
+                            </button>
+                          ) : (
+                            <div
+                              title="Seu perfil não possui permissão para dar baixa em contas"
+                              className="w-full bg-slate-100 text-slate-400 font-bold text-[11px] py-1.5 rounded-lg flex items-center justify-center gap-1 mt-1 cursor-not-allowed border border-slate-200"
+                            >
+                              <span>🔒 Baixa Restrita</span>
+                            </div>
+                          )
                         ) : (
                           <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 py-1 rounded-md">
                             <CheckCircle2 className="w-3.5 h-3.5" />
