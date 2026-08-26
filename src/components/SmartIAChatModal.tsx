@@ -45,6 +45,7 @@ interface SmartIAChatModalProps {
   currentUser?: AppUser | null;
   companyInfo: CompanyInfo;
   onNavigateToTab?: (tab: any) => void;
+  onShowToast?: (msg: string) => void;
 }
 
 const CHAT_PROMPT_CATEGORIES = [
@@ -80,6 +81,7 @@ export const SmartIAChatModal: React.FC<SmartIAChatModalProps> = ({
   currentUser,
   companyInfo,
   onNavigateToTab,
+  onShowToast,
 }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -196,9 +198,22 @@ export const SmartIAChatModal: React.FC<SmartIAChatModalProps> = ({
   };
 
   const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      onShowToast?.('Resposta copiada para a área de transferência!');
+      setTimeout(() => setCopiedId(null), 2500);
+    } catch (e) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopiedId(id);
+      onShowToast?.('Resposta copiada com sucesso!');
+      setTimeout(() => setCopiedId(null), 2500);
+    }
   };
 
   const handleToggleLike = (id: string) => {
@@ -436,19 +451,24 @@ export const SmartIAChatModal: React.FC<SmartIAChatModalProps> = ({
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => handleCopy(msg.id, msg.text)}
-                          className="flex items-center gap-1 px-2 py-0.5 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors text-[10px] font-semibold"
-                          title="Copiar texto da resposta"
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                            copiedId === msg.id
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                              : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white border border-zinc-700/60 shadow-sm'
+                          }`}
+                          title="Copiar texto completo da resposta"
                         >
                           {copiedId === msg.id ? (
                             <>
-                              <Check className="w-3 h-3 text-emerald-400" />
-                              <span className="text-emerald-400">Copiado!</span>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Copiado!</span>
                             </>
                           ) : (
                             <>
-                              <Copy className="w-3 h-3" />
-                              <span>Copiar</span>
+                              <Copy className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Copiar Texto</span>
                             </>
                           )}
                         </button>

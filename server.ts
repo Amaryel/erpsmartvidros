@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,6 +7,25 @@ import { GoogleGenAI } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+let geminiClient: GoogleGenAI | null = null;
+function getGemini(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+  if (!geminiClient) {
+    geminiClient = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+  }
+  return geminiClient;
+}
 
 async function startServer() {
   const app = express();
@@ -18,7 +38,7 @@ async function startServer() {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
 
-  // Endpoint do Smart IA - Assistente Virtual Especialista em Vidraçaria
+  // Endpoint do Smart IA - Assistente Virtual Completo com Pesquisa na Internet & Vidraçaria
   app.post('/api/smart-ia', async (req, res) => {
     try {
       const { message, history } = req.body;
@@ -30,9 +50,9 @@ async function startServer() {
         return;
       }
 
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        // Se a chave não estiver configurada no ambiente, o backend retorna resposta inteligente do motor local
+      const ai = getGemini();
+      if (!ai) {
+        // Se a chave não estiver configurada no ambiente, o backend responde usando o motor de cálculo e conhecimento local
         res.json({
           reply: getFallbackAnswer(message),
           source: 'local-knowledge',
@@ -40,51 +60,74 @@ async function startServer() {
         return;
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-      const systemInstruction = `Você é o "Smart IA", uma inteligência artificial completa, versátil e poderosa (semelhante ao ChatGPT), integrada ao sistema ERP Smart Vidros.
+      const systemInstruction = `Você é o "Smart IA", uma inteligência artificial completa, versátil, ágil e altamente inteligente (estilo ChatGPT/Gemini com acesso à internet em tempo real via Google Search), integrada ao sistema ERP Smart Vidros.
+ 
+SUAS DIRETRIZES FUNDAMENTAIS:
+1. RESPOSTA UNIVERSAL A QUALQUER TÓPICO OU PERGUNTA (SEM RESTRIÇÕES DE ASSUNTO):
+   - Você DEVE responder a TODA E QUALQUER pergunta enviada pelo usuário, seja ela:
+     * Matemática, física, finanças, cálculos de porcentagem, regras de três, margem de lucro e markup.
+     * Pesquisas gerais na web em tempo real (notícias, cotações, artigos, curiosidades, história, geografia, tecnologia).
+     * Redação de mensagens, oratórias, e-mails de vendas, termos de acordo, cobranças elegantes e textos para WhatsApp.
+     * Dicas de vendas, atendimento ao cliente, gestão de empresas, marketing e produtividade.
+     * Conhecimentos de vidraçaria, esquadrias de alumínio (Suprema, Gold, Linha 25), normas ABNT (NBR 14207, NBR 7199, NBR 10821), kits de ferragens e cálculo de m² com folgas.
+     * Dúvidas gerais de culinária, saúde, programação, idiomas, viagens, etc.
+   - NUNCA diga apenas "sou uma IA de vidraçaria e não posso responder isso". Você é uma IA de propósito geral e especialista. Responda diretamente ao que o usuário pediu com máxima qualidade e precisão.
 
-SUAS CAPACIDADES:
-1. PESQUISA & CONHECIMENTO UNIVERSAL (ESTILO CHATGPT):
-   - Você pode responder a QUALQUER pergunta sobre QUALQUER assunto: ciência, negócios, marketing, redação de mensagens e e-mails para clientes, cálculos matemáticos, tecnologia, dúvidas do dia a dia, receitas, finanças, dicas comerciais, oratória, etc.
-   - Seja conversacional, fluente, inteligente, amigável e extremamente prestativo.
+2. CLAREZA E FORMATO PRONTO PARA COPIAR:
+   - Apresente as respostas com excelente estruturação em Markdown (títulos, negrito, listas com marcadores e destaques).
+   - Quando o usuário pedir um texto, mensagem de WhatsApp ou contrato, entregue o texto pronto e destacado para que ele possa copiar e usar imediatamente com 1 clique.
+   - Seja cordial, direto, objetivo e profissional.`;
 
-2. ESPECIALISTA MÁXIMO EM VIDRAÇARIAS & ESQUADRIAS:
-   - Se o usuário perguntar sobre vidros, cálculo de m², box de banheiro (NBR 14207), vidros temperados/laminados (NBR 7199), esquadrias de alumínio (Linha Suprema/Gold/25), kits de ferragens, folgas de têmpera e orçamentos, forneça respostas com precisão cirúrgica e exemplos práticos.
+      // Montar histórico e chamada ao modelo com ferramentas de pesquisa na internet (googleSearch)
+      const contentsPayload: any[] = [];
 
-3. GUIA COMPLETO DO ERP SMART VIDROS:
-   - Auxiliar no uso de todos os módulos: Orçamentos, PDV, Contratos com assinatura na tela, Recibos em PDF A4, Fechamento de Caixa, Lançamento por voz e Sincronização em nuvem via Supabase.
+      if (Array.isArray(history)) {
+        for (const h of history.slice(-8)) {
+          if (h && (h.text || h.content)) {
+            contentsPayload.push({
+              role: h.role === 'user' ? 'user' : 'model',
+              parts: [{ text: String(h.text || h.content || '') }],
+            });
+          }
+        }
+      }
 
-ESTILO DE RESPOSTA (BATE-PAPO FLUIDO):
-- Responda como em um bate-papo moderno: claro, organizado, objetivo e fácil de ler no celular e no computador.
-- Use markdown rico quando apropriado (negrito, listas com marcadores, fórmulas e blocos destacados).
-- Adapte-se ao tom do usuário: se ele mandar uma mensagem curta ou informal, responda de forma natural e direta. Se pedir um cálculo ou plano detalhado, estruture passo a passo.`;
+      contentsPayload.push({
+        role: 'user',
+        parts: [{ text: message }],
+      });
 
-      // Montar contexto e chamada
       const response = await ai.models.generateContent({
         model: 'gemini-3.7-flash',
-        contents: [
-          ...(Array.isArray(history)
-            ? history.slice(-6).map((h: any) => ({
-                role: h.role === 'user' ? 'user' : 'model',
-                parts: [{ text: h.text || h.content || '' }],
-              }))
-            : []),
-          {
-            role: 'user',
-            parts: [{ text: message }],
-          },
-        ],
+        contents: contentsPayload,
         config: {
           systemInstruction,
+          tools: [{ googleSearch: {} }],
           temperature: 0.7,
         },
       });
 
-      const replyText = response.text || 'Desculpe, não consegui processar sua dúvida no momento. Pode tentar novamente?';
+      let replyText = response.text || '';
+
+      // Adicionar fontes consultadas na web se disponíveis
+      const chunks = (response.candidates?.[0] as any)?.groundingMetadata?.groundingChunks;
+      if (chunks && Array.isArray(chunks) && chunks.length > 0) {
+        const sources = chunks
+          .map((c: any) => c.web)
+          .filter((w: any) => w && w.uri && w.title)
+          .slice(0, 3);
+        if (sources.length > 0) {
+          replyText += '\n\n**🌐 Fontes consultadas na Web:**\n' + sources.map((s: any) => `* [${s.title}](${s.uri})`).join('\n');
+        }
+      }
+
+      if (!replyText.trim()) {
+        replyText = getFallbackAnswer(message);
+      }
+
       res.json({ reply: replyText, source: 'gemini-api' });
     } catch (err: any) {
-      console.error('[Smart IA] Erro ao chamar Gemini API, usando base local:', err);
-      // Fallback gracioso para nunca deixar o usuário sem resposta
+      console.error('[Smart IA] Erro na chamada Gemini API, acionando resolvedor local:', err);
       const userMsg = req.body?.message || '';
       res.json({
         reply: getFallbackAnswer(userMsg),
@@ -113,8 +156,50 @@ ESTILO DE RESPOSTA (BATE-PAPO FLUIDO):
   });
 }
 
-// Base de conhecimento local especializada para contingência offline
+// Resolvedor matemático inteligente e base de contingência local
+function trySolveMath(query: string): string | null {
+  try {
+    const clean = query
+      .toLowerCase()
+      .replace(/quanto\s+(é|e|da|dá)/g, '')
+      .replace(/qual\s+o\s+resultado\s+de/g, '')
+      .replace(/resultado\s+de/g, '')
+      .replace(/calcule/g, '')
+      .replace(/calcular/g, '')
+      .replace(/x/g, '*')
+      .replace(/,/g, '.')
+      .trim();
+
+    // Verificação de porcentagem: "10% de 250" ou "20% * 100"
+    const percentMatch = clean.match(/(\d+(?:\.\d+)?)\s*%\s*(?:de|\*)\s*(\d+(?:\.\d+)?)/);
+    if (percentMatch) {
+      const p = parseFloat(percentMatch[1]);
+      const v = parseFloat(percentMatch[2]);
+      const res = (p / 100) * v;
+      return `🔢 **Resultado:**\n\n**${p}% de ${v} = ${res.toLocaleString('pt-BR', { maximumFractionDigits: 4 })}**`;
+    }
+
+    // Verificação de expressão matemática padrão (ex: 10*25, (100+50)/3)
+    if (/^[0-9\.\s\+\-\*\/\(\)]+$/.test(clean) && /[0-9]/.test(clean) && /[\+\-\*\/]/.test(clean)) {
+      const sanitized = clean.replace(/[^0-9\.\+\-\*\/\(\)\s]/g, '');
+      const calcResult = Function(`"use strict"; return (${sanitized})`)();
+      if (typeof calcResult === 'number' && !isNaN(calcResult) && isFinite(calcResult)) {
+        return `🔢 **Resultado:**\n\n**${query.trim()} = ${calcResult.toLocaleString('pt-BR', { maximumFractionDigits: 4 })}**`;
+      }
+    }
+  } catch (e) {
+    // ignora erros de sintaxe matemática
+  }
+  return null;
+}
+
+// Base de conhecimento local e contingência
 function getFallbackAnswer(query: string): string {
+  const mathAnswer = trySolveMath(query);
+  if (mathAnswer) {
+    return mathAnswer;
+  }
+
   const q = query.toLowerCase().trim();
 
   if (q.includes('m2') || q.includes('metro quadrado') || q.includes('calcular') || q.includes('calculo') || q.includes('formula')) {
@@ -123,6 +208,10 @@ function getFallbackAnswer(query: string): string {
 
   if (q.includes('box') || q.includes('banheiro')) {
     return `🚿 **Dúvidas sobre Box de Banheiro (ABNT NBR 14207):**\n\n* **Vidro Padrão:** Vidro Temperado de 8mm (Incolor, Verde, Fumê, Bronze ou Pontilhado).\n* **Altura Padrão:** Normalmente 1,90m de vão.\n* **Tipos de Box no Sistema:**\n  1. **Box Frontal (F1):** 1 folha fixa + 1 folha de correr.\n  2. **Box de Canto (F2):** 2 folhas fixas + 2 portas de correr em 90°.\n  3. **Box Pivotante / Abrir:** 1 porta com dobradiças.\n\nVocê pode lançar o Box direto no módulo **Orçamentos** ou no **PDV** escolhendo o modelo pré-configurado!`;
+  }
+
+  if (q.includes('mensagem') || q.includes('whatsapp') || q.includes('cliente')) {
+    return `💬 **Modelo de Mensagem Profissional para WhatsApp:**\n\n"Olá, tudo bem? Aqui é da vidraçaria Smart Vidros! Passando para te avisar que o seu orçamento para a instalação dos vidros/esquadrias já está pronto e com condições especiais de pagamento. Posso te enviar os detalhes ou agendamos a data para iniciar a sua obra?" 📋✨\n\n💡 *Você pode personalizar o nome do cliente e a forma de pagamento antes de enviar!*`;
   }
 
   if (q.includes('contrato') || q.includes('termo') || q.includes('assinar')) {
@@ -137,7 +226,7 @@ function getFallbackAnswer(query: string): string {
     return `☁️ **Sincronização com o Supabase:**\n\n* As credenciais do seu Supabase estão fixadas nativamente no sistema.\n* Todas as criações e alterações (orçamentos, clientes, vendas, caixa) são sincronizadas **automaticamente em tempo real na nuvem**.\n* Seus dados ficam salvos de forma segura e acessíveis de qualquer computador, tablet ou celular em qualquer lugar!`;
   }
 
-  return `Olá! Sou o **Smart IA**, seu assistente especializado do ERP Smart Vidros. 🤖✨\n\nPosso te ajudar com:\n* 📐 **Fórmulas de Cálculo de Vidros & Esquadrias (m², folgas, têmpera)**\n* 📋 **Como emitir Orçamentos e Vendas no PDV**\n* ✍️ **Geração de Contratos com Assinatura Digital e Recibos**\n* 💵 **Fechamento de Caixa, Lançamentos por Voz e Contas a Receber**\n* 👥 **Cadastro de Clientes e Vitrine Pública**\n\nComo posso te ajudar hoje?`;
+  return `Olá! Sou o **Smart IA**, seu assistente com inteligência artificial completa integrada ao sistema ERP Smart Vidros. 🤖✨\n\nPosso te ajudar com:\n* 🌐 **Pesquisas e Dúvidas Gerais (Google & Web em tempo real)**\n* 📐 **Fórmulas de Cálculo de Vidros & Esquadrias (m², folgas, têmpera)**\n* 💬 **Redação de Mensagens e E-mails Comerciais**\n* 📋 **Como emitir Orçamentos e Vendas no PDV**\n* ✍️ **Geração de Contratos com Assinatura Digital e Recibos**\n* 💵 **Fechamento de Caixa, Lançamentos por Voz e Contas a Receber**\n\nEm que posso te ajudar hoje?`;
 }
 
 startServer().catch((err) => {

@@ -950,6 +950,7 @@ export default function App() {
           currentUser={currentUser}
           companyInfo={companyInfo}
           onNavigateToTab={(tab) => setActiveTab(tab)}
+          onShowToast={showToast}
         />
 
         {/* MODAL DA CENTRAL DE AJUDA & DÚVIDAS */}

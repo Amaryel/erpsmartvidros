@@ -51,6 +51,7 @@ interface SmartIAChatDrawerProps {
   currentUser?: AppUser | null;
   companyInfo: CompanyInfo;
   onNavigateToTab?: (tab: any) => void;
+  onShowToast?: (msg: string) => void;
 }
 
 const STORAGE_KEY = 'smart_vidros_ia_chat_sessions_v1';
@@ -61,6 +62,7 @@ export const SmartIAChatDrawer: React.FC<SmartIAChatDrawerProps> = ({
   currentUser,
   companyInfo,
   onNavigateToTab,
+  onShowToast,
 }) => {
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
     try {
@@ -319,9 +321,23 @@ export const SmartIAChatDrawer: React.FC<SmartIAChatDrawerProps> = ({
   };
 
   const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      onShowToast?.('Resposta copiada para a área de transferência!');
+      setTimeout(() => setCopiedId(null), 2500);
+    } catch (e) {
+      // fallback
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopiedId(id);
+      onShowToast?.('Resposta copiada com sucesso!');
+      setTimeout(() => setCopiedId(null), 2500);
+    }
   };
 
   const handleVoiceInput = () => {
@@ -584,22 +600,30 @@ export const SmartIAChatDrawer: React.FC<SmartIAChatDrawerProps> = ({
 
                   {/* Rodapé do Balão da IA */}
                   {!isUser && (
-                    <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[10px] text-zinc-400">
-                      <span className="text-[9px] text-zinc-500">IA Generativa</span>
+                    <div className="mt-2 pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[11px]">
+                      <span className="text-[10px] text-zinc-500 font-medium flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        IA Inteligente
+                      </span>
                       <button
+                        type="button"
                         onClick={() => handleCopy(msg.id, msg.text)}
-                        className="flex items-center gap-1 hover:text-white transition-colors"
-                        title="Copiar resposta"
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                          copiedId === msg.id
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                            : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white border border-zinc-700/60 shadow-sm'
+                        }`}
+                        title="Copiar todo o texto desta resposta"
                       >
                         {copiedId === msg.id ? (
                           <>
-                            <Check className="w-3 h-3 text-emerald-400" />
-                            <span className="text-emerald-400">Copiado</span>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Copiado!</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3 h-3" />
-                            <span>Copiar</span>
+                            <Copy className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Copiar Texto</span>
                           </>
                         )}
                       </button>
@@ -811,16 +835,61 @@ function formatInlineElements(text: string, isUser: boolean) {
   });
 }
 
+function trySolveMathClient(query: string): string | null {
+  try {
+    const clean = query
+      .toLowerCase()
+      .replace(/quanto\s+(é|e|da|dá)/g, '')
+      .replace(/qual\s+o\s+resultado\s+de/g, '')
+      .replace(/resultado\s+de/g, '')
+      .replace(/calcule/g, '')
+      .replace(/calcular/g, '')
+      .replace(/x/g, '*')
+      .replace(/,/g, '.')
+      .trim();
+
+    // Verificação de porcentagem: "10% de 250" ou "20% * 100"
+    const percentMatch = clean.match(/(\d+(?:\.\d+)?)\s*%\s*(?:de|\*)\s*(\d+(?:\.\d+)?)/);
+    if (percentMatch) {
+      const p = parseFloat(percentMatch[1]);
+      const v = parseFloat(percentMatch[2]);
+      const res = (p / 100) * v;
+      return `🔢 **Resultado do Cálculo:**\n\n**${p}% de ${v} = ${res.toLocaleString('pt-BR', { maximumFractionDigits: 4 })}**`;
+    }
+
+    // Verificação de expressão matemática padrão (ex: 10*25, (100+50)/3)
+    if (/^[0-9\.\s\+\-\*\/\(\)]+$/.test(clean) && /[0-9]/.test(clean) && /[\+\-\*\/]/.test(clean)) {
+      const sanitized = clean.replace(/[^0-9\.\+\-\*\/\(\)\s]/g, '');
+      const calcResult = Function(`"use strict"; return (${sanitized})`)();
+      if (typeof calcResult === 'number' && !isNaN(calcResult) && isFinite(calcResult)) {
+        return `🔢 **Resultado do Cálculo:**\n\n**${query.trim()} = ${calcResult.toLocaleString('pt-BR', { maximumFractionDigits: 4 })}**`;
+      }
+    }
+  } catch (e) {
+    // ignora erros de sintaxe matemática
+  }
+  return null;
+}
+
 function generateUniversalFallback(query: string): string {
-  const q = query.toLowerCase();
+  const mathAnswer = trySolveMathClient(query);
+  if (mathAnswer) {
+    return mathAnswer;
+  }
+
+  const q = query.toLowerCase().trim();
 
   if (q.includes('mensagem') || q.includes('whatsapp') || q.includes('cliente')) {
-    return `💬 **Mensagem para WhatsApp:**\n\n"Olá! Aqui é da vidraçaria. Seu orçamento para os vidros/esquadrias já está pronto com condições especiais. Posso te enviar os detalhes ou agendamos a data para a instalação?" 📋✨`;
+    return `💬 **Mensagem para WhatsApp:**\n\n"Olá! Aqui é da vidraçaria Smart Vidros. Seu orçamento para os vidros/esquadrias já está pronto com condições especiais. Posso te enviar os detalhes ou agendamos a data para a instalação?" 📋✨`;
   }
 
   if (q.includes('m2') || q.includes('metro') || q.includes('calcul')) {
     return `📐 **Cálculo de m² de Vidro:**\n\n* **Fórmula:** Largura (m) × Altura (m) = m²\n* **Exemplo:** 1,40m × 1,90m = **2,66 m²**.\n* No ERP Smart Vidros, você só digita as medidas no Novo Orçamento que o cálculo é automático!`;
   }
 
-  return `🤖 **Smart IA:** Recebi sua pergunta: *"${query}"*. Como inteligência artificial integrada, posso te auxiliar com pesquisas gerais, fórmulas de engenharia, redação de contratos e dúvidas do sistema. Como deseja prosseguir?`;
+  if (q.includes('box') || q.includes('banheiro')) {
+    return `🚿 **Box de Banheiro (ABNT NBR 14207):**\n\n* **Vidro indicado:** Temperado 8mm incolor, verde, fumê ou bronze.\n* **Altura padrão:** 1,90m.\n* Você pode criar o orçamento de box diretamente no módulo **Orçamentos** do sistema!`;
+  }
+
+  return `🤖 **Smart IA:** Processando sua pergunta: *"${query}"*.\n\nComo inteligência artificial com pesquisa na web e especialista no ERP Smart Vidros, posso resolver cálculos, consultar normas ABNT, redigir mensagens para clientes e orientar sobre vendas e orçamentos.`;
 }
