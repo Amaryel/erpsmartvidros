@@ -18,7 +18,8 @@ import {
   Wallet,
   ChevronDown,
   PlusCircle,
-  UserCheck
+  UserCheck,
+  BarChart3
 } from 'lucide-react';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -92,7 +93,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const isComercialActive = ['quotes', 'new_quote', 'sales', 'contracts', 'clients'].includes(activeTab);
-  const isFinanceiroActive = ['cash', 'receivables', 'receipts', 'new_receipt'].includes(activeTab);
+  const isFinanceiroActive = ['reports', 'cash', 'receivables', 'receipts', 'new_receipt'].includes(activeTab);
   const isCatalogoActive = ['products', 'services', 'catalog'].includes(activeTab);
   const isSistemaActive = ['company', 'superadmin'].includes(activeTab);
 
@@ -279,8 +280,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               {openDropdown === 'financeiro' && (
                 <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-900 border border-amber-500/30 rounded-2xl p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500 border-b border-zinc-800 mb-1">
-                    Financeiro & Caixa
+                    Financeiro & Gestão
                   </div>
+
+                  <button
+                    onClick={() => handleSelectTab('reports')}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                      activeTab === 'reports'
+                        ? 'bg-amber-500 text-slate-950 font-black'
+                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
+                    }`}
+                  >
+                    <BarChart3 className="w-4 h-4 text-amber-400" />
+                    <span>Relatórios de Vendas</span>
+                  </button>
 
                   <button
                     onClick={() => handleSelectTab('cash')}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   FileText,
   ShoppingBag,
@@ -18,9 +18,12 @@ import {
   Mic,
   Minus,
   Scale,
-  Scroll
+  Scroll,
+  BarChart3,
+  Filter,
+  Calendar
 } from 'lucide-react';
-import { Quote, Sale, Receivable, Receipt, CompanyInfo } from '../types';
+import { Quote, Sale, Receivable, Receipt, CompanyInfo, UserAccount, AppUser } from '../types';
 import { calculateCashSummary } from '../services/data/repositories/cashRepository';
 import smartVidrosLogoImg from '../assets/images/smart_vidros_logo_1786536378370.jpg';
 
@@ -30,6 +33,8 @@ interface DashboardProps {
   receivables: Receivable[];
   receipts: Receipt[];
   companyInfo: CompanyInfo;
+  users?: UserAccount[];
+  currentUser?: AppUser | null;
   onNavigate: (tab: any) => void;
   onNewQuote: () => void;
   onOpenPdv: () => void;
@@ -39,12 +44,16 @@ interface DashboardProps {
   onViewReceipt: (receipt: Receipt) => void;
 }
 
+type DashboardPeriod = 'today' | '7days' | 'this_month' | 'this_year' | 'all';
+
 export const Dashboard: React.FC<DashboardProps> = ({
   quotes,
   sales,
   receivables,
   receipts,
   companyInfo,
+  users = [],
+  currentUser,
   onNavigate,
   onNewQuote,
   onOpenPdv,
@@ -53,27 +62,79 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onViewSale,
   onViewReceipt,
 }) => {
-  // Cálculos do Dashboard
-  const totalFaturamento = sales.reduce((sum, s) => sum + s.total, 0);
-  const totalRecebidoNaoFiado = sales.reduce((sum, s) => sum + s.totalPaid, 0);
+  // Filtros dinâmicos do Dashboard
+  const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>('this_month');
+  const [selectedSeller, setSelectedSeller] = useState<string>('all');
+
+  // Intervalo de Datas para o Dashboard
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    if (selectedPeriod === 'today') {
+      return { start: todayStr, end: todayStr, label: 'Hoje' };
+    }
+    if (selectedPeriod === '7days') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 6);
+      return { start: d.toISOString().split('T')[0], end: todayStr, label: 'Últimos 7 dias' };
+    }
+    if (selectedPeriod === 'this_month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+      return { start, end: todayStr, label: 'Este Mês' };
+    }
+    if (selectedPeriod === 'this_year') {
+      const start = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+      return { start, end: todayStr, label: 'Este Ano' };
+    }
+    return { start: '2000-01-01', end: '2099-12-31', label: 'Todo o Histórico' };
+  }, [selectedPeriod]);
+
+  // Vendas filtradas pelo período e vendedor
+  const filteredSales = useMemo(() => {
+    return sales.filter((s) => {
+      const sDate = s.date || s.createdAt?.split('T')[0] || '';
+      if (sDate < dateRange.start || sDate > dateRange.end) return false;
+      if (selectedSeller !== 'all' && s.userId !== selectedSeller) return false;
+      return true;
+    });
+  }, [sales, dateRange, selectedSeller]);
+
+  // Orçamentos filtrados
+  const filteredQuotes = useMemo(() => {
+    return quotes.filter((q) => {
+      const qDate = q.date || q.createdAt?.split('T')[0] || '';
+      if (qDate < dateRange.start || qDate > dateRange.end) return false;
+      if (selectedSeller !== 'all' && q.userId !== selectedSeller) return false;
+      return true;
+    });
+  }, [quotes, dateRange, selectedSeller]);
+
+  // Cálculos do Dashboard baseados nas vendas filtradas
+  const validSales = filteredSales.filter((s) => s.status !== 'cancelada');
+  const totalFaturamento = validSales.reduce((sum, s) => sum + s.total, 0);
+  const totalRecebidoNaoFiado = validSales.reduce((sum, s) => sum + s.totalPaid, 0);
+  const totalFiadoPeriodo = validSales.reduce((sum, s) => sum + s.totalFiado, 0);
+  const ticketMedio = validSales.length > 0 ? totalFaturamento / validSales.length : 0;
   
-  const orcamentosPendentes = quotes.filter((q) => q.status === 'pendente' || q.status === 'rascunho').length;
-  const orcamentosAprovados = quotes.filter((q) => q.status === 'aprovado').length;
+  const orcamentosPendentes = filteredQuotes.filter((q) => q.status === 'pendente' || q.status === 'rascunho').length;
+  const orcamentosAprovados = filteredQuotes.filter((q) => q.status === 'aprovado' || q.status === 'convertido').length;
   
-  const totalFiadoPendente = receivables.reduce((sum, r) => sum + r.remainingAmount, 0);
+  const totalFiadoPendenteGeral = receivables.reduce((sum, r) => sum + r.remainingAmount, 0);
   const totalRecibosValor = receipts.reduce((sum, r) => sum + r.amount, 0);
 
   // Resumo do Módulo de Caixa / Fluxo Diário
   const cashSummary = calculateCashSummary();
 
-  // Vendas Recentes (Últimas 5)
-  const recentSales = [...sales].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
+  // Vendas Recentes (Últimas 5 filtradas ou gerais)
+  const recentSales = [...(filteredSales.length > 0 ? filteredSales : sales)]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   // Orçamentos Recentes (Últimos 5)
-  const recentQuotes = [...quotes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
-
-  // Contas a Receber com Saldo
-  const pendingReceivablesList = receivables.filter((r) => r.remainingAmount > 0).slice(0, 5);
+  const recentQuotes = [...(filteredQuotes.length > 0 ? filteredQuotes : quotes)]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   // Datas e cálculo de urgência
   const todayStr = new Date().toISOString().split('T')[0];
@@ -150,7 +211,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const urgentReceivablesList = urgentReceivables.slice(0, 5);
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8 font-sans notranslate" translate="no" id="dashboard-main">
       
       {/* Banner de Boas-Vindas com Logo Oficial */}
       <div className="bg-gradient-to-r from-zinc-950 via-slate-900 to-zinc-950 border border-amber-500/40 rounded-2xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden">
@@ -174,12 +235,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-amber-400">Smart Vidros</span>
               </h1>
               <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-xl font-normal leading-relaxed">
-                Bem-vindo ao sistema da <strong className="text-amber-400 font-bold">{companyInfo.name || 'Smart Vidros'}</strong>. Controle orçamentos, vendas no PDV, recibos e contas a receber com facilidade.
+                Bem-vindo ao sistema da <strong className="text-amber-400 font-bold">{companyInfo.name || 'Smart Vidros'}</strong>. Controle orçamentos, vendas no PDV, recibos e fluxo financeiro com total facilidade.
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => onNavigate('reports')}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
+              title="Acessar Relatórios Detalhados"
+            >
+              <BarChart3 className="w-4 h-4 text-amber-400" />
+              <span>Ver Relatórios</span>
+            </button>
+
             <button
               onClick={onOpenPdv}
               className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs px-4 py-3 rounded-xl shadow-lg active:scale-95 transition-all"
@@ -196,6 +266,64 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span>Novo Orçamento</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* BARRA DE FILTROS RÁPIDOS DE VENDAS DO DASHBOARD */}
+      <div className="bg-slate-900 border border-zinc-800 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+            <Filter className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-xs font-black text-slate-200 uppercase tracking-wider block">
+              Filtro de Vendas & Faturamento
+            </span>
+            <span className="text-[11px] text-slate-400">
+              Exibindo dados de: <strong className="text-amber-400">{dateRange.label}</strong>
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Botões de Período */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-zinc-800">
+            {[
+              { id: 'today', label: 'Hoje' },
+              { id: '7days', label: '7 Dias' },
+              { id: 'this_month', label: 'Este Mês' },
+              { id: 'this_year', label: 'Este Ano' },
+              { id: 'all', label: 'Todos' },
+            ].map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedPeriod(p.id as DashboardPeriod)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedPeriod === p.id
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Seletor de Vendedor */}
+          {users.length > 0 && (
+            <select
+              value={selectedSeller}
+              onChange={(e) => setSelectedSeller(e.target.value)}
+              className="bg-slate-950 border border-zinc-800 text-slate-200 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-amber-500"
+            >
+              <option value="all">Todos os Vendedores</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
@@ -327,13 +455,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Cards de Métricas Principais */}
+      {/* Cards de Métricas Principais Dinâmicos com Filtros */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* Card 1: Faturamento Total */}
+        {/* Card 1: Faturamento no Período */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">Faturamento em Vendas</span>
+            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">
+              Faturamento ({dateRange.label})
+            </span>
             <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
               <TrendingUp className="w-5 h-5" />
             </div>
@@ -341,21 +471,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="text-2xl font-black text-slate-900 font-mono">
             R$ {totalFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
-            <span className="text-emerald-700 font-bold">R$ {totalRecebidoNaoFiado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span> recebidos no ato
+          <p className="text-[11px] text-slate-500 mt-1 flex items-center justify-between font-medium">
+            <span>{validSales.length} venda(s)</span>
+            <span className="text-emerald-700 font-bold">R$ {totalRecebidoNaoFiado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} à vista</span>
           </p>
         </div>
 
-        {/* Card 2: Orçamentos */}
+        {/* Card 2: Orçamentos no Período */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">Orçamentos</span>
+            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">
+              Orçamentos ({dateRange.label})
+            </span>
             <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
               <FileText className="w-5 h-5" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 font-mono">
-            {quotes.length} <span className="text-xs font-semibold text-slate-400">cadastrados</span>
+            {filteredQuotes.length} <span className="text-xs font-semibold text-slate-400">no período</span>
           </div>
           <div className="flex items-center gap-2 mt-1 text-[11px] font-medium">
             <span className="text-amber-700 font-bold">{orcamentosPendentes} pendentes</span>
@@ -367,33 +500,39 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 3: Fiado / Contas a Receber */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">A Receber (Fiado)</span>
+            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">A Receber (Total Geral)</span>
             <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
               <ShieldCheck className="w-5 h-5" />
             </div>
           </div>
           <div className="text-2xl font-black text-rose-600 font-mono">
-            R$ {totalFiadoPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            R$ {totalFiadoPendenteGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
           <p className="text-[11px] text-slate-500 mt-1 font-medium">
             {receivables.filter((r) => r.remainingAmount > 0).length} clientes com saldo em aberto
           </p>
         </div>
 
-        {/* Card 4: Recibos Emitidos */}
+        {/* Card 4: Ticket Médio */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">Recibos Emitidos</span>
-            <div className="p-2.5 rounded-xl bg-slate-100 text-slate-800 border border-slate-200">
-              <ReceiptText className="w-5 h-5" />
+            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">Ticket Médio</span>
+            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
+              <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 font-mono">
-            {receipts.length} <span className="text-xs font-semibold text-slate-400">emitidos</span>
+          <div className="text-2xl font-black text-indigo-900 font-mono">
+            R$ {ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">
-            Total em recibos: R$ {totalRecibosValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </p>
+          <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+            <span>Média por venda</span>
+            <button
+              onClick={() => onNavigate('reports')}
+              className="text-amber-700 hover:underline font-bold"
+            >
+              Ver relatório →
+            </button>
+          </div>
         </div>
 
       </div>
@@ -401,7 +540,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* SEÇÃO PRINCIPAL DE ALERTAS OPERACIONAIS & VENCIMENTOS DE CLIENTES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* BLOCO 1: OBRAS & ENTREGAS COM PRAZO PRÓXIMO OU ATRASADO */}
+        {/* BLOCO 1: OBRAS & ENTREGAS NO PRAZO */}
         <div className="bg-white border-2 border-amber-400 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
@@ -454,18 +593,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <div className="flex items-center gap-2">
                           <span
                             className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
-                              isOverdue
-                                ? 'bg-rose-600 text-white'
-                                : 'bg-amber-500 text-slate-950'
+                              isOverdue ? 'bg-rose-600 text-white' : 'bg-amber-500 text-slate-950'
                             }`}
                           >
-                            {isOverdue ? '⚠️ Delivery Atrasado' : '📅 Entrega Prevista'}
+                            {isOverdue ? '⚠️ Atrasada' : '⏰ Prazo Próximo'}
                           </span>
-                          <span className="font-mono font-bold text-slate-900 text-xs">{obra.code}</span>
+                          <span className="font-mono text-[11px] font-bold text-slate-600">
+                            {obra.code}
+                          </span>
                         </div>
                         <h4 className="font-extrabold text-slate-900 text-sm">{obra.clientName}</h4>
                         <span className="text-[11px] text-slate-600 font-medium block">
-                          Prazo: <strong className={isOverdue ? 'text-rose-700 font-black' : 'text-slate-900 font-bold'}>{formattedDate}</strong>
+                          Previsão: <strong className={isOverdue ? 'text-rose-700 font-black' : 'text-slate-900 font-bold'}>{formattedDate}</strong>
                         </span>
                       </div>
 
@@ -475,9 +614,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </span>
                         <button
                           onClick={() => onNavigate('operations')}
-                          className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-[11px] rounded-lg transition-colors shadow-2xs"
+                          className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] rounded-lg transition-colors shadow-2xs"
                         >
-                          Acompanhar
+                          Ver Obra
                         </button>
                       </div>
                     </div>
@@ -488,7 +627,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        {/* BLOCO 2: VENCIMENTOS & COBRANÇAS DE CLIENTES */}
+        {/* BLOCO 2: VENCIMENTOS DE CLIENTES (FIADO) */}
         <div className="bg-white border-2 border-rose-300 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
@@ -591,14 +730,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <button
-            onClick={() => onNavigate('operations')}
+            onClick={() => onNavigate('reports')}
             className="flex flex-col items-center p-3.5 rounded-xl border-2 border-amber-400 bg-amber-50/80 hover:bg-amber-100 transition-all text-center group shadow-xs"
           >
             <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 group-hover:scale-110 transition-transform mb-1.5 shadow-xs">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <span className="font-black text-xs text-slate-950">Relatórios</span>
+            <span className="text-[10px] text-amber-800 font-bold">Vendas & Lucro</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('operations')}
+            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+          >
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
               <Wrench className="w-4 h-4" />
             </div>
-            <span className="font-black text-xs text-slate-950">Obras & Operações</span>
-            <span className="text-[10px] text-amber-800 font-bold">Acompanhamento</span>
+            <span className="font-extrabold text-xs text-slate-900">Obras & Operações</span>
+            <span className="text-[10px] text-slate-500">Acompanhamento</span>
           </button>
 
           <button
@@ -721,7 +871,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-black uppercase text-slate-900 tracking-wider flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-amber-600" />
-              <span>Últimas Vendas Concluídas</span>
+              <span>Últimas Vendas ({dateRange.label})</span>
             </h2>
             <button
               onClick={() => onNavigate('sales')}
@@ -735,7 +885,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="divide-y divide-slate-100 flex-1">
             {recentSales.length === 0 ? (
               <p className="text-xs text-slate-400 italic text-center py-8">
-                Nenhuma venda registrada ainda. Clique em "Abrir PDV" para iniciar.
+                Nenhuma venda registrada no período selecionado.
               </p>
             ) : (
               recentSales.map((sale) => (
@@ -746,7 +896,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span className="text-xs font-bold text-slate-800">{sale.clientName || 'Cliente Balcão'}</span>
                     </div>
                     <p className="text-[10px] text-slate-500">
-                      {new Date(sale.date + 'T00:00:00').toLocaleDateString('pt-BR')} • {sale.items.length} itens
+                      {new Date((sale.date || sale.createdAt?.split('T')[0]) + 'T00:00:00').toLocaleDateString('pt-BR')} • {sale.items.length} itens
                     </p>
                   </div>
 
@@ -772,7 +922,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-black uppercase text-slate-900 tracking-wider flex items-center gap-2">
               <FileText className="w-4 h-4 text-amber-600" />
-              <span>Orçamentos Recentes</span>
+              <span>Orçamentos Recentes ({dateRange.label})</span>
             </h2>
             <button
               onClick={() => onNavigate('quotes')}
@@ -786,7 +936,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="divide-y divide-slate-100 flex-1">
             {recentQuotes.length === 0 ? (
               <p className="text-xs text-slate-400 italic text-center py-8">
-                Nenhum orçamento cadastrado.
+                Nenhum orçamento cadastrado no período.
               </p>
             ) : (
               recentQuotes.map((quote) => (
@@ -797,7 +947,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span className="text-xs font-bold text-slate-800">{quote.clientName || 'Cliente'}</span>
                     </div>
                     <p className="text-[10px] text-slate-500">
-                      {new Date(quote.date + 'T00:00:00').toLocaleDateString('pt-BR')} • {quote.items.length} itens
+                      {new Date((quote.date || quote.createdAt?.split('T')[0]) + 'T00:00:00').toLocaleDateString('pt-BR')} • {quote.items.length} itens
                     </p>
                   </div>
 

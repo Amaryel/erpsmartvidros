@@ -27,6 +27,7 @@ import { ContractGeneratorModal } from './components/ContractGeneratorModal';
 import { ContractViewModal } from './components/ContractViewModal';
 import { CashModule } from './components/CashModule';
 import { PublicCatalogView } from './components/PublicCatalogView';
+import { ReportsModule } from './components/ReportsModule';
 import {
   Quote,
   CompanyInfo,
@@ -37,6 +38,7 @@ import {
   Receivable,
   AppUser,
   Contract,
+  UserAccount,
 } from './types';
 import {
   getQuotes,
@@ -85,6 +87,7 @@ export default function App() {
 
   // Autenticação e Sessão de Usuário
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [usersList, setUsersList] = useState<UserAccount[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSupabaseSyncModalOpen, setIsSupabaseSyncModalOpen] = useState(false);
@@ -181,6 +184,7 @@ export default function App() {
     const user = getCurrentSessionUser();
     setCurrentUser(user);
     const allUsers = getUsers();
+    setUsersList(allUsers);
     setPendingUsersCount(allUsers.filter((u) => u.status === 'pendente').length);
   };
 
@@ -561,6 +565,8 @@ export default function App() {
               receivables={receivables}
               receipts={receipts}
               companyInfo={companyInfo}
+              users={usersList}
+              currentUser={currentUser}
               onNavigate={(tab) => setActiveTab(tab)}
               onNewQuote={() => {
                 setEditingQuote(null);
@@ -574,6 +580,19 @@ export default function App() {
               onViewQuote={(q) => setViewingQuote(q)}
               onViewSale={(s) => setViewingSale(s)}
               onViewReceipt={(r) => setViewingReceipt(r)}
+            />
+          )}
+
+          {/* ABA MÓDULO: RELATÓRIOS DE VENDAS & GESTÃO */}
+          {activeTab === 'reports' && (
+            <ReportsModule
+              sales={sales}
+              quotes={quotes}
+              companyInfo={companyInfo}
+              users={usersList}
+              currentUser={currentUser}
+              onViewSale={(s) => setViewingSale(s)}
+              onViewQuote={(q) => setViewingQuote(q)}
             />
           )}
 

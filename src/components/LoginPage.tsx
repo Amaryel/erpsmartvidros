@@ -43,7 +43,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
     text: string;
   } | null>(null);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
 
@@ -59,8 +59,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      const res = loginUser(identifier.trim(), password, rememberMe);
+    try {
+      const res = await loginUser(identifier.trim(), password, rememberMe);
       setIsLoading(false);
 
       if (res.success && res.user) {
@@ -68,7 +68,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
       } else {
         setLoginError(res.message);
       }
-    }, 200);
+    } catch (err: any) {
+      setIsLoading(false);
+      setLoginError('Ocorreu um erro ao processar o login. Tente novamente.');
+    }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {

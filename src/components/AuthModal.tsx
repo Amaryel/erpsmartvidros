@@ -31,9 +31,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     text: string;
   } | null>(null);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   if (!isOpen) return null;
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
 
@@ -42,12 +44,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const res = loginUser(loginIdentifier, loginPassword);
-    if (res.success && res.user) {
-      onSuccessLogin(res.user);
-      if (onClose) onClose();
-    } else {
-      setLoginError(res.message);
+    setIsSubmitting(true);
+    try {
+      const res = await loginUser(loginIdentifier, loginPassword);
+      if (res.success && res.user) {
+        onSuccessLogin(res.user);
+        if (onClose) onClose();
+      } else {
+        setLoginError(res.message);
+      }
+    } catch (err: any) {
+      setLoginError('Ocorreu um erro ao processar o login. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

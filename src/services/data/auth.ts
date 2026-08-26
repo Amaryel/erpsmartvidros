@@ -1,7 +1,7 @@
 import { AppUser, UserAccount } from '../../types';
 import { storageAdapter } from './storageAdapter';
 import { findUserByEmailOrUsername, getUserById, upsertUserInRepository, SUPERADMIN_EMAIL } from './repositories/usersRepository';
-import { getUserPermissions } from '../../utils/permissions';
+import { getDefaultPermissions, getUserPermissions } from '../../utils/permissions';
 import { getSupabaseClient } from '../../lib/supabase';
 
 const AUTH_SESSION_KEY = 'smart_vidros_auth_session';
@@ -124,7 +124,7 @@ export async function loginUser(
           updatedAt: row.updated_at || new Date().toISOString(),
           approvedAt: row.approved_at,
           approvedBy: row.approved_by,
-          permissions: getUserPermissions({ role: row.role }),
+          permissions: getDefaultPermissions(row.role || 'vendedor'),
         };
 
         // Atualizar repositório local com os dados vindos do Supabase

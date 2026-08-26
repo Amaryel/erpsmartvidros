@@ -266,6 +266,7 @@ export type SystemModuleId =
   | 'contracts'
   | 'receivables'
   | 'receipts'
+  | 'reports'
   | 'clients'
   | 'products'
   | 'services'

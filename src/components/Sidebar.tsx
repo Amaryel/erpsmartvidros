@@ -18,7 +18,8 @@ import {
   Briefcase,
   Layers,
   Wallet,
-  UserCheck
+  UserCheck,
+  BarChart3
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
@@ -40,7 +41,8 @@ export type ActiveTab =
   | 'services'
   | 'catalog'
   | 'company'
-  | 'superadmin';
+  | 'superadmin'
+  | 'reports';
 
 interface MenuItem {
   id: ActiveTab;
@@ -151,8 +153,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      groupTitle: 'Financeiro',
+      groupTitle: 'Financeiro & Gestão',
       items: [
+        {
+          id: 'reports',
+          label: 'Relatórios de Vendas',
+          icon: BarChart3,
+        },
         {
           id: 'cash',
           label: 'Caixa Diário',
