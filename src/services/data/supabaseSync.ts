@@ -1,4 +1,4 @@
-import { getSupabaseClient, normalizeSupabaseUrl } from '../../lib/supabase';
+import { getSupabaseClient, normalizeSupabaseUrl, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from '../../lib/supabase';
 import {
   CompanyInfo,
   UserAccount,
@@ -30,8 +30,16 @@ export interface SyncResult {
 
 // Obter Configurações
 export function getSupabaseConfig(): SupabaseConfig {
-  const url = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL || localStorage.getItem(SUPABASE_URL_KEY) || '');
-  const key = (import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem(SUPABASE_KEY_KEY) || '').trim();
+  const url = normalizeSupabaseUrl(
+    import.meta.env.VITE_SUPABASE_URL ||
+    localStorage.getItem(SUPABASE_URL_KEY) ||
+    DEFAULT_SUPABASE_URL
+  );
+  const key = (
+    import.meta.env.VITE_SUPABASE_ANON_KEY ||
+    localStorage.getItem(SUPABASE_KEY_KEY) ||
+    DEFAULT_SUPABASE_ANON_KEY
+  ).trim();
   return { url, key };
 }
 

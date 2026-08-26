@@ -78,7 +78,7 @@ export async function loginUser(
   const cleanId = (identifier || '').trim();
   const cleanPass = (password || '').trim();
 
-  // Verificar se o usuário foi informado
+  // Verificar se o identificador foi informado
   if (!cleanId) {
     return {
       success: false,
@@ -94,56 +94,151 @@ export async function loginUser(
     };
   }
 
-  // 1. Procurar no repositório local
-  let userAccount = findUserByEmailOrUsername(cleanId);
+  let userAccount: UserAccount | null = null;
+  const isEmail = cleanId.includes('@');
+  const targetLower = cleanId.toLowerCase();
 
-  // 2. Se Supabase estiver conectado, buscar em tempo real na tabela user_accounts
-  // Isso garante que logins criados em outras máquinas/redes ou no painel do Supabase funcionem em qualquer lugar (ex: Vercel)
+  // 1. Tentar autenticação remota via Supabase se disponível
   try {
     const supabase = getSupabaseClient();
     if (supabase) {
-      const target = cleanId.toLowerCase();
-      const { data, error } = await supabase
-        .from('user_accounts')
-        .select('*')
-        .or(`email.ilike.${target},username.ilike.${target}`)
-        .limit(1);
+      // 1.1 Se for e-mail, tentar primeiro pelo Supabase Auth oficial (senhas com hash do Supabase)
+      if (isEmail) {
+        try {
+          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email: targetLower,
+            password: cleanPass,
+          });
 
-      if (!error && data && data.length > 0) {
-        const row = data[0];
-        const remoteUser: UserAccount = {
-          id: row.id,
-          companyId: row.company_id || 'comp-smart-vidros-001',
-          name: row.name,
-          email: row.email,
-          username: row.username,
-          password: row.password,
-          role: row.role || 'vendedor',
-          status: row.status || 'aprovado',
-          createdAt: row.created_at || new Date().toISOString(),
-          updatedAt: row.updated_at || new Date().toISOString(),
-          approvedAt: row.approved_at,
-          approvedBy: row.approved_by,
-          permissions: getDefaultPermissions(row.role || 'vendedor'),
-        };
+          if (!authError && authData?.user) {
+            // Sucesso no Supabase Auth! Buscar perfil correspondente na tabela user_accounts
+            const { data: profileRows } = await supabase
+              .from('user_accounts')
+              .select('*')
+              .or(`id.eq.${authData.user.id},email.ilike.${targetLower}`)
+              .limit(1);
 
-        // Atualizar repositório local com os dados vindos do Supabase
-        upsertUserInRepository(remoteUser);
-        userAccount = remoteUser;
+            if (profileRows && profileRows.length > 0) {
+              const row = profileRows[0];
+              userAccount = {
+                id: row.id,
+                companyId: row.company_id || DEFAULT_COMPANY_ID,
+                name: row.name || authData.user.user_metadata?.name || targetLower.split('@')[0],
+                email: row.email || authData.user.email || targetLower,
+                username: row.username || targetLower.split('@')[0],
+                password: cleanPass,
+                role: row.role || (targetLower === SUPERADMIN_EMAIL.toLowerCase() ? 'superadmin' : 'vendedor'),
+                status: row.status || 'aprovado',
+                createdAt: row.created_at || authData.user.created_at || new Date().toISOString(),
+                updatedAt: row.updated_at || new Date().toISOString(),
+                approvedAt: row.approved_at,
+                approvedBy: row.approved_by,
+                permissions: getDefaultPermissions(row.role || (targetLower === SUPERADMIN_EMAIL.toLowerCase() ? 'superadmin' : 'vendedor')),
+              };
+            } else {
+              // Registro não encontrado na tabela user_accounts, mas autenticado com sucesso no Supabase Auth
+              const isSuper = targetLower === SUPERADMIN_EMAIL.toLowerCase();
+              userAccount = {
+                id: authData.user.id,
+                companyId: DEFAULT_COMPANY_ID,
+                name: authData.user.user_metadata?.name || targetLower.split('@')[0],
+                email: authData.user.email || targetLower,
+                username: targetLower.split('@')[0],
+                password: cleanPass,
+                role: isSuper ? 'superadmin' : 'vendedor',
+                status: 'aprovado',
+                createdAt: authData.user.created_at || new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                permissions: getDefaultPermissions(isSuper ? 'superadmin' : 'vendedor'),
+              };
+
+              // Salvar na tabela user_accounts para manter consistência
+              try {
+                await supabase
+                  .from('user_accounts')
+                  .upsert({
+                    id: userAccount.id,
+                    company_id: userAccount.companyId,
+                    name: userAccount.name,
+                    email: userAccount.email,
+                    username: userAccount.username,
+                    password: userAccount.password,
+                    role: userAccount.role,
+                    status: userAccount.status,
+                    created_at: userAccount.createdAt,
+                    updated_at: userAccount.updatedAt,
+                  });
+              } catch (upsertErr) {
+                console.warn('[Auth] Não foi possível sincronizar perfil na tabela user_accounts:', upsertErr);
+              }
+            }
+
+            // Atualizar repositório local com dados do Supabase
+            if (userAccount) {
+              upsertUserInRepository(userAccount);
+            }
+          }
+        } catch (authErr) {
+          console.warn('[Auth] Supabase Auth signInWithPassword falhou, tentando tabela user_accounts:', authErr);
+        }
+      }
+
+      // 1.2 Se ainda não autenticou pelo Supabase Auth (ex: usuário em texto na tabela SQL ou login por username)
+      if (!userAccount) {
+        const { data: dbRows, error: dbError } = await supabase
+          .from('user_accounts')
+          .select('*')
+          .or(`email.ilike.${targetLower},username.ilike.${targetLower}`)
+          .limit(1);
+
+        if (!dbError && dbRows && dbRows.length > 0) {
+          const row = dbRows[0];
+          // Verificar se a senha informada confere com a gravada na tabela
+          if (row.password && row.password !== cleanPass) {
+            return {
+              success: false,
+              message: 'Senha incorreta. Verifique a senha cadastrada no Supabase e tente novamente.',
+            };
+          }
+
+          userAccount = {
+            id: row.id,
+            companyId: row.company_id || DEFAULT_COMPANY_ID,
+            name: row.name,
+            email: row.email,
+            username: row.username,
+            password: row.password,
+            role: row.role || (row.email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase() ? 'superadmin' : 'vendedor'),
+            status: row.status || 'aprovado',
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+            approvedAt: row.approved_at,
+            approvedBy: row.approved_by,
+            permissions: getDefaultPermissions(row.role || 'vendedor'),
+          };
+
+          // Atualizar repositório local
+          upsertUserInRepository(userAccount);
+        }
       }
     }
   } catch (err) {
-    console.warn('[Auth] Não foi possível consultar Supabase durante login, usando cache local:', err);
+    console.warn('[Auth] Consulta ao Supabase falhou, recorrendo ao repositório local:', err);
+  }
+
+  // 2. Fallback: Se não encontrou no Supabase ou se não houver Supabase configurado, consultar repositório local
+  if (!userAccount) {
+    userAccount = findUserByEmailOrUsername(cleanId);
   }
 
   if (!userAccount) {
     return {
       success: false,
-      message: 'Usuário ou e-mail não encontrado. Verifique os dados digitados.',
+      message: 'Usuário ou e-mail não encontrado. Verifique se o e-mail/usuário está correto ou se a conexão com o Supabase foi configurada.',
     };
   }
 
-  // Verificar se a senha confere
+  // 3. Verificar senha para usuários locais / fallback
   if (userAccount.password && userAccount.password !== cleanPass) {
     return {
       success: false,
@@ -151,7 +246,7 @@ export async function loginUser(
     };
   }
 
-  // Verificar se o cadastro está aprovado
+  // 4. Verificar se o cadastro está aprovado
   if (userAccount.status === 'pendente') {
     return {
       success: false,
@@ -180,9 +275,9 @@ export async function loginUser(
     permissions,
   };
 
-  // Salvar sessão de acordo com a opção de persistência
+  // 5. Salvar sessão de acordo com a opção de persistência
   if (rememberMe) {
-    // Manter conectado neste dispositivo (Persistir no LocalStorage + SessionStorage)
+    // Manter conectado neste dispositivo (LocalStorage + SessionStorage)
     storageAdapter.setItem(AUTH_SESSION_KEY, appUser);
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -190,7 +285,7 @@ export async function loginUser(
       }
     } catch {}
   } else {
-    // Apenas nesta sessão da aba (SessionStorage)
+    // Apenas na aba atual (SessionStorage)
     storageAdapter.removeItem(AUTH_SESSION_KEY);
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {

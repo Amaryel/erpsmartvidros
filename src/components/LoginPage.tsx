@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Lock,
   Mail,
@@ -12,9 +12,20 @@ import {
   AlertCircle,
   HelpCircle,
   Building2,
+  Database,
+  RefreshCw,
+  X,
+  Check,
 } from 'lucide-react';
 import { AppUser } from '../types';
-import { loginUser, registerUser, SUPERADMIN_EMAIL } from '../services/storage';
+import {
+  loginUser,
+  registerUser,
+  SUPERADMIN_EMAIL,
+  getSupabaseConfig,
+  saveSupabaseConfig,
+  testSupabaseConnection,
+} from '../services/storage';
 
 interface LoginPageProps {
   onSuccessLogin: (user: AppUser) => void;
@@ -31,6 +42,48 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Status e Configuração do Supabase
+  const [supabaseConnected, setSupabaseConnected] = useState<boolean | null>(null);
+  const [showSupabaseConfigModal, setShowSupabaseConfigModal] = useState(false);
+  const [sbUrl, setSbUrl] = useState('');
+  const [sbKey, setSbKey] = useState('');
+  const [sbTesting, setSbTesting] = useState(false);
+  const [sbStatusMsg, setSbStatusMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const config = getSupabaseConfig();
+    setSbUrl(config.url);
+    setSbKey(config.key);
+    if (config.url && config.key) {
+      testSupabaseConnection(config.url, config.key).then((res) => {
+        setSupabaseConnected(res.success);
+      });
+    } else {
+      setSupabaseConnected(false);
+    }
+  }, []);
+
+  const handleTestAndSaveSupabase = async () => {
+    if (!sbUrl.trim() || !sbKey.trim()) {
+      setSbStatusMsg('Preencha a URL e a Chave Anon do seu projeto Supabase.');
+      return;
+    }
+    setSbTesting(true);
+    setSbStatusMsg('Testando conexão com o banco de dados Supabase...');
+    const res = await testSupabaseConnection(sbUrl, sbKey);
+    setSbTesting(false);
+    setSbStatusMsg(res.message);
+    if (res.success) {
+      saveSupabaseConfig(sbUrl, sbKey);
+      setSupabaseConnected(true);
+      setTimeout(() => {
+        setShowSupabaseConfigModal(false);
+      }, 1200);
+    } else {
+      setSupabaseConnected(false);
+    }
+  };
 
   // Formulário de Cadastro
   const [regName, setRegName] = useState('');
@@ -411,8 +464,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
           )}
         </div>
 
-        {/* Rodapé Seguro */}
-        <div className="text-center mt-6 text-xs text-slate-500 space-y-1">
+        {/* Rodapé Seguro & Status Supabase */}
+        <div className="text-center mt-6 text-xs text-slate-500 space-y-2">
+          {/* Badge Conexão Supabase / Nuvem */}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSupabaseConfigModal(true)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border transition-all ${
+                supabaseConnected
+                  ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/60'
+                  : 'bg-amber-950/60 border-amber-500/40 text-amber-300 hover:bg-amber-900/60'
+              }`}
+              title="Clique para configurar ou verificar a conexão com o Supabase"
+            >
+              <Database className="w-3 h-3" />
+              <span>
+                {supabaseConnected
+                  ? 'Supabase Nuvem Conectado'
+                  : 'Conectar Banco Supabase (Nuvem)'}
+              </span>
+              <span className="text-[10px] text-slate-400 underline ml-0.5">Configurar</span>
+            </button>
+          </div>
+
           <div className="flex items-center justify-center gap-1.5 text-slate-400 font-semibold">
             <ShieldCheck className="w-4 h-4 text-amber-500" />
             <span>Ambiente Protegido & Criptografado</span>
@@ -422,6 +497,100 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
           </p>
         </div>
       </div>
+
+      {/* MODAL RÁPIDO: CONFIGURAR CONEXÃO SUPABASE NA TELA DE LOGIN */}
+      {showSupabaseConfigModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+              <div className="flex items-center gap-2 text-white font-extrabold text-sm">
+                <Database className="w-4 h-4 text-emerald-400" />
+                <span>Configurar Conexão Supabase</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSupabaseConfigModal(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              Conecte esta aba/dispositivo ao seu banco de dados Supabase para permitir login em tempo real com os usuários e senhas gravados na nuvem.
+            </p>
+
+            {sbStatusMsg && (
+              <div
+                className={`p-3 rounded-xl text-xs font-bold mb-4 flex items-start gap-2 ${
+                  supabaseConnected
+                    ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-300'
+                    : 'bg-amber-950/60 border border-amber-500/40 text-amber-200'
+                }`}
+              >
+                <Database className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">{sbStatusMsg}</div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-extrabold text-slate-300 mb-1">
+                  URL do Projeto Supabase
+                </label>
+                <input
+                  type="text"
+                  value={sbUrl}
+                  onChange={(e) => setSbUrl(e.target.value)}
+                  placeholder="https://seu-projeto.supabase.co"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-300 mb-1">
+                  Chave Anon (Public API Key)
+                </label>
+                <textarea
+                  rows={2}
+                  value={sbKey}
+                  onChange={(e) => setSbKey(e.target.value)}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:ring-2 focus:ring-amber-500 outline-none resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSupabaseConfigModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={sbTesting}
+                  onClick={handleTestAndSaveSupabase}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+                >
+                  {sbTesting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Testando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Salvar e Conectar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
