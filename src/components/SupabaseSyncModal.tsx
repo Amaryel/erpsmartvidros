@@ -113,9 +113,10 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({
     setStatusMsg(res.message);
   };
 
-  const sqlScript = `-- SCRIPT DDL SUPABASE SMART VIDROS
+  const sqlScript = `-- SCRIPT DEFINITIVO SUPABASE - SMART VIDROS (DDL + RLS SECURITY)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- 1. Empresas
 CREATE TABLE IF NOT EXISTS public.companies (
     id TEXT PRIMARY KEY DEFAULT 'comp-smart-vidros-001',
     name TEXT NOT NULL DEFAULT 'Smart Vidros',
@@ -130,6 +131,7 @@ CREATE TABLE IF NOT EXISTS public.companies (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 2. Usuários
 CREATE TABLE IF NOT EXISTS public.user_accounts (
     id TEXT PRIMARY KEY,
     company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -145,6 +147,7 @@ CREATE TABLE IF NOT EXISTS public.user_accounts (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 3. Clientes
 CREATE TABLE IF NOT EXISTS public.clients (
     id TEXT PRIMARY KEY,
     company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -159,6 +162,7 @@ CREATE TABLE IF NOT EXISTS public.clients (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 4. Orçamentos
 CREATE TABLE IF NOT EXISTS public.quotes (
     id TEXT PRIMARY KEY,
     company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -174,6 +178,7 @@ CREATE TABLE IF NOT EXISTS public.quotes (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 5. Vendas & PDV
 CREATE TABLE IF NOT EXISTS public.sales (
     id TEXT PRIMARY KEY,
     company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -190,6 +195,7 @@ CREATE TABLE IF NOT EXISTS public.sales (
     finalized_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 6. Contas a Receber
 CREATE TABLE IF NOT EXISTS public.accounts_receivable (
     id TEXT PRIMARY KEY,
     company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -203,6 +209,7 @@ CREATE TABLE IF NOT EXISTS public.accounts_receivable (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 7. Recibos
 CREATE TABLE IF NOT EXISTS public.receipts (
     id TEXT PRIMARY KEY,
     company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -216,6 +223,7 @@ CREATE TABLE IF NOT EXISTS public.receipts (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 8. Catálogo & Produtos
 CREATE TABLE IF NOT EXISTS public.catalog_items (
     id TEXT PRIMARY KEY,
     company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -228,6 +236,7 @@ CREATE TABLE IF NOT EXISTS public.catalog_items (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 9. Tarefas do Gerente
 CREATE TABLE IF NOT EXISTS public.manager_tasks (
     id TEXT PRIMARY KEY,
     company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -238,6 +247,21 @@ CREATE TABLE IF NOT EXISTS public.manager_tasks (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 10. Contratos
+CREATE TABLE IF NOT EXISTS public.contracts (
+    id TEXT PRIMARY KEY,
+    company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
+    sale_id TEXT REFERENCES public.sales(id) ON DELETE SET NULL,
+    quote_id TEXT REFERENCES public.quotes(id) ON DELETE SET NULL,
+    code TEXT NOT NULL,
+    client_name TEXT NOT NULL,
+    total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    status TEXT NOT NULL DEFAULT 'ativo',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- HABILITAR RLS (ROW LEVEL SECURITY) EM TODAS AS TABELAS
 ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
@@ -247,47 +271,54 @@ ALTER TABLE public.accounts_receivable ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.catalog_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.manager_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
 
+-- CRIAR POLÍTICAS DE ACESSO COMPLETAS PARA TODAS AS TABELAS
+DROP POLICY IF EXISTS "SmartVidros_Companies_Policy" ON public.companies;
 DROP POLICY IF EXISTS "Acesso Total Companies" ON public.companies;
-DROP POLICY IF EXISTS "Acesso Total Companies" ON companies;
-CREATE POLICY "Acesso Total Companies" ON public.companies FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "SmartVidros_Companies_Policy" ON public.companies FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "SmartVidros_UserAccounts_Policy" ON public.user_accounts;
 DROP POLICY IF EXISTS "Acesso Total UserAccounts" ON public.user_accounts;
-DROP POLICY IF EXISTS "Acesso Total UserAccounts" ON user_accounts;
-CREATE POLICY "Acesso Total UserAccounts" ON public.user_accounts FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "SmartVidros_UserAccounts_Policy" ON public.user_accounts FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "SmartVidros_Clients_Policy" ON public.clients;
 DROP POLICY IF EXISTS "Acesso Total Clients" ON public.clients;
-DROP POLICY IF EXISTS "Acesso Total Clients" ON clients;
-CREATE POLICY "Acesso Total Clients" ON public.clients FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "SmartVidros_Clients_Policy" ON public.clients FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "SmartVidros_Quotes_Policy" ON public.quotes;
 DROP POLICY IF EXISTS "Acesso Total Quotes" ON public.quotes;
-DROP POLICY IF EXISTS "Acesso Total Quotes" ON quotes;
-CREATE POLICY "Acesso Total Quotes" ON public.quotes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "SmartVidros_Quotes_Policy" ON public.quotes FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "SmartVidros_Sales_Policy" ON public.sales;
 DROP POLICY IF EXISTS "Acesso Total Sales" ON public.sales;
-DROP POLICY IF EXISTS "Acesso Total Sales" ON sales;
-CREATE POLICY "Acesso Total Sales" ON public.sales FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "SmartVidros_Sales_Policy" ON public.sales FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "SmartVidros_Receivables_Policy" ON public.accounts_receivable;
 DROP POLICY IF EXISTS "Acesso Total AccountsReceivable" ON public.accounts_receivable;
-DROP POLICY IF EXISTS "Acesso Total AccountsReceivable" ON accounts_receivable;
-CREATE POLICY "Acesso Total AccountsReceivable" ON public.accounts_receivable FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "SmartVidros_Receivables_Policy" ON public.accounts_receivable FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "SmartVidros_Receipts_Policy" ON public.receipts;
 DROP POLICY IF EXISTS "Acesso Total Receipts" ON public.receipts;
-DROP POLICY IF EXISTS "Acesso Total Receipts" ON receipts;
-CREATE POLICY "Acesso Total Receipts" ON public.receipts FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "SmartVidros_Receipts_Policy" ON public.receipts FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "SmartVidros_Catalog_Policy" ON public.catalog_items;
 DROP POLICY IF EXISTS "Acesso Total CatalogItems" ON public.catalog_items;
-DROP POLICY IF EXISTS "Acesso Total CatalogItems" ON catalog_items;
-CREATE POLICY "Acesso Total CatalogItems" ON public.catalog_items FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "SmartVidros_Catalog_Policy" ON public.catalog_items FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "SmartVidros_Tasks_Policy" ON public.manager_tasks;
 DROP POLICY IF EXISTS "Acesso Total ManagerTasks" ON public.manager_tasks;
-DROP POLICY IF EXISTS "Acesso Total ManagerTasks" ON manager_tasks;
-CREATE POLICY "Acesso Total ManagerTasks" ON public.manager_tasks FOR ALL USING (true) WITH CHECK (true);`;
+CREATE POLICY "SmartVidros_Tasks_Policy" ON public.manager_tasks FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "SmartVidros_Contracts_Policy" ON public.contracts;
+DROP POLICY IF EXISTS "Acesso Total Contracts" ON public.contracts;
+CREATE POLICY "SmartVidros_Contracts_Policy" ON public.contracts FOR ALL USING (true) WITH CHECK (true);`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlScript);
     setCopiedSql(true);
-    setTimeout(() => setCopiedSql(false), 2000);
+    onShowToast('Código SQL com RLS copiado para a área de transferência!');
+    setTimeout(() => setCopiedSql(false), 2500);
   };
 
   return (
@@ -302,7 +333,7 @@ CREATE POLICY "Acesso Total ManagerTasks" ON public.manager_tasks FOR ALL USING 
             </div>
             <div>
               <h2 className="text-lg font-black text-white leading-tight">Sincronização com Supabase</h2>
-              <p className="text-xs text-slate-400">Integração da base de dados e nuvem</p>
+              <p className="text-xs text-slate-400">Integração da base de dados, nuvem e segurança RLS</p>
             </div>
           </div>
 
@@ -311,6 +342,7 @@ CREATE POLICY "Acesso Total ManagerTasks" ON public.manager_tasks FOR ALL USING 
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
             title="Fechar"
+            id="btn-close-supabase-modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -319,6 +351,33 @@ CREATE POLICY "Acesso Total ManagerTasks" ON public.manager_tasks FOR ALL USING 
         {/* Corpo do Modal */}
         <div className="p-6 space-y-6 overflow-y-auto">
           
+          {/* Card de Alerta de Segurança RLS do Supabase */}
+          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-xs font-black text-amber-950 uppercase tracking-wide">
+                  Recebeu o e-mail de aviso de segurança (RLS) do Supabase?
+                </h4>
+                <p className="text-xs text-amber-900 leading-relaxed">
+                  O Supabase solicita habilitar o <strong>Row Level Security (RLS)</strong> nas tabelas. O script atualizado abaixo já inclui todas as diretivas de RLS e políticas de acesso necessárias.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCopySql}
+              className="w-full sm:w-auto px-4 py-2.5 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-black text-xs rounded-xl shadow-md shadow-amber-600/20 transition-all shrink-0 flex items-center justify-center gap-2"
+              id="btn-copy-rls-sql"
+            >
+              {copiedSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedSql ? 'Copiado!' : 'Copiar SQL com RLS'}</span>
+            </button>
+          </div>
+
           {/* Card de Status da Conexão */}
           <div
             className={`p-4 rounded-2xl border flex items-center justify-between gap-4 ${

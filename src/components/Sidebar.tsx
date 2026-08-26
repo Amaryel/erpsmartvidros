@@ -19,7 +19,10 @@ import {
   Layers,
   Wallet,
   UserCheck,
-  BarChart3
+  BarChart3,
+  Bot,
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
@@ -75,6 +78,8 @@ interface SidebarProps {
   onNewQuoteClick: () => void;
   onOpenPdvClick: () => void;
   onOpenPublicCatalog?: () => void;
+  onOpenSmartIA?: () => void;
+  onOpenTour?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -95,6 +100,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewQuoteClick,
   onOpenPdvClick,
   onOpenPublicCatalog,
+  onOpenSmartIA,
+  onOpenTour,
 }) => {
   const isSuper =
     currentUser?.role === 'superadmin' ||
@@ -371,21 +378,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </nav>
 
-        {/* Acesso Rápido à Vitrine Pública */}
-        {onOpenPublicCatalog && (
-          <div className="p-3 border-t border-zinc-800/80 shrink-0">
+        {/* Acesso Rápido à Smart IA e Tour */}
+        <div className="p-2.5 border-t border-zinc-800/80 shrink-0 space-y-1.5">
+          {onOpenSmartIA && (
+            <button
+              onClick={onOpenSmartIA}
+              className={`w-full flex items-center ${
+                isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-2'
+              } rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-xs font-black transition-all shadow-sm group active:scale-95`}
+              title="Abrir Assistente Smart IA"
+            >
+              <Bot className="w-4 h-4 text-amber-400 shrink-0 group-hover:animate-pulse" />
+              {!isCollapsed && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">Smart IA</span>
+                  <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded-full font-black border border-amber-500/30">
+                    Grátis
+                  </span>
+                </div>
+              )}
+            </button>
+          )}
+
+          {onOpenTour && (
+            <button
+              onClick={onOpenTour}
+              className={`w-full flex items-center ${
+                isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-1.5'
+              } rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 text-xs font-bold transition-all active:scale-95`}
+              title="Iniciar Tour pelo Sistema"
+            >
+              <HelpCircle className="w-4 h-4 text-indigo-400 shrink-0" />
+              {!isCollapsed && <span className="truncate">Tour do Sistema</span>}
+            </button>
+          )}
+
+          {onOpenPublicCatalog && (
             <button
               onClick={onOpenPublicCatalog}
               className={`w-full flex items-center ${
-                isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-2.5'
-              } rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all shadow-sm`}
+                isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-1.5'
+              } rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs font-semibold transition-all`}
               title="Abrir Vitrine Pública (Link do Cliente)"
             >
-              <span className="text-amber-400 text-sm">✨</span>
+              <span className="text-amber-400 text-xs">✨</span>
               {!isCollapsed && <span className="truncate">Vitrine do Cliente</span>}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Rodapé da Sidebar: Recolher / Expandir no Tablet/Desktop */}
         <div className="p-3 border-t border-zinc-800/80 shrink-0 hidden lg:block">

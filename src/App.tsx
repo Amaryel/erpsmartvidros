@@ -28,6 +28,10 @@ import { ContractViewModal } from './components/ContractViewModal';
 import { CashModule } from './components/CashModule';
 import { PublicCatalogView } from './components/PublicCatalogView';
 import { ReportsModule } from './components/ReportsModule';
+import { SystemTourModal } from './components/SystemTourModal';
+import { SmartIAChatDrawer } from './components/SmartIAChatDrawer';
+import { HelpSupportModal } from './components/HelpSupportModal';
+import { Bot, HelpCircle, Sparkles } from 'lucide-react';
 import {
   Quote,
   CompanyInfo,
@@ -125,6 +129,11 @@ export default function App() {
   // Toast Notificação
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Estados para Tour, Smart IA e Central de Dúvidas
+  const [isTourOpen, setIsTourOpen] = useState(false);
+  const [isSmartIAOpen, setIsSmartIAOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+
   // Modo Catálogo Público / Vitrine Virtual para Clientes
   const [isPublicCatalogView, setIsPublicCatalogView] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -169,6 +178,15 @@ export default function App() {
   useEffect(() => {
     initSupabaseKeepAlive();
     refreshData();
+
+    // Tour automático no primeiro acesso neste dispositivo/navegador
+    const hasSeenTour = localStorage.getItem('smart_vidros_tour_completed');
+    if (!hasSeenTour) {
+      const timer = setTimeout(() => {
+        setIsTourOpen(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const refreshData = () => {
@@ -513,10 +531,12 @@ export default function App() {
         }}
         onOpenPdvClick={handleOpenPdvDirect}
         onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
+        onOpenSmartIA={() => setIsSmartIAOpen(true)}
+        onOpenTour={() => setIsTourOpen(true)}
       />
 
       {/* Conteúdo Principal com Recuo Adaptativo para a Sidebar */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 w-full transition-all duration-300 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
         {/* Toast Notificação Flutuante */}
         {toastMessage && (
@@ -551,6 +571,9 @@ export default function App() {
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
           onOpenSupabaseSyncModal={() => setIsSupabaseSyncModalOpen(true)}
           onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
+          onOpenSmartIA={() => setIsSmartIAOpen(true)}
+          onOpenHelp={() => setIsHelpModalOpen(true)}
+          onOpenTour={() => setIsTourOpen(true)}
           onLogout={handleLogout}
         />
 
@@ -910,6 +933,49 @@ export default function App() {
             onOpenQuote={handleOpenQuoteFromId}
           />
         )}
+
+        {/* MODAL DO TOUR GUIADO PELO SISTEMA */}
+        <SystemTourModal
+          isOpen={isTourOpen}
+          onClose={() => setIsTourOpen(false)}
+          companyInfo={companyInfo}
+          onNavigateToTab={(tab) => setActiveTab(tab)}
+          onOpenSmartIA={() => setIsSmartIAOpen(true)}
+        />
+
+        {/* GAVETA LATERAL / WIDGET DO CHAT SMART IA */}
+        <SmartIAChatDrawer
+          isOpen={isSmartIAOpen}
+          onClose={() => setIsSmartIAOpen(false)}
+          currentUser={currentUser}
+          companyInfo={companyInfo}
+          onNavigateToTab={(tab) => setActiveTab(tab)}
+        />
+
+        {/* MODAL DA CENTRAL DE AJUDA & DÚVIDAS */}
+        <HelpSupportModal
+          isOpen={isHelpModalOpen}
+          onClose={() => setIsHelpModalOpen(false)}
+          companyInfo={companyInfo}
+          onStartTour={() => setIsTourOpen(true)}
+          onOpenSmartIA={() => setIsSmartIAOpen(true)}
+        />
+
+        {/* BOTÃO FLUTUANTE DE DÚVIDAS & SMART IA (Canto Inferior Direito) */}
+        <div className="fixed bottom-4 left-4 sm:left-auto sm:right-5 z-40 flex items-center gap-2 print:hidden">
+          <button
+            onClick={() => setIsSmartIAOpen(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black px-3.5 py-2.5 rounded-2xl shadow-xl shadow-amber-500/25 border border-amber-300 transition-all hover:scale-105 active:scale-95 text-xs group"
+            title="Dúvidas? Pergunte ao Smart IA (Grátis)"
+          >
+            <div className="relative">
+              <Bot className="w-4 h-4 text-slate-950 group-hover:animate-spin" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-600 rounded-full animate-ping" />
+            </div>
+            <span className="hidden sm:inline">Dúvidas? Smart IA</span>
+            <span className="sm:hidden">Smart IA</span>
+          </button>
+        </div>
 
         {/* Rodapé do Sistema */}
         <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 print:hidden mt-auto">

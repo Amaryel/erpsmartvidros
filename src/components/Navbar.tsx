@@ -19,7 +19,12 @@ import {
   ChevronDown,
   PlusCircle,
   UserCheck,
-  BarChart3
+  BarChart3,
+  Bot,
+  HelpCircle,
+  Sparkles,
+  Play,
+  Share2
 } from 'lucide-react';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -44,8 +49,31 @@ interface NavbarProps {
   onOpenProfileModal?: () => void;
   onOpenSupabaseSyncModal?: () => void;
   onOpenPublicCatalog?: () => void;
+  onOpenSmartIA?: () => void;
+  onOpenHelp?: () => void;
+  onOpenTour?: () => void;
   onLogout: () => void;
 }
+
+const TAB_TITLES: Record<ActiveTab, { title: string; subtitle: string; icon: React.ElementType }> = {
+  dashboard: { title: 'Painel Geral', subtitle: 'Visão em Tempo Real', icon: LayoutDashboard },
+  operations: { title: 'Obras & Operações', subtitle: 'Acompanhamento de Serviços', icon: Briefcase },
+  quotes: { title: 'Orçamentos', subtitle: 'Propostas Comerciais', icon: FileText },
+  new_quote: { title: 'Novo Orçamento', subtitle: 'Cálculo de Vidros & Esquadrias', icon: PlusCircle },
+  sales: { title: 'Vendas & PDV', subtitle: 'Pedidos e Balcão', icon: ShoppingBag },
+  cash: { title: 'Caixa Diário', subtitle: 'Movimentações & Lançamento por Áudio', icon: Wallet },
+  contracts: { title: 'Contratos Jurídicos', subtitle: 'Assinatura Digital & Termos', icon: Scroll },
+  receivables: { title: 'Contas a Receber', subtitle: 'Gestão de Recebimentos', icon: ShieldCheck },
+  receipts: { title: 'Recibos de Pagamento', subtitle: 'Comprovantes Oficiais A4', icon: ReceiptText },
+  new_receipt: { title: 'Novo Recibo', subtitle: 'Emissão de Pagamento', icon: ReceiptText },
+  clients: { title: 'Clientes', subtitle: 'Base de Contatos & Obras', icon: Users },
+  products: { title: 'Produtos & Vidros', subtitle: 'Catálogo de Itens', icon: Package },
+  services: { title: 'Serviços & Mão de Obra', subtitle: 'Tabela de Serviços', icon: Wrench },
+  catalog: { title: 'Catálogo Geral', subtitle: 'Produtos e Serviços', icon: Package },
+  company: { title: 'Dados da Empresa', subtitle: 'Configurações do Estabelecimento', icon: Building2 },
+  superadmin: { title: 'Super Admin', subtitle: 'Gestão de Usuários & Licenças', icon: ShieldCheck },
+  reports: { title: 'Relatórios de Vendas', subtitle: 'Desempenho & Estatísticas', icon: BarChart3 },
+};
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
@@ -64,389 +92,181 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenProfileModal,
   onOpenSupabaseSyncModal,
   onOpenPublicCatalog,
+  onOpenSmartIA,
+  onOpenHelp,
+  onOpenTour,
   onLogout,
 }) => {
   const isSuper =
     currentUser?.role === 'superadmin' ||
     (currentUser?.email && currentUser.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
 
-  const canManageUsers =
-    isSuper ||
-    currentUser?.role === 'admin' ||
-    currentUser?.permissions?.canManageUsers === true;
-
   const perms = getUserPermissions(currentUser);
   const hasAccess = (modId: SystemModuleId) => hasModuleAccess(currentUser, modId);
 
-  const [openDropdown, setOpenDropdown] = useState<'comercial' | 'financeiro' | 'catalogo' | 'sistema' | null>(null);
-  const navRef = useRef<HTMLDivElement>(null);
+  const [isHelpDropdownOpen, setIsHelpDropdownOpen] = useState(false);
+  const helpDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fechar dropdowns ao clicar fora
+  const currentTabMeta = TAB_TITLES[activeTab] || {
+    title: 'Smart Vidros',
+    subtitle: 'ERP de Gestão',
+    icon: LayoutDashboard,
+  };
+  const TabIcon = currentTabMeta.icon;
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
-        setOpenDropdown(null);
+      if (helpDropdownRef.current && !helpDropdownRef.current.contains(event.target as Node)) {
+        setIsHelpDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isComercialActive = ['quotes', 'new_quote', 'sales', 'contracts', 'clients'].includes(activeTab);
-  const isFinanceiroActive = ['reports', 'cash', 'receivables', 'receipts', 'new_receipt'].includes(activeTab);
-  const isCatalogoActive = ['products', 'services', 'catalog'].includes(activeTab);
-  const isSistemaActive = ['company', 'superadmin'].includes(activeTab);
-
-  const comercialTotalBadges = quotesCount + salesCount + contractsCount;
-  const financeiroTotalBadges = receivablesCount + receiptsCount;
-
-  const handleSelectTab = (tab: ActiveTab) => {
-    setActiveTab(tab);
-    setOpenDropdown(null);
-  };
-
   return (
-    <header className="bg-zinc-950 text-white border-b border-amber-500/30 sticky top-0 z-30 shadow-xl print:hidden">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-18 sm:h-20 gap-2 sm:gap-4">
+    <header className="bg-zinc-950 text-white border-b border-amber-500/20 sticky top-0 z-30 shadow-xl print:hidden w-full select-none">
+      <div className="w-full px-3 sm:px-5 lg:px-6">
+        <div className="flex items-center justify-between h-16 sm:h-18 gap-2 sm:gap-4">
           
-          {/* Lado Esquerdo: Botão Menu Mobile/Tablet + Logo Smart Vidros */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* LADO ESQUERDO: Botão Mobile + Identificador do Módulo / Página Atual */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            {/* Botão Menu Lateral Mobile/Tablet */}
             <button
               onClick={onToggleSidebarMobile}
-              className="p-2 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors lg:hidden active:scale-95"
+              className="p-2 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors lg:hidden active:scale-95 shrink-0 border border-zinc-800"
               title="Abrir Menu Lateral"
             >
-              <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+              <Menu className="w-5 h-5 text-amber-400" />
             </button>
 
-            {/* Logo/Nome Smart Vidros */}
-            <SmartVidrosLogo
-              companyInfo={companyInfo}
-              size="md"
-              variant="dark"
-              showSubtitle={false}
-              onClick={() => setActiveTab('dashboard')}
-            />
+            {/* Logo no Mobile */}
+            <div className="lg:hidden shrink-0">
+              <SmartVidrosLogo
+                companyInfo={companyInfo}
+                size="sm"
+                variant="dark"
+                showSubtitle={false}
+                onClick={() => setActiveTab('dashboard')}
+              />
+            </div>
+
+            {/* Breadcrumb / Título do Módulo Ativo no Desktop & Tablet */}
+            <div className="hidden sm:flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                <TabIcon className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
+                    Smart Vidros
+                  </span>
+                  <span className="text-zinc-600 text-xs">/</span>
+                  <h1 className="text-xs sm:text-sm font-extrabold text-white truncate">
+                    {currentTabMeta.title}
+                  </h1>
+                </div>
+                <p className="text-[10px] text-zinc-400 truncate hidden md:block">
+                  {currentTabMeta.subtitle}
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Navegação Central Organizada por Módulos (Estilo Sidebar) */}
-          <nav ref={navRef} className="hidden lg:flex items-center gap-1.5 xl:gap-2">
+          {/* LADO DIREITO: Ações Rápidas, IA, Dúvidas, PDV e Perfil */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             
-            {/* Início */}
-            <button
-              onClick={() => handleSelectTab('dashboard')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                activeTab === 'dashboard'
-                  ? 'bg-amber-500 text-zinc-950 font-black shadow-md'
-                  : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Início</span>
-            </button>
-
-            {/* Obras & Operações */}
-            <button
-              onClick={() => handleSelectTab('operations')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                activeTab === 'operations'
-                  ? 'bg-amber-500 text-zinc-950 font-black shadow-md'
-                  : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
-              }`}
-            >
-              <Briefcase className="w-3.5 h-3.5" />
-              <span>Obras</span>
-            </button>
-
-            {/* Dropdown: Comercial & Vendas */}
-            <div className="relative">
+            {/* 🤖 BOTÃO DESTAQUE: SMART IA */}
+            {onOpenSmartIA && (
               <button
-                onClick={() => setOpenDropdown(openDropdown === 'comercial' ? null : 'comercial')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  isComercialActive
-                    ? 'bg-amber-500 text-zinc-950 font-black shadow-md'
-                    : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
-                }`}
+                onClick={onOpenSmartIA}
+                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 text-amber-300 border border-amber-500/40 font-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95 group"
+                title="Abrir Assistente Smart IA (Grátis)"
               >
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>Comercial</span>
-                {comercialTotalBadges > 0 && !isComercialActive && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    {comercialTotalBadges}
-                  </span>
-                )}
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${openDropdown === 'comercial' ? 'rotate-180' : ''}`} />
-              </button>
-
-              {openDropdown === 'comercial' && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-900 border border-amber-500/30 rounded-2xl p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500 border-b border-zinc-800 mb-1">
-                    Comercial & Vendas
-                  </div>
-                  
-                  <button
-                    onClick={() => handleSelectTab('quotes')}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'quotes' || activeTab === 'new_quote'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-amber-400" />
-                      <span>Orçamentos</span>
-                    </div>
-                    {quotesCount > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {quotesCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleSelectTab('sales')}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'sales'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <ShoppingBag className="w-4 h-4 text-amber-400" />
-                      <span>Vendas / PDV</span>
-                    </div>
-                    {salesCount > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {salesCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleSelectTab('contracts')}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'contracts'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Scroll className="w-4 h-4 text-indigo-400" />
-                      <span>Contratos</span>
-                    </div>
-                    {contractsCount > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        {contractsCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleSelectTab('clients')}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'clients'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <Users className="w-4 h-4 text-blue-400" />
-                    <span>Clientes</span>
-                  </button>
+                <div className="w-4 h-4 rounded-md bg-amber-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Bot className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                 </div>
-              )}
-            </div>
+                <span className="font-extrabold">Smart IA</span>
+                <span className="hidden xl:inline text-[9px] px-1.5 py-0.2 bg-amber-500/30 text-amber-300 rounded font-black">
+                  Grátis
+                </span>
+              </button>
+            )}
 
-            {/* Dropdown: Financeiro */}
-            <div className="relative">
+            {/* ❓ MENU DE DÚVIDAS & TOUR */}
+            <div className="relative" ref={helpDropdownRef}>
               <button
-                onClick={() => setOpenDropdown(openDropdown === 'financeiro' ? null : 'financeiro')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  isFinanceiroActive
-                    ? 'bg-amber-500 text-zinc-950 font-black shadow-md'
-                    : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
-                }`}
+                onClick={() => setIsHelpDropdownOpen(!isHelpDropdownOpen)}
+                className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all active:scale-95"
+                title="Dúvidas do Sistema & Tour"
               >
-                <Wallet className="w-3.5 h-3.5" />
-                <span>Financeiro</span>
-                {financeiroTotalBadges > 0 && !isFinanceiroActive && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                    {financeiroTotalBadges}
-                  </span>
-                )}
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${openDropdown === 'financeiro' ? 'rotate-180' : ''}`} />
+                <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden md:inline">Dúvidas</span>
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isHelpDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {openDropdown === 'financeiro' && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-900 border border-amber-500/30 rounded-2xl p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500 border-b border-zinc-800 mb-1">
-                    Financeiro & Gestão
+              {isHelpDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-800 mb-1">
+                    Ajuda & Suporte
                   </div>
 
-                  <button
-                    onClick={() => handleSelectTab('reports')}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'reports'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <BarChart3 className="w-4 h-4 text-amber-400" />
-                    <span>Relatórios de Vendas</span>
-                  </button>
+                  {onOpenSmartIA && (
+                    <button
+                      onClick={() => {
+                        setIsHelpDropdownOpen(false);
+                        onOpenSmartIA();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 hover:bg-amber-500/10 transition-colors text-left"
+                    >
+                      <Bot className="w-4 h-4 text-amber-400" />
+                      <div>
+                        <p className="font-extrabold">Smart IA (Chat 24h)</p>
+                        <p className="text-[10px] text-zinc-400">Tire dúvidas técnicas na hora</p>
+                      </div>
+                    </button>
+                  )}
 
-                  <button
-                    onClick={() => handleSelectTab('cash')}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'cash'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <Wallet className="w-4 h-4 text-emerald-400" />
-                    <span>Caixa Diário</span>
-                  </button>
+                  {onOpenTour && (
+                    <button
+                      onClick={() => {
+                        setIsHelpDropdownOpen(false);
+                        onOpenTour();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-200 hover:bg-zinc-800 transition-colors text-left"
+                    >
+                      <Play className="w-4 h-4 text-indigo-400" />
+                      <div>
+                        <p className="font-extrabold">Tour pelo Sistema</p>
+                        <p className="text-[10px] text-zinc-400">Aprenda o passo a passo</p>
+                      </div>
+                    </button>
+                  )}
 
-                  <button
-                    onClick={() => handleSelectTab('receivables')}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'receivables'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-rose-400" />
-                      <span>Contas a Receber</span>
-                    </div>
-                    {receivablesCount > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                        {receivablesCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleSelectTab('receipts')}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'receipts' || activeTab === 'new_receipt'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <ReceiptText className="w-4 h-4 text-emerald-400" />
-                      <span>Recibos</span>
-                    </div>
-                    {receiptsCount > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        {receiptsCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Dropdown: Catálogo & Serviços */}
-            <div className="relative">
-              <button
-                onClick={() => setOpenDropdown(openDropdown === 'catalogo' ? null : 'catalogo')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  isCatalogoActive
-                    ? 'bg-amber-500 text-zinc-950 font-black shadow-md'
-                    : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
-                }`}
-              >
-                <Package className="w-3.5 h-3.5" />
-                <span>Catálogo</span>
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${openDropdown === 'catalogo' ? 'rotate-180' : ''}`} />
-              </button>
-
-              {openDropdown === 'catalogo' && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-900 border border-amber-500/30 rounded-2xl p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500 border-b border-zinc-800 mb-1">
-                    Catálogo & Serviços
-                  </div>
-
-                  <button
-                    onClick={() => handleSelectTab('products')}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'products' || activeTab === 'catalog'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <Package className="w-4 h-4 text-amber-400" />
-                    <span>Produtos & Vidros</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleSelectTab('services')}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      activeTab === 'services'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'text-zinc-200 hover:bg-zinc-800 hover:text-white'
-                    }`}
-                  >
-                    <Wrench className="w-4 h-4 text-slate-400" />
-                    <span>Serviços & Mão de Obra</span>
-                  </button>
-
-                  {onOpenPublicCatalog && (
-                    <div className="pt-1 mt-1 border-t border-zinc-800">
-                      <button
-                        onClick={() => {
-                          setOpenDropdown(null);
-                          onOpenPublicCatalog();
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                      >
-                        <span className="text-amber-400">✨</span>
-                        <span>Vitrine Pública (Cliente)</span>
-                      </button>
-                    </div>
+                  {onOpenHelp && (
+                    <button
+                      onClick={() => {
+                        setIsHelpDropdownOpen(false);
+                        onOpenHelp();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-200 hover:bg-zinc-800 transition-colors text-left"
+                    >
+                      <HelpCircle className="w-4 h-4 text-emerald-400" />
+                      <div>
+                        <p className="font-extrabold">Perguntas Frequentes (FAQ)</p>
+                        <p className="text-[10px] text-zinc-400">Guia de cálculos e funções</p>
+                      </div>
+                    </button>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Painel Super Admin / Gestão de Usuários / Empresa */}
-            {canManageUsers ? (
-              <button
-                onClick={() => handleSelectTab('superadmin')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  activeTab === 'superadmin'
-                    ? 'bg-amber-500 text-zinc-950 font-black shadow-md'
-                    : 'text-amber-400 hover:text-amber-300 hover:bg-zinc-900'
-                }`}
-              >
-                {isSuper ? <ShieldCheck className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
-                <span>{isSuper ? 'Super Admin' : 'Gestão Usuários'}</span>
-              </button>
-            ) : hasAccess('company') ? (
-              <button
-                onClick={() => handleSelectTab('company')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  activeTab === 'company'
-                    ? 'bg-amber-500 text-zinc-950 font-black shadow-md'
-                    : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
-                }`}
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Empresa</span>
-              </button>
-            ) : null}
-          </nav>
-
-          {/* Lado Direito: Ações Rápidas + Sincronização + Perfil */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            
             {/* Botão Novo Orçamento */}
             {hasAccess('quotes') && (
               <button
                 onClick={onNewQuoteClick}
-                className="hidden sm:flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-amber-500/30 hover:border-amber-400 font-extrabold px-3 py-2 rounded-xl transition-all text-xs whitespace-nowrap active:scale-95"
+                className="hidden lg:flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-amber-500/30 hover:border-amber-400 font-extrabold px-3 py-2 rounded-xl transition-all text-xs whitespace-nowrap active:scale-95"
                 title="Criar Novo Orçamento"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
@@ -458,11 +278,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {isSuper && onOpenSupabaseSyncModal && (
               <button
                 onClick={onOpenSupabaseSyncModal}
-                className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 sm:px-3 py-2 rounded-xl text-xs transition-all whitespace-nowrap active:scale-95"
-                title="Sincronizar Banco Supabase (Super Admin)"
+                className="hidden sm:flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 py-1.5 sm:py-2 rounded-xl text-xs transition-all whitespace-nowrap active:scale-95"
+                title="Sincronizar Banco Supabase"
               >
                 <Database className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden md:inline">Supabase</span>
+                <span className="hidden xl:inline">Supabase</span>
               </button>
             )}
 
@@ -470,7 +290,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {hasAccess('sales') && (
               <button
                 onClick={onOpenPdvClick}
-                className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 sm:px-3.5 py-2 rounded-xl shadow-lg active:scale-95 transition-all text-xs whitespace-nowrap"
+                className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl shadow-lg active:scale-95 transition-all text-xs whitespace-nowrap"
                 title="Abrir Ponto de Venda"
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
@@ -480,11 +300,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Perfil & Logout */}
             {currentUser ? (
-              <div className="flex items-center gap-1 sm:gap-1.5 pl-1.5 sm:pl-2 border-l border-zinc-800">
+              <div className="flex items-center gap-1 sm:gap-1.5 pl-1.5 sm:pl-2 border-l border-zinc-800 shrink-0">
                 <button
                   onClick={onOpenProfileModal || onOpenAuthModal}
-                  className="flex items-center gap-2 text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 px-2 sm:px-2.5 py-1.5 rounded-xl transition-all group max-w-[150px] sm:max-w-[200px]"
-                  title="Configurar Meu Perfil & Alterar Senha"
+                  className="flex items-center gap-2 text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 px-2 sm:px-2.5 py-1.5 rounded-xl transition-all group max-w-[140px] sm:max-w-[180px] shrink-0"
+                  title="Configurar Meu Perfil"
                 >
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-xs group-hover:bg-amber-500 group-hover:text-zinc-950 transition-colors shrink-0">
                     {currentUser.username ? currentUser.username[0].toUpperCase() : currentUser.name[0]}
@@ -502,16 +322,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </p>
                     <div className="flex items-center gap-1 text-[9px] text-amber-400/90 font-mono truncate">
                       <span>@{currentUser.username || 'user'}</span>
-                      {currentUser.role === 'vendedor' && perms.maxDiscountPercent > 0 && (
-                        <span className="text-zinc-400 font-sans">({perms.maxDiscountPercent}%)</span>
-                      )}
                     </div>
                   </div>
                 </button>
 
                 <button
                   onClick={onLogout}
-                  className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-900 rounded-xl transition-colors flex items-center justify-center active:scale-95"
+                  className="p-1.5 sm:p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-900 rounded-xl transition-colors flex items-center justify-center active:scale-95 shrink-0"
                   title="Sair do Sistema"
                 >
                   <LogOut className="w-4 h-4" />
@@ -532,5 +349,3 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
-
-
