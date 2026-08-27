@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, ArrowLeft, Eye, Calculator, Info, CheckCircle2, UserPlus, PackagePlus, Wrench, ShieldAlert, Percent } from 'lucide-react';
-import { Quote, QuoteItem, ProductType, DiscountType, QuoteStatus, CatalogItem, DownPaymentType, PaymentMethod, Client, AppUser } from '../types';
+import { Plus, Trash2, Save, ArrowLeft, Eye, Calculator, Info, CheckCircle2, UserPlus, PackagePlus, Wrench, ShieldAlert, Percent, Scissors } from 'lucide-react';
+import { Quote, QuoteItem, ProductType, DiscountType, QuoteStatus, CatalogItem, DownPaymentType, PaymentMethod, Client, AppUser, CutCalculation } from '../types';
 import { getCatalog, getClients, findClientByName } from '../services/storage';
 import { validateUserDiscount, getUserPermissions } from '../utils/permissions';
 import { UnregisteredClientPromptModal } from './UnregisteredClientPromptModal';
@@ -8,6 +8,7 @@ import { ClientFormModal } from './ClientFormModal';
 import { ProductFormModal } from './ProductFormModal';
 import { ServiceFormModal } from './ServiceFormModal';
 import { ClientSelect } from './ClientSelect';
+import { ImportCutCalculationModal } from './CutCalculator/ImportCutCalculationModal';
 
 interface QuoteFormProps {
   initialQuote?: Quote | null;
@@ -78,6 +79,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   const [showClientModal, setShowClientModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
+  const [showImportCutModal, setShowImportCutModal] = useState(false);
   const [targetItemIndexForQuickAdd, setTargetItemIndexForQuickAdd] = useState<number | null>(null);
 
   useEffect(() => {
@@ -87,6 +89,59 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   const refreshData = () => {
     setCatalog(getCatalog());
     setRegisteredClients(getClients());
+  };
+
+  const handleImportCutCalculation = (calc: CutCalculation) => {
+    // Se o cliente do cálculo foi preenchido e o do orçamento está vazio, preencher
+    if (calc.clientName && !clientName) {
+      setClientName(calc.clientName);
+    }
+    if (calc.clientPhone && !clientPhone) {
+      setClientPhone(calc.clientPhone);
+    }
+
+    const pricePerM2 = calc.pricePerM2 && calc.pricePerM2 > 0 ? calc.pricePerM2 : 180;
+    const singleArea = (calc.cutWidthMm / 1000) * (calc.cutHeightMm / 1000);
+    const totalItemPrice = singleArea * calc.totalPieces * pricePerM2;
+
+    const newItem: QuoteItem = {
+      id: 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      type: 'dimensao',
+      name: `${calc.ruleName} [${calc.code}]`,
+      description: calc.projectName ? `Projeto: ${calc.projectName}` : (calc.notes || ''),
+      lengthMm: calc.cutHeightMm,
+      widthMm: calc.cutWidthMm,
+      areaM2: Math.round(singleArea * 1000) / 1000,
+      quantity: calc.totalPieces,
+      pricePerM2: pricePerM2,
+      totalPrice: Math.round(totalItemPrice * 100) / 100,
+      cutDetails: {
+        cutCalculationId: calc.id,
+        ruleId: calc.ruleId,
+        ruleName: calc.ruleName,
+        productType: calc.productType,
+        spanWidthMm: calc.spanWidthMm,
+        spanHeightMm: calc.spanHeightMm,
+        spanQuantity: calc.spanQuantity,
+        cutWidthMm: calc.cutWidthMm,
+        cutHeightMm: calc.cutHeightMm,
+        piecesCount: calc.totalPieces,
+        lateralGap: calc.lateralGap,
+        topGap: calc.topGap,
+        bottomGap: calc.bottomGap,
+        widthDiscount: calc.widthDiscount,
+        heightDiscount: calc.heightDiscount,
+        formulaUsed: calc.formulaUsed,
+        notes: calc.notes,
+      },
+    };
+
+    // Se o único item da lista for um rascunho em branco, substitui ele
+    if (items.length === 1 && !items[0].name.trim()) {
+      setItems([newItem]);
+    } else {
+      setItems((prev) => [...prev, newItem]);
+    }
   };
 
   const handleSelectClient = (client: Client) => {
@@ -514,14 +569,26 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
               <p className="text-xs text-slate-500">Adicione itens com cálculo de área (m²) ou unidades simples.</p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleAddItem}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold rounded-xl transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Adicionar Produto</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowImportCutModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-950 border border-amber-500/40 text-xs font-bold rounded-xl transition-colors"
+                title="Importar medidas de corte calculadas"
+              >
+                <Scissors className="w-4 h-4 text-amber-600" />
+                <span>+ Medida de Corte</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAddItem}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold rounded-xl transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Adicionar Produto</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -591,6 +658,21 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+
+                {item.cutDetails && (
+                  <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl flex items-center justify-between gap-2 text-xs text-amber-900">
+                    <div className="flex items-center gap-2">
+                      <Scissors className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <span>
+                        <strong>Medida de Corte:</strong> {item.cutDetails.cutWidthMm} × {item.cutDetails.cutHeightMm} mm
+                        <span className="text-amber-700 ml-1.5">(Vão da obra: {item.cutDetails.spanWidthMm} × {item.cutDetails.spanHeightMm} mm)</span>
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-950 font-bold text-[10px]">
+                      {item.cutDetails.ruleName}
+                    </span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                   <div className="sm:col-span-2">
@@ -1024,6 +1106,13 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
           title="Cadastrar Cliente p/ Orçamento"
         />
       )}
+
+      {/* Modal: Importar Medida de Corte */}
+      <ImportCutCalculationModal
+        isOpen={showImportCutModal}
+        onClose={() => setShowImportCutModal(false)}
+        onSelectCalculation={handleImportCutCalculation}
+      />
     </div>
   );
 };

@@ -372,6 +372,12 @@ const ISOLATED_IFRAME_CSS = `
   .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05) !important; }
   .overflow-hidden { overflow: hidden !important; }
   
+  /* Regras de visibilidade seletiva em PDF */
+  .pdf-hidden, .hide-in-pdf, .no-pdf, .print\\:hidden { display: none !important; }
+  .pdf-only, .show-in-pdf { display: block !important; }
+  .pdf-only-inline, .show-in-pdf-inline { display: inline !important; }
+  .pdf-only-cell, .show-in-pdf-cell { display: table-cell !important; }
+
   /* Regras de proteção de quebra de página */
   .break-inside-avoid,
   .contract-clause,

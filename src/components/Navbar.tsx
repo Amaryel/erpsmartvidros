@@ -24,7 +24,8 @@ import {
   HelpCircle,
   Sparkles,
   Play,
-  Share2
+  Share2,
+  Scissors
 } from 'lucide-react';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -58,6 +59,7 @@ interface NavbarProps {
 const TAB_TITLES: Record<ActiveTab, { title: string; subtitle: string; icon: React.ElementType }> = {
   dashboard: { title: 'Painel Geral', subtitle: 'Visão em Tempo Real', icon: LayoutDashboard },
   operations: { title: 'Obras & Operações', subtitle: 'Acompanhamento de Serviços', icon: Briefcase },
+  cut_calculator: { title: 'Medidas de Corte', subtitle: 'Calculadora de Vidros & Esquadrias', icon: Scissors },
   quotes: { title: 'Orçamentos', subtitle: 'Propostas Comerciais', icon: FileText },
   new_quote: { title: 'Novo Orçamento', subtitle: 'Cálculo de Vidros & Esquadrias', icon: PlusCircle },
   sales: { title: 'Vendas & PDV', subtitle: 'Pedidos e Balcão', icon: ShoppingBag },

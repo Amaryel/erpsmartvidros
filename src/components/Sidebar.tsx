@@ -22,7 +22,8 @@ import {
   BarChart3,
   Bot,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Scissors
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
@@ -31,6 +32,7 @@ import { hasModuleAccess, SUPERADMIN_EMAIL } from '../utils/permissions';
 export type ActiveTab =
   | 'dashboard'
   | 'operations'
+  | 'cut_calculator'
   | 'quotes'
   | 'new_quote'
   | 'sales'
@@ -137,6 +139,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           icon: FileText,
           badge: quotesCount > 0 ? quotesCount : null,
           badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+        },
+        {
+          id: 'cut_calculator',
+          label: 'Medidas de Corte',
+          icon: Scissors,
         },
         {
           id: 'sales',

@@ -28,6 +28,7 @@ import { ContractViewModal } from './components/ContractViewModal';
 import { CashModule } from './components/CashModule';
 import { PublicCatalogView } from './components/PublicCatalogView';
 import { ReportsModule } from './components/ReportsModule';
+import { CutCalculatorModule } from './components/CutCalculator/CutCalculatorModule';
 import { SystemTourModal } from './components/SystemTourModal';
 import { SmartIAChatDrawer } from './components/SmartIAChatDrawer';
 import { HelpSupportModal } from './components/HelpSupportModal';
@@ -43,6 +44,7 @@ import {
   AppUser,
   Contract,
   UserAccount,
+  CutCalculation,
 } from './types';
 import {
   getQuotes,
@@ -444,6 +446,68 @@ export default function App() {
     setActiveTab('new_receipt');
   };
 
+  // Enviar cálculo de corte para novo orçamento
+  const handleSendCutCalculationToQuote = (calc: CutCalculation) => {
+    const pricePerM2 = calc.pricePerM2 && calc.pricePerM2 > 0 ? calc.pricePerM2 : 180;
+    const singleArea = (calc.cutWidthMm / 1000) * (calc.cutHeightMm / 1000);
+    const totalItemPrice = singleArea * calc.totalPieces * pricePerM2;
+
+    const newQuote: Quote = {
+      id: '',
+      code: '',
+      clientName: calc.clientName || '',
+      clientPhone: calc.clientPhone || '',
+      date: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'rascunho',
+      items: [
+        {
+          id: 'item-' + Date.now(),
+          type: 'dimensao',
+          name: `${calc.ruleName} [${calc.code}]`,
+          description: calc.projectName ? `Projeto: ${calc.projectName}` : (calc.notes || ''),
+          lengthMm: calc.cutHeightMm,
+          widthMm: calc.cutWidthMm,
+          areaM2: Math.round(singleArea * 1000) / 1000,
+          quantity: calc.totalPieces,
+          pricePerM2: pricePerM2,
+          totalPrice: Math.round(totalItemPrice * 100) / 100,
+          cutDetails: {
+            cutCalculationId: calc.id,
+            ruleId: calc.ruleId,
+            ruleName: calc.ruleName,
+            productType: calc.productType,
+            spanWidthMm: calc.spanWidthMm,
+            spanHeightMm: calc.spanHeightMm,
+            spanQuantity: calc.spanQuantity,
+            cutWidthMm: calc.cutWidthMm,
+            cutHeightMm: calc.cutHeightMm,
+            piecesCount: calc.totalPieces,
+            lateralGap: calc.lateralGap,
+            topGap: calc.topGap,
+            bottomGap: calc.bottomGap,
+            widthDiscount: calc.widthDiscount,
+            heightDiscount: calc.heightDiscount,
+            formulaUsed: calc.formulaUsed,
+            notes: calc.notes,
+          },
+        },
+      ],
+      discountType: 'percent',
+      discountValue: 0,
+      subtotal: Math.round(totalItemPrice * 100) / 100,
+      discountAmount: 0,
+      total: Math.round(totalItemPrice * 100) / 100,
+      notes: calc.notes || (calc.projectName ? `Projeto: ${calc.projectName}` : ''),
+      workStatus: 'pendente',
+    };
+
+    setEditingQuote(newQuote);
+    setActiveTab('new_quote');
+    showToast(`Cálculo [${calc.code}] transferido para o novo orçamento!`);
+  };
+
   // Se estiver no Modo Catálogo Público (para clientes e visitantes)
   if (isPublicCatalogView) {
     return (
@@ -624,6 +688,16 @@ export default function App() {
             <OperationsModule
               onOpenReceivablesTab={() => setActiveTab('receivables')}
               onRefresh={refreshData}
+            />
+          )}
+
+          {/* ABA MÓDULO: CÁLCULO DE MEDIDAS DE CORTE */}
+          {activeTab === 'cut_calculator' && (
+            <CutCalculatorModule
+              currentUser={currentUser}
+              companyInfo={companyInfo}
+              onSendToQuote={handleSendCutCalculationToQuote}
+              onShowToast={showToast}
             />
           )}
 

@@ -86,6 +86,9 @@ body {
   nav,
   footer,
   button,
+  .pdf-hidden,
+  .hide-in-pdf,
+  .no-pdf,
   .print\:hidden {
     display: none !important;
   }

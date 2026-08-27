@@ -25,6 +25,35 @@ export type DiscountType = 'percent' | 'fixed';
 
 export type PaymentMethod = 'pix' | 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'transferencia' | 'fiado';
 
+export type CutProductType =
+  | 'vidro_temperado'
+  | 'box_banheiro'
+  | 'janela'
+  | 'porta'
+  | 'esquadria'
+  | 'espelho'
+  | 'outro';
+
+export interface CutItemDetails {
+  cutCalculationId?: string;
+  ruleId?: string;
+  ruleName?: string;
+  productType?: CutProductType;
+  spanWidthMm: number; // Largura do vão (mm)
+  spanHeightMm: number; // Altura do vão (mm)
+  spanQuantity?: number;
+  cutWidthMm: number; // Largura final de corte (mm)
+  cutHeightMm: number; // Altura final de corte (mm)
+  piecesCount: number; // Quantidade de peças de corte
+  lateralGap?: number; // Folga lateral (mm)
+  topGap?: number; // Folga superior (mm)
+  bottomGap?: number; // Folga inferior (mm)
+  widthDiscount?: number; // Desconto total largura (mm)
+  heightDiscount?: number; // Desconto total altura (mm)
+  formulaUsed?: string; // Descrição da fórmula aplicada
+  notes?: string; // Informações técnicas de corte
+}
+
 export interface QuoteItem {
   id: string;
   type: ProductType;
@@ -42,6 +71,9 @@ export interface QuoteItem {
   // Comum
   quantity: number;
   totalPrice: number; // Calculado
+
+  // Informações Técnicas de Corte (opcional)
+  cutDetails?: CutItemDetails;
 }
 
 export interface WorkLogEntry {
@@ -260,6 +292,7 @@ export type UserStatus = 'pendente' | 'aprovado' | 'rejeitado';
 export type SystemModuleId =
   | 'dashboard'
   | 'operations'
+  | 'cut_calculator'
   | 'quotes'
   | 'sales'
   | 'cash'
@@ -466,6 +499,88 @@ export interface CashSession {
   totalEntries?: number;
   totalExits?: number;
   byPaymentMethod?: Record<string, number>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================================
+// MÓDULO CÁLCULO DE MEDIDAS DE CORTE (ESQUADRIAS E VIDROS)
+// ============================================================
+
+export interface CutRule {
+  id: string;
+  companyId?: string;
+  name: string; // Ex: "Box Frontal F1 (1 Fixo + 1 Correr)", "Janela 2 Folhas Linha Suprema"
+  productType: CutProductType;
+  description?: string;
+  
+  // Descontos e folgas em milímetros (mm)
+  widthDiscount: number; // Desconto na largura total (mm)
+  heightDiscount: number; // Desconto na altura total (mm)
+  lateralGap: number; // Folga lateral (mm)
+  topGap: number; // Folga superior (mm)
+  bottomGap: number; // Folga inferior (mm)
+  
+  // Divisão de folhas / peças
+  piecesPerSpan: number; // Quantidade de peças geradas por vão (ex: 2 para 2 folhas)
+  customFormulaDescription?: string; // Descrição legível da fórmula utilizada
+  
+  isActive: boolean;
+  isDefault?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CutCalculation {
+  id: string;
+  companyId?: string;
+  userId?: string;
+  userName?: string;
+  code: string; // Ex: CORTE-0001
+  clientId?: string;
+  clientName?: string;
+  clientPhone?: string;
+  projectName?: string; // Nome da Obra / Local (ex: "Edifício Roma - Apto 302")
+  
+  productType: CutProductType;
+  ruleId?: string;
+  ruleName: string;
+  
+  // Medidas do Vão Original (mm)
+  spanWidthMm: number; // Largura do vão (mm)
+  spanHeightMm: number; // Altura do vão (mm)
+  spanQuantity: number; // Quantidade de vãos
+  
+  // Folgas e descontos aplicados (mm)
+  widthDiscount: number;
+  heightDiscount: number;
+  lateralGap: number;
+  topGap: number;
+  bottomGap: number;
+  piecesPerSpan: number;
+  
+  // Medidas de Corte de Fabricação por Peça (mm)
+  cutWidthMm: number; // Largura final de corte (mm)
+  cutHeightMm: number; // Altura final de corte (mm)
+  totalPieces: number; // Quantidade total de peças (spanQuantity * piecesPerSpan)
+  
+  // Áreas calculadas
+  singlePieceAreaM2: number; // Área de 1 peça de corte (m²)
+  totalAreaM2: number; // Área total do lote (m²)
+  
+  // Integração com preço / orçamento
+  pricePerM2?: number;
+  totalPrice?: number;
+  
+  formulaUsed: string; // Ex: "Largura: (1200 - 10) / 2 = 595mm | Altura: 2100 - 35 = 2065mm"
+  notes?: string; // Anotações técnicas / tipo do vidro / cor / têmpera
+  
+  // Rastreabilidade
+  quoteId?: string;
+  quoteCode?: string;
+  saleId?: string;
+  saleCode?: string;
+  
   createdAt: string;
   updatedAt: string;
 }

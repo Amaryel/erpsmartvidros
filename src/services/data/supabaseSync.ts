@@ -254,6 +254,48 @@ function mapEntityToSupabaseRow(table: string, entity: any): Record<string, any>
         updated_at: entity.updatedAt || new Date().toISOString(),
       };
 
+    case 'cut_rules':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        name: entity.name,
+        product_type: entity.productType,
+        pieces_count: entity.piecesCount || 1,
+        width_discount: entity.widthDiscount || 0,
+        height_discount: entity.heightDiscount || 0,
+        lateral_gap: entity.lateralGap || 0,
+        top_gap: entity.topGap || 0,
+        bottom_gap: entity.bottomGap || 0,
+        overlap_addition: entity.overlapAddition || 0,
+        transpass_addition: entity.transpassAddition || 0,
+        notes: entity.notes || null,
+        created_at: entity.createdAt || new Date().toISOString(),
+        updated_at: entity.updatedAt || new Date().toISOString(),
+      };
+
+    case 'cut_calculations':
+      return {
+        id: entity.id,
+        company_id: entity.companyId || 'comp-smart-vidros-001',
+        rule_id: entity.ruleId,
+        rule_name: entity.ruleName,
+        product_type: entity.productType,
+        code: entity.code,
+        client_name: entity.clientName || null,
+        client_phone: entity.clientPhone || null,
+        project_name: entity.projectName || null,
+        span_width_mm: entity.spanWidthMm,
+        span_height_mm: entity.spanHeightMm,
+        span_quantity: entity.spanQuantity || 1,
+        cut_width_mm: entity.cutWidthMm,
+        cut_height_mm: entity.cutHeightMm,
+        total_pieces: entity.totalPieces,
+        total_area_m2: entity.totalAreaM2,
+        notes: entity.notes || null,
+        created_at: entity.createdAt || new Date().toISOString(),
+        updated_at: entity.updatedAt || new Date().toISOString(),
+      };
+
     default:
       return null;
   }
@@ -263,7 +305,7 @@ function mapEntityToSupabaseRow(table: string, entity: any): Record<string, any>
 // AUTO-SYNC HOOK EM TEMPO REAL
 // ============================================================
 export function autoSyncEntityChange(
-  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'catalog' | 'contracts',
+  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'catalog' | 'contracts' | 'cut_rules' | 'cut_calculations',
   action: 'upsert' | 'delete',
   data: any
 ): void {

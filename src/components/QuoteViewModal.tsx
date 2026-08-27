@@ -49,7 +49,7 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
     quote.items.forEach((item, idx) => {
       msg += `${idx + 1}. *${item.name}*\n`;
       if (item.type === 'dimensao') {
-        msg += `   Medidas: ${item.lengthMm}mm x ${item.widthMm}mm (${item.areaM2}m²) | Qtd: ${item.quantity}\n`;
+        msg += `   Área: ${item.areaM2}m² | Qtd: ${item.quantity} ${item.quantity > 1 ? 'peças' : 'peça'}\n`;
         msg += `   Valor m²: R$ ${(item.pricePerM2 || 0).toFixed(2)} -> *Total: R$ ${item.totalPrice.toFixed(2)}*\n`;
       } else {
         msg += `   Qtd: ${item.quantity} un x R$ ${(item.unitPrice || 0).toFixed(2)} -> *Total: R$ ${item.totalPrice.toFixed(2)}*\n`;
@@ -201,10 +201,10 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-900 text-amber-400 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th className="py-2.5 px-3">#</th>
+                  <th className="py-2.5 px-3 w-10">#</th>
                   <th className="py-2.5 px-3">Item / Descrição</th>
-                  <th className="py-2.5 px-3">Medidas (mm)</th>
-                  <th className="py-2.5 px-3 text-center">Área / Qtd</th>
+                  <th className="py-2.5 px-3 text-center pdf-hidden">Medidas (mm)</th>
+                  <th className="py-2.5 px-3 text-center">Área (m²) / Qtd</th>
                   <th className="py-2.5 px-3 text-right">Valor Unit / m²</th>
                   <th className="py-2.5 px-3 text-right">Total (R$)</th>
                 </tr>
@@ -212,21 +212,34 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
               <tbody className="divide-y divide-slate-200 bg-white">
                 {quote.items.map((item, index) => (
                   <tr key={item.id} className="hover:bg-slate-50 break-inside-avoid">
-                    <td className="py-2 px-3 font-mono font-bold text-slate-400">{index + 1}</td>
-                    <td className="py-2 px-3">
+                    <td className="py-2.5 px-3 font-mono font-bold text-slate-400">{index + 1}</td>
+                    <td className="py-2.5 px-3">
                       <div className="font-bold text-slate-900">{item.name}</div>
-                      {item.description && <div className="text-[10px] text-slate-500">{item.description}</div>}
+                      {item.description && <div className="text-[11px] text-slate-500 mt-0.5">{item.description}</div>}
                     </td>
-                    <td className="py-2 px-3 font-mono text-slate-700">
-                      {item.type === 'dimensao' ? `${item.lengthMm} x ${item.widthMm} mm` : '-'}
+                    <td className="py-2.5 px-3 text-center font-mono text-slate-700 pdf-hidden">
+                      {item.type === 'dimensao' ? (
+                        <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-[11px] whitespace-nowrap">
+                          {item.lengthMm} x {item.widthMm} mm
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-xs">-</span>
+                      )}
                     </td>
-                    <td className="py-2 px-3 text-center font-mono font-semibold text-slate-800">
-                      {item.type === 'dimensao' ? `${item.areaM2} m² (${item.quantity} pçs)` : `${item.quantity} un`}
+                    <td className="py-2.5 px-3 text-center font-mono font-semibold text-slate-800">
+                      {item.type === 'dimensao' ? (
+                        <div className="inline-flex flex-col items-center">
+                          <span className="font-bold text-slate-900">{item.areaM2} m²</span>
+                          <span className="text-[10px] text-slate-500">({item.quantity} {item.quantity > 1 ? 'peças' : 'peça'})</span>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-slate-900">{item.quantity} un</span>
+                      )}
                     </td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700">
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
                       R$ {item.type === 'dimensao' ? (item.pricePerM2 || 0).toFixed(2) : (item.unitPrice || 0).toFixed(2)}
                     </td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
                       R$ {item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                   </tr>

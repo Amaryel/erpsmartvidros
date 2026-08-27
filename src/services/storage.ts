@@ -155,4 +155,18 @@ export {
   recordSaleCashPayments,
   recordReceivableCashPayment,
   DEFAULT_CASH_CATEGORIES,
+
+  // Medidas de Corte & Calculadora
+  getCutRules,
+  getCutRuleById,
+  saveCutRule,
+  deleteCutRule,
+  duplicateCutRule,
+  resetDefaultCutRules,
+  getNextCutCalculationCode,
+  getCutCalculations,
+  getCutCalculationById,
+  saveCutCalculation,
+  deleteCutCalculation,
+  duplicateCutCalculation,
 } from './data';

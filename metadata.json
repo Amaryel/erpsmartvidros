@@ -1,6 +1,6 @@
 {
   "name": "ERP Smart Vidros",
-  "description": "Sistema ERP Completo de Gestão de Vidraçaria, Orçamentos, Vendas, PDV, Caixa e Fluxo Financeiro com Lançamento por Áudio, Contratos, Contas a Receber e Recibos - Smart Vidros",
+  "description": "Sistema ERP Completo de Gestão de Vidraçaria, Orçamentos, Medidas de Corte de Vidros e Esquadrias, Vendas, PDV, Caixa e Fluxo Financeiro com Lançamento por Áudio, Contratos, Contas a Receber e Recibos - Smart Vidros",
   "requestFramePermissions": [
     "microphone",
     "camera"

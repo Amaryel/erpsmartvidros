@@ -21,7 +21,8 @@ import {
   Scroll,
   BarChart3,
   Filter,
-  Calendar
+  Calendar,
+  Scissors
 } from 'lucide-react';
 import { Quote, Sale, Receivable, Receipt, CompanyInfo, UserAccount, AppUser } from '../types';
 import { calculateCashSummary } from '../services/data/repositories/cashRepository';
@@ -241,6 +242,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => onNavigate('cut_calculator')}
+              className="flex items-center gap-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
+              title="Calculadora Técnica de Medidas de Corte"
+            >
+              <Scissors className="w-4 h-4 text-amber-400" />
+              <span>Medidas de Corte</span>
+            </button>
+
             <button
               onClick={() => onNavigate('reports')}
               className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
