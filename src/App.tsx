@@ -32,7 +32,9 @@ import { CutCalculatorModule } from './components/CutCalculator/CutCalculatorMod
 import { SystemTourModal } from './components/SystemTourModal';
 import { SmartIAChatDrawer } from './components/SmartIAChatDrawer';
 import { HelpSupportModal } from './components/HelpSupportModal';
-import { Bot, HelpCircle, Sparkles } from 'lucide-react';
+import { PwaInstallModal } from './components/PwaInstallModal';
+import { usePwaInstall } from './hooks/usePwaInstall';
+import { Bot, HelpCircle, Sparkles, Smartphone, Download } from 'lucide-react';
 import {
   Quote,
   CompanyInfo,

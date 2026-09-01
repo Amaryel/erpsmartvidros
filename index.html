@@ -2,16 +2,59 @@
 <html lang="pt-BR" class="notranslate" translate="no">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google" content="notranslate" />
-    <meta name="application-name" content="ERP Smart Vidros" />
-    <meta name="apple-mobile-web-app-title" content="ERP Smart Vidros" />
-    <meta name="description" content="ERP Smart Vidros - Sistema Completo de Gestão de Vidraçaria, Orçamentos, Vendas, PDV e Recibos" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- PWA Primary Meta Tags -->
     <title>ERP Smart Vidros</title>
+    <meta name="title" content="ERP Smart Vidros" />
+    <meta name="description" content="Sistema ERP Completo de Gestão de Vidraçaria, Orçamentos, Medidas de Corte de Vidros e Esquadrias, Vendas, PDV e Finanças" />
+    <meta name="application-name" content="ERP Smart Vidros" />
+    
+    <!-- PWA Color & Display Settings -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- iOS Web App Configuration -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Smart Vidros" />
+    
+    <!-- Windows Tiles -->
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="msapplication-TileImage" content="/icons/icon-192x192.png" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <link rel="alternate icon" type="image/png" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png" />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <meta name="google" content="notranslate" />
   </head>
   <body class="notranslate" translate="no">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Registro automático do Service Worker para PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(
+            function(registration) {
+              console.log('[PWA] ServiceWorker registrado com sucesso:', registration.scope);
+            },
+            function(err) {
+              console.log('[PWA] Falha no registro do ServiceWorker:', err);
+            }
+          );
+        });
+      }
+    </script>
   </body>
 </html>
 

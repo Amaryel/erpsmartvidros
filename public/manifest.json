@@ -1,0 +1,60 @@
+{
+  "name": "ERP Smart Vidros",
+  "short_name": "Smart Vidros",
+  "description": "Sistema ERP Completo de Gestão de Vidraçaria, Orçamentos, Medidas de Corte de Vidros e Esquadrias, Vendas, PDV e Finanças",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo Orçamento",
+      "short_name": "Orçamento",
+      "description": "Criar um novo orçamento rápido para vidros e esquadrias",
+      "url": "/?action=new_quote",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Medidas de Corte",
+      "short_name": "Cálculo Corte",
+      "description": "Calcular medidas de corte de vidros e perfis",
+      "url": "/?action=cut_calculator",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Frente de Caixa (PDV)",
+      "short_name": "PDV / Vendas",
+      "description": "Acessar o PDV e vendas rápidas",
+      "url": "/?action=pos",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

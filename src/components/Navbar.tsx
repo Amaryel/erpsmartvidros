@@ -25,7 +25,8 @@ import {
   Sparkles,
   Play,
   Share2,
-  Scissors
+  Scissors,
+  Download
 } from 'lucide-react';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -53,6 +54,7 @@ interface NavbarProps {
   onOpenSmartIA?: () => void;
   onOpenHelp?: () => void;
   onOpenTour?: () => void;
+  onOpenPwaInstall?: () => void;
   onLogout: () => void;
 }
 
@@ -97,6 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSmartIA,
   onOpenHelp,
   onOpenTour,
+  onOpenPwaInstall,
   onLogout,
 }) => {
   const isSuper =
@@ -178,6 +181,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* LADO DIREITO: Ações Rápidas, IA, Dúvidas, PDV e Perfil */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             
+            {/* 📱 BOTÃO INSTALAR APLICATIVO (PWA) */}
+            {onOpenPwaInstall && (
+              <button
+                onClick={onOpenPwaInstall}
+                className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95 group"
+                title="Instalar Aplicativo (PWA) no Celular/Tablet"
+              >
+                <Download className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span className="hidden lg:inline">Instalar App</span>
+                <span className="lg:hidden">App</span>
+              </button>
+            )}
+
             {/* 🤖 BOTÃO DESTAQUE: SMART IA */}
             {onOpenSmartIA && (
               <button

@@ -1,14 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, ArrowLeft, Eye, Calculator, Info, CheckCircle2, UserPlus, PackagePlus, Wrench, ShieldAlert, Percent, Scissors } from 'lucide-react';
-import { Quote, QuoteItem, ProductType, DiscountType, QuoteStatus, CatalogItem, DownPaymentType, PaymentMethod, Client, AppUser, CutCalculation } from '../types';
+import {
+  Plus,
+  Trash2,
+  Save,
+  ArrowLeft,
+  Eye,
+  Calculator,
+  Info,
+  CheckCircle2,
+  Copy,
+  Scissors,
+  Wrench,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  Settings2,
+  Sparkles,
+  Home,
+  Sliders,
+  DollarSign
+} from 'lucide-react';
+import {
+  Quote,
+  QuoteItem,
+  ProductType,
+  DiscountType,
+  QuoteStatus,
+  CatalogItem,
+  DownPaymentType,
+  PaymentMethod,
+  Client,
+  AppUser,
+  CutCalculation,
+  TechnicalCategory,
+  CatalogCategory
+} from '../types';
 import { getCatalog, getClients, findClientByName } from '../services/storage';
 import { validateUserDiscount, getUserPermissions } from '../utils/permissions';
 import { UnregisteredClientPromptModal } from './UnregisteredClientPromptModal';
 import { ClientFormModal } from './ClientFormModal';
-import { ProductFormModal } from './ProductFormModal';
-import { ServiceFormModal } from './ServiceFormModal';
-import { ClientSelect } from './ClientSelect';
 import { ImportCutCalculationModal } from './CutCalculator/ImportCutCalculationModal';
+import { ClientSelect } from './ClientSelect';
+import { TechnicalProductPreview, detectTechnicalCategory } from './TechnicalProductPreview';
 
 interface QuoteFormProps {
   initialQuote?: Quote | null;
@@ -17,6 +50,27 @@ interface QuoteFormProps {
   onCancel: () => void;
   onPreview: (tempQuote: Quote) => void;
 }
+
+const COMMON_ENVIRONMENTS = [
+  'Sala',
+  'Banheiro',
+  'Suíte',
+  'Cozinha',
+  'Fachada',
+  'Sacada / Varanda',
+  'Área Gourmet',
+  'Quarto / Dormitório',
+  'Geral'
+];
+
+const GLASS_TYPES = ['Temperado', 'Laminado', 'Comum (Float)', 'Insulado / Duplo', 'Espelho', 'Serigrafado / Jateado'];
+const GLASS_THICKNESSES = ['4mm', '6mm', '8mm', '10mm', '12mm', '15mm'];
+const GLASS_COLORS = ['Incolor', 'Fumê', 'Verde', 'Bronze', 'Astral', 'Antirreflexo'];
+const HARDWARE_COLORS = ['Preto', 'Branco', 'Fosco / Natural', 'Bronze', 'Cromado / Inox', 'Dourado / Ouro'];
+const ALUMINUM_LINES = ['Suprema', 'Gold', 'Convencional', 'Elegance', 'Slide', 'Versatik', 'Stanley'];
+const OPENING_TYPES = ['De Correr (Slide)', 'Pivotante', 'Fixo', 'Basculante', 'Maxim-ar', 'De Abrir / Giro', 'Camarão / Articulada'];
+const LEAF_COUNTS = ['1 Folha', '2 Folhas (1F+1M)', '2 Folhas Móveis', '3 Folhas', '4 Folhas (2F+2M)', 'Painel Fixo'];
+const FINISH_OPTIONS = ['Lapidado Reto', 'Bisotê 25mm', 'Bisotê 30mm', 'Canto Moeda', 'Jateado Total', 'Furos e Recortes'];
 
 export const QuoteForm: React.FC<QuoteFormProps> = ({
   initialQuote,
@@ -52,35 +106,59 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   const [deliveryDate, setDeliveryDate] = useState(initialQuote?.deliveryDate || '');
   const [internalNotes, setInternalNotes] = useState(initialQuote?.internalNotes || '');
 
+  // Estado de itens expandidos para edição de características
+  const [expandedItemIds, setExpandedItemIds] = useState<Record<string, boolean>>({});
+
   // Lista de Itens do Orçamento
   const [items, setItems] = useState<QuoteItem[]>(
-    initialQuote?.items || [
-      {
-        id: 'item-' + Date.now(),
-        type: 'dimensao',
-        name: '',
-        description: '',
-        lengthMm: 1000,
-        widthMm: 1000,
-        areaM2: 1.0,
-        quantity: 1,
-        pricePerM2: 150,
-        totalPrice: 150,
-      },
-    ]
+    initialQuote?.items && initialQuote.items.length > 0
+      ? initialQuote.items.map((it) => ({
+          ...it,
+          environment: it.environment || 'Geral',
+          glassType: it.glassType || (it.type === 'dimensao' ? 'Temperado' : undefined),
+          thickness: it.thickness || (it.type === 'dimensao' ? '8mm' : undefined),
+          glassColor: it.glassColor || (it.type === 'dimensao' ? 'Incolor' : undefined),
+          hardwareColor: it.hardwareColor || 'Preto',
+          line: it.line || 'Suprema',
+          openingType: it.openingType || 'De Correr (Slide)',
+          leafCount: it.leafCount || '2 Folhas (1F+1M)',
+          technicalCategory: it.technicalCategory || detectTechnicalCategory(it.name),
+        }))
+      : [
+          {
+            id: 'item-' + Date.now(),
+            type: 'dimensao',
+            category: 'produto',
+            name: '',
+            description: '',
+            environment: 'Sala',
+            technicalCategory: 'porta',
+            glassType: 'Temperado',
+            thickness: '8mm',
+            glassColor: 'Incolor',
+            hardwareColor: 'Preto',
+            aluminumColor: 'Preto',
+            line: 'Suprema',
+            openingType: 'De Correr (Slide)',
+            leafCount: '2 Folhas (1F+1M)',
+            lengthMm: 2100, // Altura padrão
+            widthMm: 1500, // Largura padrão
+            areaM2: 3.15,
+            quantity: 1,
+            pricePerM2: 180,
+            totalPrice: 567,
+          },
+        ]
   );
 
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [registeredClients, setRegisteredClients] = useState<Client[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Modais de Cadastro Rápido
+  // Modais de Cadastro Rápido & Importação
   const [showUnregisteredPrompt, setShowUnregisteredPrompt] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [showServiceModal, setShowServiceModal] = useState(false);
   const [showImportCutModal, setShowImportCutModal] = useState(false);
-  const [targetItemIndexForQuickAdd, setTargetItemIndexForQuickAdd] = useState<number | null>(null);
 
   useEffect(() => {
     refreshData();
@@ -91,8 +169,11 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
     setRegisteredClients(getClients());
   };
 
+  const toggleExpandItem = (id: string) => {
+    setExpandedItemIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const handleImportCutCalculation = (calc: CutCalculation) => {
-    // Se o cliente do cálculo foi preenchido e o do orçamento está vazio, preencher
     if (calc.clientName && !clientName) {
       setClientName(calc.clientName);
     }
@@ -107,8 +188,18 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
     const newItem: QuoteItem = {
       id: 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       type: 'dimensao',
+      category: 'produto',
       name: `${calc.ruleName} [${calc.code}]`,
       description: calc.projectName ? `Projeto: ${calc.projectName}` : (calc.notes || ''),
+      environment: calc.projectName || 'Geral',
+      technicalCategory: detectTechnicalCategory(calc.ruleName),
+      glassType: 'Temperado',
+      thickness: '8mm',
+      glassColor: 'Incolor',
+      hardwareColor: 'Preto',
+      line: 'Suprema',
+      openingType: 'De Correr (Slide)',
+      leafCount: calc.totalPieces > 1 ? `${calc.totalPieces} Folhas` : '1 Folha',
       lengthMm: calc.cutHeightMm,
       widthMm: calc.cutWidthMm,
       areaM2: Math.round(singleArea * 1000) / 1000,
@@ -136,17 +227,11 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
       },
     };
 
-    // Se o único item da lista for um rascunho em branco, substitui ele
     if (items.length === 1 && !items[0].name.trim()) {
       setItems([newItem]);
     } else {
       setItems((prev) => [...prev, newItem]);
     }
-  };
-
-  const handleSelectClient = (client: Client) => {
-    setClientName(client.name);
-    setClientPhone(client.phone || client.whatsapp || '');
   };
 
   // Recalcular totais do item individual
@@ -162,18 +247,24 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
       const areaM2 = Math.round(area * 1000) / 1000;
       const totalPrice = areaM2 * qty * pricePerM2;
 
-      return { areaM2, totalPrice };
+      return { areaM2, totalPrice: Math.round(totalPrice * 100) / 100 };
     } else {
       const unitPrice = Math.max(0, item.unitPrice || 0);
       const totalPrice = qty * unitPrice;
-      return { totalPrice };
+      return { totalPrice: Math.round(totalPrice * 100) / 100 };
     }
   };
 
   const handleItemChange = (index: number, field: keyof QuoteItem, value: any) => {
     setItems((prevItems) => {
       const updated = [...prevItems];
-      const item = { ...updated[index], [field]: value };
+      const current = updated[index];
+      const item = { ...current, [field]: value };
+
+      // Se mudar o nome, detectar categoria técnica se não tiver sido fixada
+      if (field === 'name') {
+        item.technicalCategory = detectTechnicalCategory(value, item.technicalCategory);
+      }
 
       const { areaM2, totalPrice } = calculateItemTotal(item);
       item.totalPrice = totalPrice;
@@ -193,10 +284,10 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
       const item: QuoteItem = {
         ...current,
         type: newType,
-        lengthMm: newType === 'dimensao' ? current.lengthMm || 1000 : undefined,
-        widthMm: newType === 'dimensao' ? current.widthMm || 1000 : undefined,
-        pricePerM2: newType === 'dimensao' ? current.pricePerM2 || 150 : undefined,
-        unitPrice: newType === 'simples' ? current.unitPrice || 100 : undefined,
+        lengthMm: newType === 'dimensao' ? current.lengthMm || 2100 : undefined,
+        widthMm: newType === 'dimensao' ? current.widthMm || 1500 : undefined,
+        pricePerM2: newType === 'dimensao' ? current.pricePerM2 || 180 : undefined,
+        unitPrice: newType === 'simples' ? current.unitPrice || 120 : undefined,
       };
 
       const { areaM2, totalPrice } = calculateItemTotal(item);
@@ -214,13 +305,16 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
     setItems((prevItems) => {
       const updated = [...prevItems];
+      const current = updated[index];
       const item: QuoteItem = {
-        ...updated[index],
+        ...current,
         type: selected.type,
+        category: selected.category,
         name: selected.name,
-        description: selected.description || '',
+        description: selected.description || current.description || '',
         pricePerM2: selected.type === 'dimensao' ? selected.defaultPrice : undefined,
         unitPrice: selected.type === 'simples' ? selected.defaultPrice : undefined,
+        technicalCategory: detectTechnicalCategory(selected.name),
       };
 
       const { areaM2, totalPrice } = calculateItemTotal(item);
@@ -232,25 +326,82 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
     });
   };
 
-  const handleAddItem = () => {
+  // Adicionar Produto com Dimensão
+  const handleAddDimensionProduct = (envName?: string) => {
     const newItem: QuoteItem = {
       id: 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       type: 'dimensao',
+      category: 'produto',
       name: '',
       description: '',
-      lengthMm: 1000,
-      widthMm: 1000,
-      areaM2: 1.0,
+      environment: envName || 'Sala',
+      technicalCategory: 'porta',
+      glassType: 'Temperado',
+      thickness: '8mm',
+      glassColor: 'Incolor',
+      hardwareColor: 'Preto',
+      aluminumColor: 'Preto',
+      line: 'Suprema',
+      openingType: 'De Correr (Slide)',
+      leafCount: '2 Folhas (1F+1M)',
+      lengthMm: 2100,
+      widthMm: 1500,
+      areaM2: 3.15,
       quantity: 1,
-      pricePerM2: 150,
+      pricePerM2: 180,
+      totalPrice: 567,
+    };
+    setItems((prev) => [...prev, newItem]);
+    setExpandedItemIds((prev) => ({ ...prev, [newItem.id]: true }));
+  };
+
+  // Adicionar Produto Simples (Unidade)
+  const handleAddSimpleProduct = (envName?: string) => {
+    const newItem: QuoteItem = {
+      id: 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      type: 'simples',
+      category: 'produto',
+      name: '',
+      description: '',
+      environment: envName || 'Geral',
+      quantity: 1,
+      unitPrice: 150,
       totalPrice: 150,
     };
     setItems((prev) => [...prev, newItem]);
   };
 
+  // Adicionar Serviço
+  const handleAddService = (envName?: string) => {
+    const newItem: QuoteItem = {
+      id: 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      type: 'simples',
+      category: 'servico',
+      name: 'Instalação / Mão de Obra Especializada',
+      description: 'Execução de serviço no local da obra',
+      environment: envName || 'Geral',
+      quantity: 1,
+      unitPrice: 200,
+      totalPrice: 200,
+    };
+    setItems((prev) => [...prev, newItem]);
+  };
+
+  // Duplicar Item
+  const handleDuplicateItem = (index: number) => {
+    const target = items[index];
+    const duplicated: QuoteItem = {
+      ...target,
+      id: 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      name: `${target.name} (Cópia)`,
+    };
+    setItems((prev) => [...prev.slice(0, index + 1), duplicated, ...prev.slice(index + 1)]);
+  };
+
+  // Remover Item
   const handleRemoveItem = (index: number) => {
     if (items.length <= 1) {
-      alert('O orçamento deve ter pelo menos 1 produto.');
+      alert('O orçamento deve ter pelo menos 1 item.');
       return;
     }
     setItems((prev) => prev.filter((_, i) => i !== index));
@@ -282,24 +433,24 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
     setValidationError(null);
 
     if (items.length === 0) {
-      setValidationError('Adicione pelo menos um produto ao orçamento.');
+      setValidationError('Adicione pelo menos um produto ou serviço ao orçamento.');
       return false;
     }
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (!item.name || item.name.trim() === '') {
-        setValidationError(`Por favor, informe o Nome do Produto no Item ${i + 1}.`);
+        setValidationError(`Por favor, informe o Nome do Item no item #${i + 1}.`);
         return false;
       }
       if (!item.quantity || item.quantity <= 0) {
-        setValidationError(`A Quantidade do produto "${item.name}" deve ser maior que zero.`);
+        setValidationError(`A Quantidade do item "${item.name}" deve ser maior que zero.`);
         return false;
       }
 
       if (item.type === 'dimensao') {
         if (!item.lengthMm || item.lengthMm <= 0) {
-          setValidationError(`O Comprimento em mm do produto "${item.name}" deve ser maior que zero.`);
+          setValidationError(`A Altura em mm do produto "${item.name}" deve ser maior que zero.`);
           return false;
         }
         if (!item.widthMm || item.widthMm <= 0) {
@@ -312,19 +463,19 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
         }
       } else {
         if (item.unitPrice === undefined || item.unitPrice < 0) {
-          setValidationError(`O Valor Unitário do produto "${item.name}" deve ser preenchido.`);
+          setValidationError(`O Valor Unitário do item "${item.name}" deve ser preenchido.`);
           return false;
         }
       }
     }
 
-    // Validação de Limite de Desconto por Nível de Usuário
+    // Validação de Desconto
     if (discountAmount > 0) {
       const discCheck = validateUserDiscount(currentUser, subtotal, discountAmount);
       if (!discCheck.valid) {
         setValidationError(
           discCheck.errorMessage ||
-            `O desconto informado ultrapassa o limite máximo permitido de ${discCheck.maxAllowedPercent}% (R$ ${discCheck.maxAllowedAmount.toFixed(2)}).`
+            `O desconto informado ultrapassa o limite permitido de ${discCheck.maxAllowedPercent}%.`
         );
         return false;
       }
@@ -362,7 +513,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Verificar se o cliente foi informado e se já está cadastrado
+    // Verificar se o cliente foi digitado e se já existe no cadastro
     const trimmedName = clientName.trim();
     if (trimmedName) {
       const existingClient = findClientByName(trimmedName);
@@ -417,13 +568,18 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
       downPaymentAmount: hasDownPayment ? downPaymentAmount : undefined,
       downPaymentMethod: hasDownPayment ? downPaymentMethod : undefined,
       notes: notes.trim() || undefined,
+      deliveryDate: deliveryDate || undefined,
+      internalNotes: internalNotes.trim() || undefined,
     };
 
     onPreview(tempQuote);
   };
 
+  // Obter lista única de ambientes dos itens atuais
+  const currentEnvironments = Array.from(new Set(items.map((i) => i.environment || 'Geral')));
+
   return (
-    <div className="max-w-5xl mx-auto pb-16 px-4 sm:px-6">
+    <div className="max-w-6xl mx-auto pb-16 px-4 sm:px-6">
       
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 my-6">
@@ -437,12 +593,13 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs font-bold mb-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Módulo de Orçamentos Comerciais & Técnicos</span>
+            </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              {initialQuote ? `Editar Orçamento ${initialQuote.code}` : 'Novo Orçamento'}
+              {initialQuote ? `Editar Orçamento ${initialQuote.code}` : 'Novo Orçamento Smart Vidros'}
             </h1>
-            <p className="text-xs text-slate-500">
-              {initialQuote ? 'Atualize as informações do orçamento existente' : 'Preencha os dados e adicione os produtos/serviços'}
-            </p>
           </div>
         </div>
 
@@ -477,11 +634,11 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* SEÇÃO 1: Dados do Cliente e Data */}
+        {/* SEÇÃO 1: Dados do Cliente, Data e Status */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm">
           <h2 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-            <span>1. Informações do Cliente e Data</span>
-            <span className="text-xs font-normal text-slate-400">Campos identificadores</span>
+            <span>1. Informações do Orçamento & Cliente</span>
+            <span className="text-xs font-normal text-slate-400">Cliente opcional / cadastro rápido</span>
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -492,15 +649,15 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                 selectedPhone={clientPhone}
                 onSelectClient={(c) => {
                   setClientName(c.name);
-                  if (c.phone) setClientPhone(c.phone);
+                  if (c.phone || c.whatsapp) setClientPhone(c.phone || c.whatsapp || '');
                 }}
                 onClear={() => {
                   setClientName('');
                   setClientPhone('');
                 }}
                 onOpenNewClientModal={() => setShowClientModal(true)}
-                placeholder="Buscar ou selecionar cliente..."
-                label="Cliente do Orçamento"
+                placeholder="Buscar cliente ou digitar nome avulso..."
+                label="Cliente (Opcional)"
               />
             </div>
 
@@ -545,277 +702,572 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
             <div className="lg:col-span-2">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Status
+                Status do Orçamento
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as QuoteStatus)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white capitalize transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white capitalize transition-colors font-medium"
               >
                 <option value="rascunho">Rascunho</option>
                 <option value="aprovado">Aprovado</option>
                 <option value="convertido">Convertido em Venda</option>
-                <option value="cancelado">Cancelado</option>
+                <option value="cancelado">Cancelado / Recusado</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* SEÇÃO 2: Produtos do Orçamento */}
+        {/* SEÇÃO 2: Itens do Orçamento com Organização por Ambiente */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-2 border-b border-slate-100">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">2. Produtos e Serviços</h2>
-              <p className="text-xs text-slate-500">Adicione itens com cálculo de área (m²) ou unidades simples.</p>
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-amber-600" />
+                <span>2. Itens do Orçamento (Produtos, Dimensões e Serviços)</span>
+              </h2>
+              <p className="text-xs text-slate-500">
+                Organize por ambientes (Sala, Banheiro, Fachada...) com ilustração técnica vetorial e características personalizadas.
+              </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Ações de Adição */}
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setShowImportCutModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-950 border border-amber-500/40 text-xs font-bold rounded-xl transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-950 border border-amber-500/40 text-xs font-bold rounded-xl transition-colors"
                 title="Importar medidas de corte calculadas"
               >
-                <Scissors className="w-4 h-4 text-amber-600" />
+                <Scissors className="w-3.5 h-3.5 text-amber-600" />
                 <span>+ Medida de Corte</span>
               </button>
 
               <button
                 type="button"
-                onClick={handleAddItem}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold rounded-xl transition-colors"
+                onClick={() => handleAddService()}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold rounded-xl transition-colors"
+              >
+                <Wrench className="w-3.5 h-3.5 text-slate-600" />
+                <span>+ Serviço</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleAddSimpleProduct()}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold rounded-xl transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5 text-slate-600" />
+                <span>+ Produto Simples</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleAddDimensionProduct()}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-sm transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Adicionar Produto</span>
+                <span>+ Vidro / Dimensões (m²)</span>
               </button>
             </div>
           </div>
 
-          <div className="space-y-4">
-            {items.map((item, index) => (
-              <div
-                key={item.id}
-                className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 sm:p-5 relative transition-all"
+          {/* Atalhos Rápidos de Ambientes */}
+          <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 flex-wrap text-xs">
+            <span className="font-bold text-slate-700 flex items-center gap-1">
+              <Home className="w-3.5 h-3.5 text-amber-600" />
+              <span>Adicionar no Ambiente:</span>
+            </span>
+            {COMMON_ENVIRONMENTS.slice(0, 6).map((env) => (
+              <button
+                key={env}
+                type="button"
+                onClick={() => handleAddDimensionProduct(env)}
+                className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 hover:border-amber-400 border border-slate-200 text-slate-700 hover:text-amber-950 font-semibold transition-all shadow-2xs text-[11px]"
               >
-                <div className="flex items-center justify-between mb-3 gap-2 pb-2 border-b border-slate-200/60">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold bg-slate-900 text-amber-400 px-2.5 py-1 rounded-md">
-                      Item #{index + 1}
-                    </span>
-
-                    <div className="flex items-center bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => handleTypeChange(index, 'dimensao')}
-                        className={`px-2.5 py-1 rounded-md font-bold transition-colors ${
-                          item.type === 'dimensao'
-                            ? 'bg-amber-500 text-slate-950'
-                            : 'text-slate-500 hover:text-slate-800'
-                        }`}
-                      >
-                        Dimensão (m²)
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleTypeChange(index, 'simples')}
-                        className={`px-2.5 py-1 rounded-md font-bold transition-colors ${
-                          item.type === 'simples'
-                            ? 'bg-amber-500 text-slate-950'
-                            : 'text-slate-500 hover:text-slate-800'
-                        }`}
-                      >
-                        Simples (Unidade)
-                      </button>
-                    </div>
-
-                    {catalog.length > 0 && (
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            handleSelectFromCatalog(index, e.target.value);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="bg-white border border-slate-200 text-xs text-slate-700 rounded-lg px-2.5 py-1 focus:outline-none"
-                      >
-                        <option value="">Importar do Catálogo...</option>
-                        {catalog.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name} ({cat.type === 'dimensao' ? `R$ ${cat.defaultPrice}/m²` : `R$ ${cat.defaultPrice} un`})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(index)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Remover Item"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {item.cutDetails && (
-                  <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl flex items-center justify-between gap-2 text-xs text-amber-900">
-                    <div className="flex items-center gap-2">
-                      <Scissors className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                      <span>
-                        <strong>Medida de Corte:</strong> {item.cutDetails.cutWidthMm} × {item.cutDetails.cutHeightMm} mm
-                        <span className="text-amber-700 ml-1.5">(Vão da obra: {item.cutDetails.spanWidthMm} × {item.cutDetails.spanHeightMm} mm)</span>
-                      </span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-950 font-bold text-[10px]">
-                      {item.cutDetails.ruleName}
-                    </span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">
-                      Nome do Produto <span className="text-amber-600">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={item.name}
-                      onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                      placeholder={item.type === 'dimensao' ? 'Ex: Vidro 8mm Incolor Temperado' : 'Ex: Espelho Lapidado 60cm'}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">
-                      Detalhes / Descrição
-                    </label>
-                    <input
-                      type="text"
-                      value={item.description || ''}
-                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                      placeholder="Ex: Lapidado / Bisotê"
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-
-                {item.type === 'dimensao' ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-white p-3 rounded-xl border border-slate-200">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Comprimento (mm)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.lengthMm || ''}
-                        onChange={(e) => handleItemChange(index, 'lengthMm', parseFloat(e.target.value) || 0)}
-                        placeholder="1200"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Largura (mm)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.widthMm || ''}
-                        onChange={(e) => handleItemChange(index, 'widthMm', parseFloat(e.target.value) || 0)}
-                        placeholder="800"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-amber-700 mb-1">Área (m²)</label>
-                      <div className="w-full bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 text-amber-900 font-mono font-bold text-sm">
-                        {item.areaM2 !== undefined ? item.areaM2.toFixed(3) : '0.000'} m²
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Qtd. Peças</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Valor por m² (R$)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.pricePerM2 !== undefined ? item.pricePerM2 : ''}
-                        onChange={(e) => handleItemChange(index, 'pricePerM2', parseFloat(e.target.value) || 0)}
-                        placeholder="150.00"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-3 rounded-xl border border-slate-200">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Quantidade</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Valor Unitário (R$)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unitPrice !== undefined ? item.unitPrice : ''}
-                        onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                        placeholder="100.00"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div className="flex flex-col justify-end">
-                      <div className="text-xs text-slate-500 font-medium">Subtotal Item:</div>
-                      <div className="text-sm text-slate-800 font-bold font-mono">
-                        {item.quantity} x R$ {(item.unitPrice || 0).toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-end gap-2 mt-3 text-right">
-                  <span className="text-xs text-slate-500 font-semibold">Total do Item:</span>
-                  <span className="text-sm font-black text-slate-900 font-mono">
-                    R$ {(item.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
+                + {env}
+              </button>
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={handleAddItem}
-            className="w-full mt-4 py-3 border-2 border-dashed border-slate-200 hover:border-amber-500 rounded-xl text-slate-600 hover:text-amber-700 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Adicionar Mais Um Produto</span>
-          </button>
+          {/* Lista de Itens */}
+          <div className="space-y-5">
+            {items.map((item, index) => {
+              const isExpanded = expandedItemIds[item.id] ?? (item.type === 'dimensao');
+
+              return (
+                <div
+                  key={item.id}
+                  className={`bg-slate-50 border rounded-2xl p-4 sm:p-5 relative transition-all ${
+                    item.category === 'servico'
+                      ? 'border-blue-200 bg-blue-50/20'
+                      : 'border-slate-300/80 shadow-xs'
+                  }`}
+                >
+                  {/* Top Bar do Item: Numeração, Tipo, Ambiente e Ações */}
+                  <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200/80 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black bg-slate-950 text-amber-400 px-2.5 py-1 rounded-lg">
+                        #{index + 1}
+                      </span>
+
+                      {/* Seletor de Tipo: Dimensão vs Simples */}
+                      <div className="flex items-center bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => handleTypeChange(index, 'dimensao')}
+                          className={`px-2.5 py-1 rounded-md font-bold transition-colors ${
+                            item.type === 'dimensao'
+                              ? 'bg-amber-500 text-slate-950'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          Com Dimensões (m²)
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleTypeChange(index, 'simples')}
+                          className={`px-2.5 py-1 rounded-md font-bold transition-colors ${
+                            item.type === 'simples'
+                              ? 'bg-amber-500 text-slate-950'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          Simples / Serviço (un)
+                        </button>
+                      </div>
+
+                      {/* Catálogo Import */}
+                      {catalog.length > 0 && (
+                        <select
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleSelectFromCatalog(index, e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="bg-white border border-slate-200 text-xs text-slate-700 rounded-lg px-2.5 py-1 focus:outline-none"
+                        >
+                          <option value="">Importar do Catálogo...</option>
+                          {catalog.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name} ({cat.type === 'dimensao' ? `R$ ${cat.defaultPrice}/m²` : `R$ ${cat.defaultPrice} un`})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Botões de Ação do Item: Duplicar, Expandir/Recolher, Excluir */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateItem(index)}
+                        className="p-1.5 text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+                        title="Duplicar Item"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+
+                      {item.type === 'dimensao' && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandItem(item.id)}
+                          className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+                          title="Características Técnicas"
+                        >
+                          <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                          <span className="hidden sm:inline">Características</span>
+                          {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(index)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 bg-white rounded-lg border border-slate-200 transition-colors"
+                        title="Remover Item"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Vínculo com Cálculo de Corte (se houver) */}
+                  {item.cutDetails && (
+                    <div className="mb-3 p-2.5 bg-amber-100/70 border border-amber-300 rounded-xl flex items-center justify-between gap-2 text-xs text-amber-950">
+                      <div className="flex items-center gap-2">
+                        <Scissors className="w-4 h-4 text-amber-700 shrink-0" />
+                        <span>
+                          <strong>Medida de Corte:</strong> {item.cutDetails.cutWidthMm} × {item.cutDetails.cutHeightMm} mm
+                          <span className="text-amber-800 ml-1.5 font-medium">
+                            (Vão da obra: {item.cutDetails.spanWidthMm} × {item.cutDetails.spanHeightMm} mm | Folgas vinculadas)
+                          </span>
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-amber-300 text-amber-950 font-bold text-[10px]">
+                        {item.cutDetails.ruleName}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Campos Principais do Item */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-3">
+                    {/* Ambiente / Obra */}
+                    <div className="sm:col-span-3">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Home className="w-3 h-3 text-amber-600" />
+                        <span>Ambiente / Obra</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={item.environment || ''}
+                        onChange={(e) => handleItemChange(index, 'environment', e.target.value)}
+                        placeholder="Ex: Sala, Banheiro..."
+                        list={`env-list-${index}`}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 text-xs font-semibold focus:outline-none focus:border-amber-500 shadow-2xs"
+                      />
+                      <datalist id={`env-list-${index}`}>
+                        {COMMON_ENVIRONMENTS.map((env) => (
+                          <option key={env} value={env} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    {/* Nome do Produto */}
+                    <div className="sm:col-span-5">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Nome do Produto / Serviço <span className="text-amber-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={item.name}
+                        onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                        placeholder={
+                          item.type === 'dimensao'
+                            ? 'Ex: Porta de Correr 2 Folhas Vidro 8mm'
+                            : 'Ex: Espelho Lapidado ou Instalação'
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 text-sm font-semibold focus:outline-none focus:border-amber-500 shadow-2xs"
+                      />
+                    </div>
+
+                    {/* Descrição / Detalhes */}
+                    <div className="sm:col-span-4">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Detalhes / Observação do Item
+                      </label>
+                      <input
+                        type="text"
+                        value={item.description || ''}
+                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                        placeholder="Ex: Puxador tubular 60cm, vão acabado"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 text-xs focus:outline-none focus:border-amber-500 shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* PRODUTO COM DIMENSÕES vs PRODUTO SIMPLES */}
+                  {item.type === 'dimensao' ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                      
+                      {/* LADO ESQUERDO: Dimensões e Valores */}
+                      <div className="lg:col-span-8 space-y-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Largura (mm) <span className="text-amber-600">*</span>
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.widthMm || ''}
+                              onChange={(e) => handleItemChange(index, 'widthMm', parseFloat(e.target.value) || 0)}
+                              placeholder="1500"
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Altura (mm) <span className="text-amber-600">*</span>
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.lengthMm || ''}
+                              onChange={(e) => handleItemChange(index, 'lengthMm', parseFloat(e.target.value) || 0)}
+                              placeholder="2100"
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-amber-800 mb-1">Área Calculada</label>
+                            <div className="w-full bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 text-amber-950 font-mono font-black text-sm text-center">
+                              {item.areaM2 !== undefined ? item.areaM2.toFixed(3) : '0.000'} m²
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">Quantidade</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">Valor m² (R$)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.pricePerM2 !== undefined ? item.pricePerM2 : ''}
+                              onChange={(e) => handleItemChange(index, 'pricePerM2', parseFloat(e.target.value) || 0)}
+                              placeholder="180.00"
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* CARACTERÍSTICAS TÉCNICAS EXPANDÍVEIS */}
+                        {isExpanded && (
+                          <div className="pt-3 border-t border-slate-200 mt-2 space-y-3">
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-800 pb-1">
+                              <span className="flex items-center gap-1.5">
+                                <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Características Técnicas Específicas:</span>
+                              </span>
+                              <span className="text-[11px] font-normal text-slate-500">Exibidas no Orçamento & PDF</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                              {/* Tipo de Vidro */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Vidro</label>
+                                <select
+                                  value={item.glassType || 'Temperado'}
+                                  onChange={(e) => handleItemChange(index, 'glassType', e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                                >
+                                  {GLASS_TYPES.map((t) => (
+                                    <option key={t} value={t}>{t}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Espessura */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Espessura</label>
+                                <select
+                                  value={item.thickness || '8mm'}
+                                  onChange={(e) => handleItemChange(index, 'thickness', e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-mono"
+                                >
+                                  {GLASS_THICKNESSES.map((th) => (
+                                    <option key={th} value={th}>{th}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Cor do Vidro */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Cor do Vidro</label>
+                                <select
+                                  value={item.glassColor || 'Incolor'}
+                                  onChange={(e) => handleItemChange(index, 'glassColor', e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                                >
+                                  {GLASS_COLORS.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Cor da Ferragem / Alumínio */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Cor Ferragem / Alumínio</label>
+                                <select
+                                  value={item.hardwareColor || 'Preto'}
+                                  onChange={(e) => {
+                                    handleItemChange(index, 'hardwareColor', e.target.value);
+                                    handleItemChange(index, 'aluminumColor', e.target.value);
+                                  }}
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                                >
+                                  {HARDWARE_COLORS.map((hc) => (
+                                    <option key={hc} value={hc}>{hc}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Linha de Alumínio */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Linha de Perfil</label>
+                                <select
+                                  value={item.line || 'Suprema'}
+                                  onChange={(e) => handleItemChange(index, 'line', e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                                >
+                                  {ALUMINUM_LINES.map((l) => (
+                                    <option key={l} value={l}>{l}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Tipo de Abertura */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Abertura</label>
+                                <select
+                                  value={item.openingType || 'De Correr (Slide)'}
+                                  onChange={(e) => handleItemChange(index, 'openingType', e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                                >
+                                  {OPENING_TYPES.map((ot) => (
+                                    <option key={ot} value={ot}>{ot}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Número de Folhas */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Número de Folhas</label>
+                                <select
+                                  value={item.leafCount || '2 Folhas (1F+1M)'}
+                                  onChange={(e) => handleItemChange(index, 'leafCount', e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                                >
+                                  {LEAF_COUNTS.map((lf) => (
+                                    <option key={lf} value={lf}>{lf}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Acabamento / Lapidação */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Acabamento</label>
+                                <select
+                                  value={item.finish || 'Lapidado Reto'}
+                                  onChange={(e) => handleItemChange(index, 'finish', e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                                >
+                                  {FINISH_OPTIONS.map((f) => (
+                                    <option key={f} value={f}>{f}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* LADO DIREITO: Ilustração Técnica Vetorial 2D Automática */}
+                      <div className="lg:col-span-4 flex flex-col items-center justify-center p-2 bg-slate-950 rounded-xl border border-slate-800">
+                        <div className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-1.5">
+                          Ilustração Técnica 2D
+                        </div>
+                        <TechnicalProductPreview
+                          item={item}
+                          widthMm={item.widthMm}
+                          heightMm={item.lengthMm}
+                          name={item.name || 'Produto'}
+                          compact={true}
+                          className="w-full"
+                        />
+                      </div>
+
+                    </div>
+                  ) : (
+                    /* PRODUTO SIMPLES OU SERVIÇO */
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Quantidade</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Valor Unitário (R$)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPrice !== undefined ? item.unitPrice : ''}
+                          onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          placeholder="100.00"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="flex flex-col justify-end">
+                        <div className="text-xs text-slate-500 font-medium">Subtotal Item:</div>
+                        <div className="text-sm text-slate-900 font-black font-mono">
+                          {item.quantity} × R$ {(item.unitPrice || 0).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resumo do Total do Item */}
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200/80 text-right">
+                    <div className="text-xs text-slate-500 font-medium">
+                      Ambiente: <strong className="text-slate-800">{item.environment || 'Geral'}</strong>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600 font-bold">Total do Item:</span>
+                      <span className="text-base font-black text-slate-950 font-mono">
+                        R$ {(item.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Botão Inferior de Adicionar */}
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => handleAddDimensionProduct()}
+              className="py-3 px-4 border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/50 hover:bg-amber-50 rounded-xl text-amber-950 text-xs font-black flex items-center justify-center gap-2 transition-all shadow-2xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Adicionar Produto com Dimensões (m²)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleAddSimpleProduct()}
+              className="py-3 px-4 border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-700 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Adicionar Produto Simples</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleAddService()}
+              className="py-3 px-4 border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/40 hover:bg-blue-50 rounded-xl text-blue-900 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+            >
+              <Wrench className="w-4 h-4 text-blue-600" />
+              <span>+ Adicionar Serviço / Mão de Obra</span>
+            </button>
+          </div>
         </div>
 
-        {/* SEÇÃO 3: Entrada / Sinal + Observações + Resumo */}
+        {/* SEÇÃO 3: Entrada / Sinal + Observações + Resumo Financeiro */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           <div className="lg:col-span-2 space-y-6">
@@ -883,10 +1335,10 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                         type="number"
                         step="0.01"
                         min="0"
-                        placeholder={downPaymentType === 'percent' ? 'Ex: 25' : 'Ex: 1500,00'}
+                        placeholder={downPaymentType === 'percent' ? 'Ex: 30' : 'Ex: 1500,00'}
                         value={downPaymentValue}
                         onChange={(e) => setDownPaymentValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 font-mono"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 font-mono font-bold"
                       />
                     </div>
                   </div>
@@ -911,7 +1363,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                   {downPaymentAmount > 0 && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between text-xs font-semibold text-amber-900">
                       <span>Valor da Entrada Calculado:</span>
-                      <span className="font-mono font-bold text-sm">
+                      <span className="font-mono font-black text-sm text-emerald-800">
                         {downPaymentAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
                     </div>
@@ -920,36 +1372,47 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
               )}
             </div>
 
-            {/* Observações e Anotações Internas da Obra */}
+            {/* Observações Comerciais vs Anotações Internas da Obra */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Observações para o Cliente (Visível no Orçamento)</h2>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Observações Comerciais
+                  </h2>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                    Visível no PDF do Cliente
+                  </span>
+                </div>
                 <textarea
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Ex: Condições de pagamento, prazos de entrega, validade da proposta..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
+                  placeholder="Ex: Condições de pagamento, prazos de entrega, validade da proposta de 15 dias..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 text-xs focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                 />
               </div>
 
               <div className="bg-amber-50/60 border border-amber-300 rounded-2xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xs font-bold text-amber-950 uppercase tracking-wider">Anotações da Obra / Serviço (Internas da Vidraçaria)</h2>
-                  <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">Somente Equipe</span>
+                  <h2 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                    Anotações Internas da Equipe
+                  </h2>
+                  <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                    Oculto no PDF do Cliente
+                  </span>
                 </div>
                 <textarea
                   rows={3}
                   value={internalNotes}
                   onChange={(e) => setInternalNotes(e.target.value)}
-                  placeholder="Ex: Medidas especiais, cor do alumínio, endereço da instalação, particularidades da obra..."
-                  className="w-full bg-white border border-amber-300 rounded-xl p-3 text-slate-900 text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                  placeholder="Ex: Medidas do vão bruto, local de difícil acesso, cor do silicone, particularidades da equipe..."
+                  className="w-full bg-white border border-amber-300 rounded-xl p-3 text-slate-900 text-xs focus:outline-none focus:border-amber-500 transition-colors"
                 />
               </div>
             </div>
           </div>
 
-          {/* Resumo Financeiro */}
+          {/* Resumo Financeiro Geral */}
           <div className="bg-white border-2 border-amber-500/50 rounded-2xl p-5 shadow-md flex flex-col justify-between">
             <div>
               <h2 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
@@ -959,7 +1422,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between text-slate-600">
-                  <span>Subtotal:</span>
+                  <span>Subtotal dos Itens:</span>
                   <span className="font-mono font-bold text-slate-900">
                     R$ {subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
@@ -968,7 +1431,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between text-xs text-slate-500">
                     <div className="flex items-center gap-1.5">
-                      <span>Desconto:</span>
+                      <span>Desconto Comercial:</span>
                       {(() => {
                         const perms = getUserPermissions(currentUser);
                         if (currentUser?.role === 'superadmin' || currentUser?.role === 'admin') {
@@ -1015,24 +1478,13 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                       value={discountValue || ''}
                       onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
                       placeholder={discountType === 'percent' ? '0%' : 'R$ 0,00'}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono focus:outline-none focus:border-amber-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex items-center justify-between text-xs font-mono">
-                      {(() => {
-                        const check = validateUserDiscount(currentUser, subtotal, discountAmount);
-                        if (!check.valid) {
-                          return (
-                            <span className="text-[11px] text-red-600 font-bold flex items-center gap-1">
-                              <ShieldAlert className="w-3.5 h-3.5" />
-                              Limite excedido (máx {check.maxAllowedPercent}%)
-                            </span>
-                          );
-                        }
-                        return <span></span>;
-                      })()}
-                      <span className="text-right font-semibold text-emerald-600">
+                      <span className="text-slate-500">Valor do Desconto:</span>
+                      <span className="text-right font-bold text-emerald-600">
                         - R$ {discountAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -1040,7 +1492,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                 </div>
 
                 <div className="pt-3 border-t-2 border-slate-900 flex items-center justify-between">
-                  <span className="font-black text-slate-900 text-sm">Valor Total do Orçamento:</span>
+                  <span className="font-black text-slate-900 text-sm">TOTAL FINAL:</span>
                   <span className="text-base font-black text-slate-950 font-mono">
                     R$ {finalTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>

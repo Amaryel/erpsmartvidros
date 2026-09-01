@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <linearGradient id="glassGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#0284c7" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.95" />
+    </linearGradient>
+
+    <linearGradient id="glassHighlight" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+    </linearGradient>
+
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="shadowFilter" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Fundo do Ícone (Squircle Arredondado com Borda Dourada Suave) -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-opacity="0.35" />
+
+  <!-- Efeito de Brilho de Fundo -->
+  <circle cx="256" cy="220" r="140" fill="#f59e0b" opacity="0.12" filter="url(#goldGlow)" />
+
+  <g filter="url(#shadowFilter)">
+    <!-- Escudo / Painel de Vidro Central (Facetado) -->
+    <!-- Lado Esquerdo do Vidro -->
+    <path d="M256,96 L136,156 L136,300 C136,376 256,424 256,424 Z" fill="url(#glassGrad)" />
+    
+    <!-- Lado Direito do Vidro (com tom ligeiramente diferente para profundidade 3D) -->
+    <path d="M256,96 L376,156 L376,300 C376,376 256,424 256,424 Z" fill="url(#glassGrad)" opacity="0.85" />
+    
+    <!-- Faceta Superior Esquerda Transparente / Reflexo do Vidro -->
+    <path d="M256,96 L136,156 L200,230 L256,190 Z" fill="url(#glassHighlight)" />
+    
+    <!-- Faceta Central Geométrica -->
+    <polygon points="256,190 312,230 256,360 200,230" fill="url(#glassHighlight)" opacity="0.4" />
+
+    <!-- Estrutura de Alumínio / Contorno Dourado de Precisão (Smart Vidros) -->
+    <path d="M256,96 L136,156 L136,300 C136,376 256,424 256,424 C256,424 376,376 376,300 L376,156 Z" 
+          fill="none" 
+          stroke="url(#goldGrad)" 
+          stroke-width="14" 
+          stroke-linejoin="round" 
+          stroke-linecap="round" />
+
+    <!-- Linha Divisória Central (Junção das Folhas de Vidro) -->
+    <line x1="256" y1="96" x2="256" y2="424" stroke="url(#goldGrad)" stroke-width="8" stroke-linecap="round" opacity="0.9" />
+
+    <!-- Diamante Central / Símbolo Smart Vidros -->
+    <polygon points="256,180 296,236 256,292 216,236" fill="url(#goldGrad)" filter="url(#goldGlow)" />
+    <polygon points="256,194 284,236 256,278 228,236" fill="#0f172a" />
+    <polygon points="256,206 274,236 256,266 238,236" fill="url(#goldGrad)" />
+  </g>
+
+  <!-- Partículas / Faíscas de Brilho de Vidro Cristalino -->
+  <circle cx="160" cy="140" r="6" fill="#ffffff" opacity="0.9" />
+  <circle cx="340" cy="180" r="4" fill="#fbbf24" opacity="0.8" />
+  <circle cx="330" cy="340" r="5" fill="#ffffff" opacity="0.7" />
+  <circle cx="180" cy="330" r="4" fill="#fbbf24" opacity="0.8" />
+</svg>

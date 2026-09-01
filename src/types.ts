@@ -4,6 +4,10 @@ export type ProductType = 'dimensao' | 'simples';
 
 export type CatalogCategory = 'produto' | 'servico';
 
+export type GlassType = 'temperado' | 'laminado' | 'comum' | 'insulado' | 'serigrafado' | 'outro';
+
+export type TechnicalCategory = 'porta' | 'janela' | 'box' | 'espelho' | 'vidro' | 'guarda_corpo' | 'outro';
+
 export interface Client {
   id: string;
   companyId?: string;
@@ -57,15 +61,35 @@ export interface CutItemDetails {
 export interface QuoteItem {
   id: string;
   type: ProductType;
+  category?: CatalogCategory; // 'produto' | 'servico'
   name: string;
   description?: string;
+  
+  // Organização por Ambiente / Obra (ex: Sala, Banheiro, Fachada, Cozinha)
+  environment?: string;
+
+  // Categoria Técnica p/ Ilustração Vetorial 2D Automática
+  technicalCategory?: TechnicalCategory;
+
+  // Características Técnicas Detalhadas do Item (exibidas no orçamento e PDF)
+  glassType?: string; // Temperado, Laminado, Comum, Insulado...
+  thickness?: string; // 6mm, 8mm, 10mm, 12mm...
+  glassColor?: string; // Incolor, Fumê, Verde, Bronze, Astral...
+  hardwareColor?: string; // Preto, Branco, Fosco, Bronze, Cromado, Ouro...
+  aluminumColor?: string; // Preto, Branco, Fosco/Natural, Bronze, Champagne...
+  line?: string; // Suprema, Gold, Convencional, Elegance, Slide...
+  openingType?: string; // De Correr, Pivotante, Fixo, Basculante, Maxim-ar, Abrir...
+  leafCount?: string; // 1 Folha, 2 Folhas (1F+1M), 4 Folhas (2F+2M)...
+  finish?: string; // Lapidado Reto, Bisotê 25mm, Jateado, Canto Moeda...
+  itemNotes?: string; // Observação específica do item
+
   // Para produto com dimensões (em milímetros)
-  lengthMm?: number;
-  widthMm?: number;
+  lengthMm?: number; // Altura / Altura do Vão (mm)
+  widthMm?: number; // Largura / Largura do Vão (mm)
   areaM2?: number; // Calculado: (lengthMm/1000) * (widthMm/1000)
   pricePerM2?: number; // Valor por m²
   
-  // Para produto simples
+  // Para produto simples ou serviço
   unitPrice?: number; // Valor unitário
   
   // Comum

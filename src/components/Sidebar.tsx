@@ -23,7 +23,8 @@ import {
   Bot,
   HelpCircle,
   Sparkles,
-  Scissors
+  Scissors,
+  Download
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
@@ -82,6 +83,7 @@ interface SidebarProps {
   onOpenPublicCatalog?: () => void;
   onOpenSmartIA?: () => void;
   onOpenTour?: () => void;
+  onOpenPwaInstall?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -104,6 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenPublicCatalog,
   onOpenSmartIA,
   onOpenTour,
+  onOpenPwaInstall,
 }) => {
   const isSuper =
     currentUser?.role === 'superadmin' ||
@@ -417,6 +420,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <HelpCircle className="w-4 h-4 text-indigo-400 shrink-0" />
               {!isCollapsed && <span className="truncate">Tour do Sistema</span>}
+            </button>
+          )}
+
+          {onOpenPwaInstall && (
+            <button
+              onClick={onOpenPwaInstall}
+              className={`w-full flex items-center ${
+                isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-1.5'
+              } rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all active:scale-95`}
+              title="Instalar Aplicativo (PWA) no Celular/Tablet"
+            >
+              <Download className="w-4 h-4 text-amber-400 shrink-0" />
+              {!isCollapsed && <span className="truncate">Instalar App (PWA)</span>}
             </button>
           )}
 
