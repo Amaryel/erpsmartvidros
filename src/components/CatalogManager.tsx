@@ -22,7 +22,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<ProductType>('dimensao');
-  const [defaultPrice, setDefaultPrice] = useState<number>(150);
+  const [defaultPrice, setDefaultPrice] = useState<number | ''>(150);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<CatalogItem | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -104,13 +104,14 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
     if (!name.trim()) return;
 
     const finalImage = imageUrl.trim() || getSmartProductImage(name, description);
+    const numPrice = typeof defaultPrice === 'number' ? defaultPrice : (defaultPrice ? parseFloat(String(defaultPrice)) : 0);
 
     onSaveItem({
       id: editingId || undefined,
       name: name.trim(),
       description: description.trim() || undefined,
       type,
-      defaultPrice,
+      defaultPrice: numPrice >= 0 ? numPrice : 0,
       imageUrl: finalImage,
     });
 
@@ -324,8 +325,10 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                 min="0"
                 step="0.01"
                 required
-                value={defaultPrice}
-                onChange={(e) => setDefaultPrice(parseFloat(e.target.value) || 0)}
+                inputMode="decimal"
+                value={defaultPrice !== undefined && defaultPrice !== null ? defaultPrice : ''}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setDefaultPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono font-bold text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
               />
             </div>

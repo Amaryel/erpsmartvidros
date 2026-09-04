@@ -86,7 +86,11 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   const [date, setDate] = useState(initialQuote?.date || todayStr);
   const [status, setStatus] = useState<QuoteStatus>(initialQuote?.status || 'rascunho');
   const [discountType, setDiscountType] = useState<DiscountType>(initialQuote?.discountType || 'percent');
-  const [discountValue, setDiscountValue] = useState<number>(initialQuote?.discountValue || 0);
+  const [discountValue, setDiscountValue] = useState<number | ''>(
+    initialQuote?.discountValue !== undefined && initialQuote.discountValue !== 0
+      ? initialQuote.discountValue
+      : ''
+  );
 
   // Entrada / Sinal no Orçamento
   const [hasDownPayment, setHasDownPayment] = useState<boolean>(
@@ -236,12 +240,19 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
   // Recalcular totais do item individual
   const calculateItemTotal = (item: Partial<QuoteItem>): { areaM2?: number; totalPrice: number } => {
-    const qty = Math.max(1, item.quantity || 1);
+    // Quantidade para cálculo: se estiver em branco ou inválida, usa 1 para prever o total sem travar a digitação
+    const rawQty = Number(item.quantity);
+    const qty = !isNaN(rawQty) && rawQty > 0 ? rawQty : (item.quantity === '' ? 1 : 1);
 
     if (item.type === 'dimensao') {
-      const lengthMm = Math.max(0, item.lengthMm || 0);
-      const widthMm = Math.max(0, item.widthMm || 0);
-      const pricePerM2 = Math.max(0, item.pricePerM2 || 0);
+      const rawLength = Number(item.lengthMm);
+      const lengthMm = !isNaN(rawLength) && rawLength > 0 ? rawLength : 0;
+
+      const rawWidth = Number(item.widthMm);
+      const widthMm = !isNaN(rawWidth) && rawWidth > 0 ? rawWidth : 0;
+
+      const rawPrice = Number(item.pricePerM2);
+      const pricePerM2 = !isNaN(rawPrice) && rawPrice >= 0 ? rawPrice : 0;
 
       const area = (lengthMm / 1000) * (widthMm / 1000);
       const areaM2 = Math.round(area * 1000) / 1000;
@@ -249,7 +260,8 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
       return { areaM2, totalPrice: Math.round(totalPrice * 100) / 100 };
     } else {
-      const unitPrice = Math.max(0, item.unitPrice || 0);
+      const rawUnit = Number(item.unitPrice);
+      const unitPrice = !isNaN(rawUnit) && rawUnit >= 0 ? rawUnit : 0;
       const totalPrice = qty * unitPrice;
       return { totalPrice: Math.round(totalPrice * 100) / 100 };
     }
@@ -410,24 +422,62 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   // Cálculos do Resumo Geral
   const subtotal = items.reduce((acc, item) => acc + (item.totalPrice || 0), 0);
 
+  const numDiscountValue = typeof discountValue === 'number' ? discountValue : (discountValue ? parseFloat(String(discountValue)) : 0);
   let discountAmount = 0;
   if (discountType === 'percent') {
-    discountAmount = (subtotal * Math.min(100, Math.max(0, discountValue))) / 100;
+    discountAmount = (subtotal * Math.min(100, Math.max(0, numDiscountValue))) / 100;
   } else {
-    discountAmount = Math.min(subtotal, Math.max(0, discountValue));
+    discountAmount = Math.min(subtotal, Math.max(0, numDiscountValue));
   }
 
   const finalTotal = Math.max(0, subtotal - discountAmount);
 
   // Cálculo da entrada
+  const numDownPaymentValue = typeof downPaymentValue === 'number' ? downPaymentValue : (downPaymentValue ? parseFloat(String(downPaymentValue)) : 0);
   let downPaymentAmount = 0;
-  if (hasDownPayment && typeof downPaymentValue === 'number' && downPaymentValue > 0) {
+  if (hasDownPayment && numDownPaymentValue > 0) {
     if (downPaymentType === 'percent') {
-      downPaymentAmount = (finalTotal * Math.min(100, downPaymentValue)) / 100;
+      downPaymentAmount = (finalTotal * Math.min(100, numDownPaymentValue)) / 100;
     } else {
-      downPaymentAmount = Math.min(finalTotal, downPaymentValue);
+      downPaymentAmount = Math.min(finalTotal, numDownPaymentValue);
     }
   }
+
+  const sanitizeItems = (): QuoteItem[] => {
+    return items.map((item) => {
+      const qty = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
+      if (item.type === 'dimensao') {
+        const lengthMm = Number(item.lengthMm) || 0;
+        const widthMm = Number(item.widthMm) || 0;
+        const pricePerM2 = Number(item.pricePerM2) || 0;
+        const area = (lengthMm / 1000) * (widthMm / 1000);
+        const areaM2 = Math.round(area * 1000) / 1000;
+        const totalPrice = Math.round(areaM2 * qty * pricePerM2 * 100) / 100;
+        return {
+          ...item,
+          quantity: qty,
+          lengthMm,
+          widthMm,
+          areaM2,
+          pricePerM2,
+          unitPrice: undefined,
+          totalPrice,
+        };
+      } else {
+        const unitPrice = Number(item.unitPrice) || 0;
+        const totalPrice = Math.round(qty * unitPrice * 100) / 100;
+        return {
+          ...item,
+          quantity: qty,
+          unitPrice,
+          lengthMm: undefined,
+          widthMm: undefined,
+          pricePerM2: undefined,
+          totalPrice,
+        };
+      }
+    });
+  };
 
   const validateForm = (): boolean => {
     setValidationError(null);
@@ -443,26 +493,31 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
         setValidationError(`Por favor, informe o Nome do Item no item #${i + 1}.`);
         return false;
       }
-      if (!item.quantity || item.quantity <= 0) {
+      const qty = Number(item.quantity);
+      if (!qty || qty <= 0) {
         setValidationError(`A Quantidade do item "${item.name}" deve ser maior que zero.`);
         return false;
       }
 
       if (item.type === 'dimensao') {
-        if (!item.lengthMm || item.lengthMm <= 0) {
+        const len = Number(item.lengthMm);
+        if (!len || len <= 0) {
           setValidationError(`A Altura em mm do produto "${item.name}" deve ser maior que zero.`);
           return false;
         }
-        if (!item.widthMm || item.widthMm <= 0) {
+        const wid = Number(item.widthMm);
+        if (!wid || wid <= 0) {
           setValidationError(`A Largura em mm do produto "${item.name}" deve ser maior que zero.`);
           return false;
         }
-        if (item.pricePerM2 === undefined || item.pricePerM2 < 0) {
+        const price = Number(item.pricePerM2);
+        if (price === undefined || isNaN(price) || price < 0) {
           setValidationError(`O Valor por m² do produto "${item.name}" deve ser preenchido.`);
           return false;
         }
       } else {
-        if (item.unitPrice === undefined || item.unitPrice < 0) {
+        const unitP = Number(item.unitPrice);
+        if (unitP === undefined || isNaN(unitP) || unitP < 0) {
           setValidationError(`O Valor Unitário do item "${item.name}" deve ser preenchido.`);
           return false;
         }
@@ -485,6 +540,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   };
 
   const executeSaveQuote = () => {
+    const cleanItems = sanitizeItems();
     onSave({
       id: initialQuote?.id,
       code: initialQuote?.code,
@@ -492,14 +548,14 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
       clientPhone: clientPhone.trim() || undefined,
       date,
       status,
-      items,
+      items: cleanItems,
       discountType,
-      discountValue,
+      discountValue: numDiscountValue,
       subtotal,
       discountAmount,
       total: finalTotal,
       downPaymentType: hasDownPayment ? downPaymentType : undefined,
-      downPaymentValue: hasDownPayment && typeof downPaymentValue === 'number' ? downPaymentValue : undefined,
+      downPaymentValue: hasDownPayment && numDownPaymentValue > 0 ? numDownPaymentValue : undefined,
       downPaymentAmount: hasDownPayment ? downPaymentAmount : undefined,
       downPaymentMethod: hasDownPayment ? downPaymentMethod : undefined,
       notes: notes.trim() || undefined,
@@ -548,6 +604,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   const handlePreviewClick = () => {
     if (!validateForm()) return;
 
+    const cleanItems = sanitizeItems();
     const tempQuote: Quote = {
       id: initialQuote?.id || 'temp-preview',
       code: initialQuote?.code || 'ORC-RASCUNHO',
@@ -557,14 +614,14 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
       createdAt: initialQuote?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       status,
-      items,
+      items: cleanItems,
       discountType,
-      discountValue,
+      discountValue: numDiscountValue,
       subtotal,
       discountAmount,
       total: finalTotal,
       downPaymentType: hasDownPayment ? downPaymentType : undefined,
-      downPaymentValue: hasDownPayment && typeof downPaymentValue === 'number' ? downPaymentValue : undefined,
+      downPaymentValue: hasDownPayment && numDownPaymentValue > 0 ? numDownPaymentValue : undefined,
       downPaymentAmount: hasDownPayment ? downPaymentAmount : undefined,
       downPaymentMethod: hasDownPayment ? downPaymentMethod : undefined,
       notes: notes.trim() || undefined,
@@ -983,10 +1040,15 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                             <input
                               type="number"
                               min="1"
-                              value={item.widthMm || ''}
-                              onChange={(e) => handleItemChange(index, 'widthMm', parseFloat(e.target.value) || 0)}
+                              inputMode="decimal"
+                              value={item.widthMm !== undefined && item.widthMm !== null ? item.widthMm : ''}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleItemChange(index, 'widthMm', val === '' ? '' : parseFloat(val));
+                              }}
                               placeholder="1500"
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500 focus:bg-white"
                             />
                           </div>
 
@@ -997,29 +1059,68 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                             <input
                               type="number"
                               min="1"
-                              value={item.lengthMm || ''}
-                              onChange={(e) => handleItemChange(index, 'lengthMm', parseFloat(e.target.value) || 0)}
+                              inputMode="decimal"
+                              value={item.lengthMm !== undefined && item.lengthMm !== null ? item.lengthMm : ''}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleItemChange(index, 'lengthMm', val === '' ? '' : parseFloat(val));
+                              }}
                               placeholder="2100"
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500 focus:bg-white"
                             />
                           </div>
 
                           <div>
                             <label className="block text-[11px] font-bold text-amber-800 mb-1">Área Calculada</label>
-                            <div className="w-full bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 text-amber-950 font-mono font-black text-sm text-center">
+                            <div className="w-full bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 text-amber-950 font-mono font-black text-sm text-center flex items-center justify-center">
                               {item.areaM2 !== undefined ? item.areaM2.toFixed(3) : '0.000'} m²
                             </div>
                           </div>
 
                           <div>
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">Quantidade</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
-                            />
+                            <div className="flex items-stretch rounded-lg border border-slate-300 overflow-hidden bg-slate-50 focus-within:border-amber-500 focus-within:bg-white">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentVal = Number(item.quantity) || 1;
+                                  handleItemChange(index, 'quantity', Math.max(1, currentVal - 1));
+                                }}
+                                className="px-2.5 bg-slate-100 hover:bg-amber-100 active:bg-amber-200 text-slate-700 font-black text-sm border-r border-slate-300 select-none transition-colors"
+                                title="Diminuir"
+                              >
+                                −
+                              </button>
+                              <input
+                                type="number"
+                                min="1"
+                                inputMode="numeric"
+                                value={item.quantity !== undefined && item.quantity !== null ? item.quantity : ''}
+                                onFocus={(e) => e.target.select()}
+                                onBlur={() => {
+                                  if (!item.quantity || Number(item.quantity) < 1) {
+                                    handleItemChange(index, 'quantity', 1);
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  handleItemChange(index, 'quantity', val === '' ? '' : (parseInt(val, 10) || ''));
+                                }}
+                                className="w-full bg-transparent px-1 py-1.5 text-slate-900 text-sm font-mono font-bold text-center focus:outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentVal = Number(item.quantity) || 1;
+                                  handleItemChange(index, 'quantity', currentVal + 1);
+                                }}
+                                className="px-2.5 bg-slate-100 hover:bg-amber-100 active:bg-amber-200 text-slate-700 font-black text-sm border-l border-slate-300 select-none transition-colors"
+                                title="Aumentar"
+                              >
+                                +
+                              </button>
+                            </div>
                           </div>
 
                           <div>
@@ -1028,10 +1129,15 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                               type="number"
                               min="0"
                               step="0.01"
-                              value={item.pricePerM2 !== undefined ? item.pricePerM2 : ''}
-                              onChange={(e) => handleItemChange(index, 'pricePerM2', parseFloat(e.target.value) || 0)}
+                              inputMode="decimal"
+                              value={item.pricePerM2 !== undefined && item.pricePerM2 !== null ? item.pricePerM2 : ''}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleItemChange(index, 'pricePerM2', val === '' ? '' : parseFloat(val));
+                              }}
                               placeholder="180.00"
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500 focus:bg-white"
                             />
                           </div>
                         </div>
@@ -1188,13 +1294,47 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1">Quantidade</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
-                        />
+                        <div className="flex items-stretch rounded-lg border border-slate-300 overflow-hidden bg-slate-50 focus-within:border-amber-500 focus-within:bg-white">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentVal = Number(item.quantity) || 1;
+                              handleItemChange(index, 'quantity', Math.max(1, currentVal - 1));
+                            }}
+                            className="px-3 bg-slate-100 hover:bg-amber-100 active:bg-amber-200 text-slate-700 font-black text-sm border-r border-slate-300 select-none transition-colors"
+                            title="Diminuir"
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            inputMode="numeric"
+                            value={item.quantity !== undefined && item.quantity !== null ? item.quantity : ''}
+                            onFocus={(e) => e.target.select()}
+                            onBlur={() => {
+                              if (!item.quantity || Number(item.quantity) < 1) {
+                                handleItemChange(index, 'quantity', 1);
+                              }
+                            }}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleItemChange(index, 'quantity', val === '' ? '' : (parseInt(val, 10) || ''));
+                            }}
+                            className="w-full bg-transparent px-2 py-1.5 text-slate-900 text-sm font-mono font-bold text-center focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentVal = Number(item.quantity) || 1;
+                              handleItemChange(index, 'quantity', currentVal + 1);
+                            }}
+                            className="px-3 bg-slate-100 hover:bg-amber-100 active:bg-amber-200 text-slate-700 font-black text-sm border-l border-slate-300 select-none transition-colors"
+                            title="Aumentar"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
 
                       <div>
@@ -1203,17 +1343,22 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                           type="number"
                           min="0"
                           step="0.01"
-                          value={item.unitPrice !== undefined ? item.unitPrice : ''}
-                          onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          inputMode="decimal"
+                          value={item.unitPrice !== undefined && item.unitPrice !== null ? item.unitPrice : ''}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            handleItemChange(index, 'unitPrice', val === '' ? '' : parseFloat(val));
+                          }}
                           placeholder="100.00"
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500 focus:bg-white"
                         />
                       </div>
 
                       <div className="flex flex-col justify-end">
                         <div className="text-xs text-slate-500 font-medium">Subtotal Item:</div>
                         <div className="text-sm text-slate-900 font-black font-mono">
-                          {item.quantity} × R$ {(item.unitPrice || 0).toFixed(2)}
+                          {Number(item.quantity) || 1} × R$ {(Number(item.unitPrice) || 0).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -1335,8 +1480,10 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                         type="number"
                         step="0.01"
                         min="0"
+                        inputMode="decimal"
                         placeholder={downPaymentType === 'percent' ? 'Ex: 30' : 'Ex: 1500,00'}
-                        value={downPaymentValue}
+                        value={downPaymentValue !== undefined && downPaymentValue !== null ? downPaymentValue : ''}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => setDownPaymentValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
                         className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 font-mono font-bold"
                       />
@@ -1475,10 +1622,12 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                       type="number"
                       min="0"
                       step={discountType === 'percent' ? '1' : '0.01'}
-                      value={discountValue || ''}
-                      onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                      inputMode="decimal"
+                      value={discountValue !== undefined && discountValue !== null ? discountValue : ''}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setDiscountValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
                       placeholder={discountType === 'percent' ? '0%' : 'R$ 0,00'}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-sm font-mono font-bold focus:outline-none focus:border-amber-500 focus:bg-white"
                     />
                   </div>
                   {discountAmount > 0 && (

@@ -20,7 +20,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [name, setName] = useState(initialData?.name || '');
   const [type, setType] = useState<ProductType>(initialData?.type || 'dimensao');
   const [unit, setUnit] = useState(initialData?.unit || (type === 'dimensao' ? 'm²' : 'unidade'));
-  const [defaultPrice, setDefaultPrice] = useState<number>(initialData?.defaultPrice ?? 150);
+  const [defaultPrice, setDefaultPrice] = useState<number | ''>(
+    initialData?.defaultPrice !== undefined ? initialData.defaultPrice : 150
+  );
   const [description, setDescription] = useState(initialData?.description || '');
   const [status, setStatus] = useState<'ativo' | 'inativo'>(initialData?.status || 'ativo');
   const [imageUrl, setImageUrl] = useState<string>(initialData?.imageUrl || '');
@@ -120,13 +122,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     // Se o usuário não definiu imagem, atribui uma imagem inteligente automática
     const finalImageUrl = imageUrl.trim() || getSmartProductImage(name, description);
 
+    const numPrice = typeof defaultPrice === 'number' ? defaultPrice : (defaultPrice ? parseFloat(String(defaultPrice)) : 0);
+
     const updatedCatalog = saveCatalogItem({
       id: initialData?.id,
       name: name.trim(),
       type,
       category: 'produto',
       unit: unit.trim() || (type === 'dimensao' ? 'm²' : 'unidade'),
-      defaultPrice: defaultPrice >= 0 ? defaultPrice : 0,
+      defaultPrice: numPrice >= 0 ? numPrice : 0,
       description: description.trim() || undefined,
       status,
       imageUrl: finalImageUrl,
@@ -372,8 +376,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   min="0"
                   step="0.01"
                   required
-                  value={defaultPrice}
-                  onChange={(e) => setDefaultPrice(parseFloat(e.target.value) || 0)}
+                  inputMode="decimal"
+                  value={defaultPrice !== undefined && defaultPrice !== null ? defaultPrice : ''}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setDefaultPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-900 font-mono font-bold focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                 />
               </div>

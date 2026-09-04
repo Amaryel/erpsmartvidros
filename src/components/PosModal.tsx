@@ -105,7 +105,7 @@ export const PosModal: React.FC<PosModalProps> = ({
   const [saleDate, setSaleDate] = useState(draftBase.date || new Date().toISOString().split('T')[0]);
   const [items, setItems] = useState<QuoteItem[]>(draftBase.items || []);
   const [discountType, setDiscountType] = useState<DiscountType>(draftBase.discountType || 'fixed');
-  const [discountValue, setDiscountValue] = useState<number>(draftBase.discountValue || 0);
+  const [discountValue, setDiscountValue] = useState<number | ''>(draftBase.discountValue || 0);
   const [notes, setNotes] = useState<string>(draftBase.notes || '');
   const [deliveryDate, setDeliveryDate] = useState<string>(draftBase.deliveryDate || '');
   const [internalNotes, setInternalNotes] = useState<string>(draftBase.internalNotes || '');
@@ -310,13 +310,17 @@ export const PosModal: React.FC<PosModalProps> = ({
         const newItem = { ...item, ...updatedFields };
 
         if (newItem.type === 'dimensao') {
-          const l = newItem.lengthMm || 0;
-          const w = newItem.widthMm || 0;
+          const l = Number(newItem.lengthMm) || 0;
+          const w = Number(newItem.widthMm) || 0;
           const area = Math.round(((l / 1000) * (w / 1000)) * 10000) / 10000;
           newItem.areaM2 = area;
-          newItem.totalPrice = Math.round(area * (newItem.pricePerM2 || 0) * (newItem.quantity || 1) * 100) / 100;
+          const p = Number(newItem.pricePerM2) || 0;
+          const q = Number(newItem.quantity) || 1;
+          newItem.totalPrice = Math.round(area * p * q * 100) / 100;
         } else {
-          newItem.totalPrice = Math.round((newItem.unitPrice || 0) * (newItem.quantity || 1) * 100) / 100;
+          const u = Number(newItem.unitPrice) || 0;
+          const q = Number(newItem.quantity) || 1;
+          newItem.totalPrice = Math.round(u * q * 100) / 100;
         }
 
         return newItem;
@@ -388,6 +392,21 @@ export const PosModal: React.FC<PosModalProps> = ({
       }
     }
 
+    const sanitizedItems: QuoteItem[] = items.map((it) => ({
+      ...it,
+      lengthMm: it.lengthMm !== undefined && it.lengthMm !== ('' as any) ? Number(it.lengthMm) : undefined,
+      widthMm: it.widthMm !== undefined && it.widthMm !== ('' as any) ? Number(it.widthMm) : undefined,
+      pricePerM2: it.pricePerM2 !== undefined && it.pricePerM2 !== ('' as any) ? Number(it.pricePerM2) : undefined,
+      unitPrice: it.unitPrice !== undefined && it.unitPrice !== ('' as any) ? Number(it.unitPrice) : undefined,
+      quantity: Number(it.quantity) || 1,
+      totalPrice: Number(it.totalPrice) || 0,
+    }));
+
+    const sanitizedPayments: SalePayment[] = payments.map((p) => ({
+      ...p,
+      amount: Number(p.amount) || 0,
+    }));
+
     const saleObject: Sale = {
       id: draftBase.id,
       code: draftBase.code,
@@ -398,13 +417,13 @@ export const PosModal: React.FC<PosModalProps> = ({
       date: saleDate,
       createdAt: draftBase.createdAt,
       updatedAt: new Date().toISOString(),
-      items,
+      items: sanitizedItems,
       subtotal,
       discountType,
-      discountValue,
+      discountValue: typeof discountValue === 'number' ? discountValue : (discountValue ? parseFloat(String(discountValue)) : 0),
       discountAmount,
       total: totalSale,
-      payments,
+      payments: sanitizedPayments,
       totalPaid,
       totalFiado,
       status: 'concluida',
@@ -712,9 +731,11 @@ export const PosModal: React.FC<PosModalProps> = ({
                               <input
                                 type="number"
                                 min="1"
-                                value={item.widthMm || ''}
-                                onChange={(e) => handleUpdateItem(item.id, { widthMm: Number(e.target.value) })}
-                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold"
+                                inputMode="decimal"
+                                value={item.widthMm !== undefined && item.widthMm !== null ? item.widthMm : ''}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => handleUpdateItem(item.id, { widthMm: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
+                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold focus:border-amber-500 focus:outline-none"
                               />
                             </div>
                             <div>
@@ -722,9 +743,11 @@ export const PosModal: React.FC<PosModalProps> = ({
                               <input
                                 type="number"
                                 min="1"
-                                value={item.lengthMm || ''}
-                                onChange={(e) => handleUpdateItem(item.id, { lengthMm: Number(e.target.value) })}
-                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold"
+                                inputMode="decimal"
+                                value={item.lengthMm !== undefined && item.lengthMm !== null ? item.lengthMm : ''}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => handleUpdateItem(item.id, { lengthMm: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
+                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold focus:border-amber-500 focus:outline-none"
                               />
                             </div>
                             <div>
@@ -732,9 +755,11 @@ export const PosModal: React.FC<PosModalProps> = ({
                               <input
                                 type="number"
                                 step="0.01"
-                                value={item.pricePerM2 || ''}
-                                onChange={(e) => handleUpdateItem(item.id, { pricePerM2: Number(e.target.value) })}
-                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold"
+                                inputMode="decimal"
+                                value={item.pricePerM2 !== undefined && item.pricePerM2 !== null ? item.pricePerM2 : ''}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => handleUpdateItem(item.id, { pricePerM2: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
+                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold focus:border-amber-500 focus:outline-none"
                               />
                             </div>
                             <div>
@@ -742,7 +767,10 @@ export const PosModal: React.FC<PosModalProps> = ({
                               <div className="flex items-center">
                                 <button
                                   type="button"
-                                  onClick={() => handleUpdateItem(item.id, { quantity: Math.max(1, item.quantity - 1) })}
+                                  onClick={() => {
+                                    const currentVal = Number(item.quantity) || 1;
+                                    handleUpdateItem(item.id, { quantity: Math.max(1, currentVal - 1) });
+                                  }}
                                   className="px-2 py-1 bg-slate-200 text-slate-700 font-bold rounded-l text-xs hover:bg-slate-300"
                                 >
                                   -
@@ -750,13 +778,23 @@ export const PosModal: React.FC<PosModalProps> = ({
                                 <input
                                   type="number"
                                   min="1"
-                                  value={item.quantity}
-                                  onChange={(e) => handleUpdateItem(item.id, { quantity: Math.max(1, Number(e.target.value)) })}
-                                  className="w-12 text-center bg-white border-y border-slate-300 py-1 text-xs font-bold"
+                                  inputMode="numeric"
+                                  value={item.quantity !== undefined && item.quantity !== null ? item.quantity : ''}
+                                  onFocus={(e) => e.target.select()}
+                                  onBlur={() => {
+                                    if (!item.quantity || Number(item.quantity) < 1) {
+                                      handleUpdateItem(item.id, { quantity: 1 });
+                                    }
+                                  }}
+                                  onChange={(e) => handleUpdateItem(item.id, { quantity: e.target.value === '' ? '' as any : (parseInt(e.target.value, 10) || '') })}
+                                  className="w-12 text-center bg-white border-y border-slate-300 py-1 text-xs font-bold focus:outline-none"
                                 />
                                 <button
                                   type="button"
-                                  onClick={() => handleUpdateItem(item.id, { quantity: item.quantity + 1 })}
+                                  onClick={() => {
+                                    const currentVal = Number(item.quantity) || 1;
+                                    handleUpdateItem(item.id, { quantity: currentVal + 1 });
+                                  }}
                                   className="px-2 py-1 bg-slate-200 text-slate-700 font-bold rounded-r text-xs hover:bg-slate-300"
                                 >
                                   +
@@ -771,9 +809,11 @@ export const PosModal: React.FC<PosModalProps> = ({
                               <input
                                 type="number"
                                 step="0.01"
-                                value={item.unitPrice || ''}
-                                onChange={(e) => handleUpdateItem(item.id, { unitPrice: Number(e.target.value) })}
-                                className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900"
+                                inputMode="decimal"
+                                value={item.unitPrice !== undefined && item.unitPrice !== null ? item.unitPrice : ''}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => handleUpdateItem(item.id, { unitPrice: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
+                                className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
                               />
                             </div>
                             <div>
@@ -781,7 +821,10 @@ export const PosModal: React.FC<PosModalProps> = ({
                               <div className="flex items-center">
                                 <button
                                   type="button"
-                                  onClick={() => handleUpdateItem(item.id, { quantity: Math.max(1, item.quantity - 1) })}
+                                  onClick={() => {
+                                    const currentVal = Number(item.quantity) || 1;
+                                    handleUpdateItem(item.id, { quantity: Math.max(1, currentVal - 1) });
+                                  }}
                                   className="px-2 py-1 bg-slate-200 text-slate-700 font-bold rounded-l text-xs hover:bg-slate-300"
                                 >
                                   -
@@ -789,13 +832,23 @@ export const PosModal: React.FC<PosModalProps> = ({
                                 <input
                                   type="number"
                                   min="1"
-                                  value={item.quantity}
-                                  onChange={(e) => handleUpdateItem(item.id, { quantity: Math.max(1, Number(e.target.value)) })}
-                                  className="w-12 text-center bg-white border-y border-slate-300 py-1 text-xs font-bold"
+                                  inputMode="numeric"
+                                  value={item.quantity !== undefined && item.quantity !== null ? item.quantity : ''}
+                                  onFocus={(e) => e.target.select()}
+                                  onBlur={() => {
+                                    if (!item.quantity || Number(item.quantity) < 1) {
+                                      handleUpdateItem(item.id, { quantity: 1 });
+                                    }
+                                  }}
+                                  onChange={(e) => handleUpdateItem(item.id, { quantity: e.target.value === '' ? '' as any : (parseInt(e.target.value, 10) || '') })}
+                                  className="w-12 text-center bg-white border-y border-slate-300 py-1 text-xs font-bold focus:outline-none"
                                 />
                                 <button
                                   type="button"
-                                  onClick={() => handleUpdateItem(item.id, { quantity: item.quantity + 1 })}
+                                  onClick={() => {
+                                    const currentVal = Number(item.quantity) || 1;
+                                    handleUpdateItem(item.id, { quantity: currentVal + 1 });
+                                  }}
                                   className="px-2 py-1 bg-slate-200 text-slate-700 font-bold rounded-r text-xs hover:bg-slate-300"
                                 >
                                   +
@@ -981,10 +1034,12 @@ export const PosModal: React.FC<PosModalProps> = ({
                       <input
                         type="number"
                         min="0"
-                        step="0.01"
-                        value={discountValue || ''}
-                        onChange={(e) => setDiscountValue(Number(e.target.value))}
-                        className="w-20 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-right text-xs font-bold text-amber-400 focus:outline-none"
+                        step={discountType === 'percent' ? '1' : '0.01'}
+                        inputMode="decimal"
+                        value={discountValue !== undefined && discountValue !== null ? discountValue : ''}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setDiscountValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                        className="w-20 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-right text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-400"
                         placeholder="0.00"
                       />
                     </div>
@@ -1092,9 +1147,11 @@ export const PosModal: React.FC<PosModalProps> = ({
                           <input
                             type="number"
                             step="0.01"
-                            value={p.amount || ''}
-                            onChange={(e) => handleUpdatePayment(p.id, 'amount', Number(e.target.value))}
-                            className="w-full bg-white border border-slate-300 rounded-lg pl-6 pr-2 py-1.5 text-xs font-black text-slate-900 text-right focus:outline-none"
+                            inputMode="decimal"
+                            value={p.amount !== undefined && p.amount !== null ? p.amount : ''}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => handleUpdatePayment(p.id, 'amount', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                            className="w-full bg-white border border-slate-300 rounded-lg pl-6 pr-2 py-1.5 text-xs font-black text-slate-900 text-right focus:outline-none focus:border-amber-500"
                           />
                         </div>
 
