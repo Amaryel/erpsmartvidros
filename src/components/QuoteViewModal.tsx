@@ -158,22 +158,30 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
         <div className="p-5 sm:p-8 bg-white overflow-y-auto flex-1 text-slate-900 font-sans print:p-2 notranslate" translate="no" id="printable-quote-area">
           
           {/* Cabeçalho Visual Identidade Smart Vidros */}
-          <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 notranslate" translate="no">
+          <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 notranslate" translate="no">
             
-            <div className="flex items-center gap-3 notranslate" translate="no">
-              {/* Logo Vidros */}
-              <div className="relative w-10 h-10 flex items-center justify-center rounded-lg bg-slate-900 border border-amber-400/60 shadow-inner">
-                <div className="absolute top-1 left-1.5 w-7 h-8 border-2 border-amber-500/40 rounded-sm transform -rotate-6"></div>
-                <div className="absolute top-1.5 left-2 w-7 h-8 border-2 border-amber-400/70 rounded-sm transform -rotate-3"></div>
-                <div className="relative z-10 w-7 h-8 border-2 border-amber-400 bg-amber-400/10 rounded-sm flex items-center justify-center">
-                  <Layers className="w-4 h-4 text-amber-400" />
-                </div>
-              </div>
+            <div className="flex items-center gap-3.5 notranslate" translate="no">
+              {/* Logotipo Oficial Emblema */}
+              <img
+                src={companyInfo.logoUrl || '/logo.png'}
+                alt={companyInfo.name || 'Smart Vidros'}
+                referrerPolicy="no-referrer"
+                style={{
+                  height: '56px',
+                  maxHeight: '56px',
+                  width: '56px',
+                  maxWidth: '56px',
+                  minWidth: '56px',
+                  objectFit: 'contain',
+                  display: 'inline-block',
+                }}
+                className="h-14 w-14 object-contain rounded-xl shrink-0 drop-shadow-md border border-amber-500/40"
+              />
 
               <div className="notranslate" translate="no">
                 <div className="flex items-baseline gap-1.5 notranslate" translate="no">
-                  <span className="font-extrabold tracking-widest text-xl text-amber-400 notranslate" translate="no">SMART</span>
-                  <span className="font-light tracking-widest text-lg text-white uppercase notranslate" translate="no">VIDROS</span>
+                  <span className="font-black tracking-widest text-lg sm:text-xl text-amber-400 notranslate" translate="no">SMART</span>
+                  <span className="font-extrabold tracking-wider text-base sm:text-lg text-white uppercase notranslate" translate="no">VIDROS</span>
                 </div>
                 <p className="text-xs text-amber-200/90 font-semibold tracking-wide notranslate" translate="no">
                   {companyInfo.ownerName || 'James Clayton do Nascimento'}
@@ -231,102 +239,110 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                   </span>
                 </div>
 
-                {/* Tabela do Ambiente */}
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[9.5px] border-b border-slate-200">
+                {/* Tabela do Ambiente com Colunas Perfeitamente Alinhadas e Imagem Técnica */}
+                <table className="w-full text-left text-xs table-fixed border-collapse" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+                  <colgroup>
+                    <col style={{ width: '4%' }} />
+                    <col style={{ width: '56%' }} />
+                    <col style={{ width: '13%' }} />
+                    <col style={{ width: '13%' }} />
+                    <col style={{ width: '14%' }} />
+                  </colgroup>
+                  <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                     <tr>
-                      <th className="py-2 px-3 w-8">#</th>
-                      <th className="py-2 px-3">Item / Especificações Técnicas</th>
-                      <th className="py-2 px-3 text-center pdf-hidden">Medidas (mm)</th>
-                      <th className="py-2 px-3 text-center">Área (m²) / Qtd</th>
-                      <th className="py-2 px-3 text-right">Valor Unit / m²</th>
-                      <th className="py-2 px-3 text-right">Total (R$)</th>
+                      <th style={{ width: '4%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-1.5 text-center">#</th>
+                      <th style={{ width: '56%', textAlign: 'left', boxSizing: 'border-box' }} className="py-2.5 px-3">Item / Especificações Técnicas</th>
+                      <th style={{ width: '13%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Área (m²) / Qtd</th>
+                      <th style={{ width: '13%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Valor Unit / m²</th>
+                      <th style={{ width: '14%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Total (R$)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white">
                     {envItems.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-slate-50/50 break-inside-avoid">
-                        <td className="py-2.5 px-3 font-mono font-bold text-slate-400 align-top text-xs">
+                        <td style={{ width: '4%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-1.5 font-mono font-bold text-slate-400 align-top text-center text-xs">
                           {idx + 1}
                         </td>
 
-                        <td className="py-2.5 px-3 align-top">
-                          <div className="flex items-start gap-3">
-                            {/* Ilustração Técnica Vetorial 2D (se for produto com dimensões) */}
+                        <td style={{ width: '56%', textAlign: 'left', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 align-top">
+                          <div className="flex flex-row items-start gap-3.5">
+                            {/* Ilustração Técnica do Produto (INDISPENSÁVEL) */}
                             {item.type === 'dimensao' && (
-                              <div className="w-24 shrink-0 hidden sm:block">
+                              <div
+                                className="shrink-0"
+                                style={{
+                                  width: '92px',
+                                  minWidth: '92px',
+                                  maxWidth: '92px',
+                                }}
+                              >
                                 <TechnicalProductPreview
                                   item={item}
                                   widthMm={item.widthMm}
                                   heightMm={item.lengthMm}
                                   name={item.name}
                                   compact={true}
-                                  className="w-full"
+                                  showDimensions={false}
+                                  className="w-full shadow-xs"
                                 />
                               </div>
                             )}
 
-                            <div className="space-y-1">
-                              <div className="font-bold text-slate-900 text-xs sm:text-sm">{item.name}</div>
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="font-bold text-slate-900 text-sm">{item.name}</div>
                               
-                              {/* Características Técnicas Estruturadas */}
+                              {/* Subitens em Lista Limpa e Vertical */}
                               {item.type === 'dimensao' && (
-                                <div className="flex flex-wrap gap-1 text-[10.5px]">
+                                <div className="text-xs text-slate-600 space-y-0.5 pt-0.5">
                                   {item.glassType && (
-                                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200 font-medium">
-                                      Vidro {item.glassType} {item.thickness || '8mm'} {item.glassColor || 'Incolor'}
-                                    </span>
+                                    <div>
+                                      <span className="text-slate-400 mr-1.5">•</span>
+                                      <span className="font-semibold text-slate-700">Vidro:</span> {item.glassType} {item.thickness || '8mm'} {item.glassColor || 'Incolor'}
+                                    </div>
                                   )}
                                   {item.hardwareColor && (
-                                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200 font-medium">
-                                      Ferragens: {item.hardwareColor}
-                                    </span>
+                                    <div>
+                                      <span className="text-slate-400 mr-1.5">•</span>
+                                      <span className="font-semibold text-slate-700">Ferragens:</span> {item.hardwareColor}
+                                    </div>
                                   )}
                                   {item.line && (
-                                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200 font-medium">
-                                      Linha: {item.line}
-                                    </span>
+                                    <div>
+                                      <span className="text-slate-400 mr-1.5">•</span>
+                                      <span className="font-semibold text-slate-700">Linha:</span> {item.line}
+                                    </div>
                                   )}
                                   {item.openingType && (
-                                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200 font-medium">
-                                      {item.openingType}
-                                    </span>
+                                    <div>
+                                      <span className="text-slate-400 mr-1.5">•</span>
+                                      <span className="font-semibold text-slate-700">Abertura:</span> {item.openingType}
+                                    </div>
                                   )}
                                   {item.finish && (
-                                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200 font-medium">
-                                      {item.finish}
-                                    </span>
+                                    <div>
+                                      <span className="text-slate-400 mr-1.5">•</span>
+                                      <span className="font-semibold text-slate-700">Acabamento:</span> {item.finish}
+                                    </div>
                                   )}
                                 </div>
                               )}
 
                               {item.description && (
-                                <div className="text-[11px] text-slate-500 italic">
-                                  {item.description}
+                                <div className="text-[11px] text-slate-500 italic pt-0.5">
+                                  Obs: {item.description}
                                 </div>
                               )}
                             </div>
                           </div>
                         </td>
 
-                        {/* Coluna Medidas mm (Oculta no PDF do Cliente conforme regra solicitada) */}
-                        <td className="py-2.5 px-3 text-center font-mono text-slate-700 pdf-hidden align-top">
+                        {/* Área m² ou Quantidade (Exibindo estritamente a Área e Qtd) */}
+                        <td style={{ width: '13%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2 text-center font-mono align-top">
                           {item.type === 'dimensao' ? (
-                            <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-[11px] whitespace-nowrap">
-                              {item.widthMm} x {item.lengthMm} mm
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 text-xs">-</span>
-                          )}
-                        </td>
-
-                        {/* Área m² ou Quantidade */}
-                        <td className="py-2.5 px-3 text-center font-mono font-semibold text-slate-800 align-top">
-                          {item.type === 'dimensao' ? (
-                            <div className="inline-flex flex-col items-center">
-                              <span className="font-black text-slate-900 text-xs">{item.areaM2} m²</span>
-                              <span className="text-[10px] text-slate-500">
-                                ({item.quantity} {item.quantity > 1 ? 'peças' : 'peça'})
+                            <div className="flex flex-col items-center justify-center">
+                              <span className="font-black text-slate-900 text-xs">{item.areaM2 || 0} m²</span>
+                              <span className="text-[10px] text-slate-500 font-sans font-medium">
+                                {item.quantity} {item.quantity > 1 ? 'peças' : 'peça'}
                               </span>
                             </div>
                           ) : (
@@ -335,12 +351,12 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                         </td>
 
                         {/* Valor Unitário ou m² */}
-                        <td className="py-2.5 px-3 text-right font-mono text-slate-700 align-top text-xs">
+                        <td style={{ width: '13%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 text-right font-mono text-slate-700 align-top text-xs">
                           R$ {item.type === 'dimensao' ? (item.pricePerM2 || 0).toFixed(2) : (item.unitPrice || 0).toFixed(2)}
                         </td>
 
                         {/* Total do Item */}
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 align-top text-xs">
+                        <td style={{ width: '14%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 text-right font-mono font-black text-slate-900 align-top text-xs">
                           R$ {item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>

@@ -196,18 +196,27 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
           {/* Cabeçalho da Empresa Smart Vidros */}
           <div className="bg-slate-950 text-white rounded-xl p-6 border-b-4 border-amber-500 flex flex-col items-center justify-center text-center gap-3">
             <div className="flex flex-col items-center justify-center gap-2">
-              <div className="relative w-12 h-12 flex items-center justify-center rounded-lg bg-slate-900 border border-amber-400/60 shadow-inner">
-                <div className="absolute top-1 left-1.5 w-8 h-9 border-2 border-amber-500/40 rounded-sm transform -rotate-6"></div>
-                <div className="absolute top-1.5 left-2.5 w-8 h-9 border-2 border-amber-400/70 rounded-sm transform -rotate-3"></div>
-                <div className="relative z-10 w-8 h-9 border-2 border-amber-400 bg-amber-400/10 rounded-sm flex items-center justify-center">
-                  <Layers className="w-5 h-5 text-amber-400" />
-                </div>
-              </div>
+              {/* Logotipo Oficial Emblema */}
+              <img
+                src={companyInfo.logoUrl || '/logo.png'}
+                alt={companyInfo.name || 'Smart Vidros'}
+                referrerPolicy="no-referrer"
+                style={{
+                  height: '64px',
+                  maxHeight: '64px',
+                  width: '64px',
+                  maxWidth: '64px',
+                  minWidth: '64px',
+                  objectFit: 'contain',
+                  display: 'inline-block',
+                }}
+                className="h-16 w-16 object-contain rounded-xl drop-shadow-md border border-amber-500/40"
+              />
 
               <div>
                 <div className="flex items-baseline justify-center gap-1.5">
-                  <span className="font-extrabold tracking-widest text-2xl text-amber-400">SMART</span>
-                  <span className="font-light tracking-widest text-xl text-white uppercase">VIDROS</span>
+                  <span className="font-black tracking-widest text-2xl text-amber-400">SMART</span>
+                  <span className="font-extrabold tracking-wider text-xl text-white uppercase">VIDROS</span>
                 </div>
                 <p className="text-[10px] text-slate-400 tracking-widest uppercase font-semibold">
                   CNPJ: {companyInfo.cnpj || '51.840.669/0001-22'}

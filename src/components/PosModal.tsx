@@ -46,8 +46,10 @@ import { getCatalog, createSaleFromQuote, getClients, findClientByName, updateQu
 import { validateUserDiscount, getUserPermissions } from '../utils/permissions';
 import { UnregisteredClientPromptModal } from './UnregisteredClientPromptModal';
 import { ClientFormModal } from './ClientFormModal';
+import { ProductFormModal } from './ProductFormModal';
 import { ClientSelect } from './ClientSelect';
 import { ImportQuoteModal } from './ImportQuoteModal';
+import { PackagePlus } from 'lucide-react';
 
 interface PosModalProps {
   initialQuote?: Quote | null;
@@ -71,7 +73,8 @@ export const PosModal: React.FC<PosModalProps> = ({
   onClose,
   onFinalizeSale,
 }) => {
-  const catalog = getCatalog();
+  const [catalogList, setCatalogList] = useState<CatalogItem[]>(getCatalog());
+  const [showProductModal, setShowProductModal] = useState(false);
 
   // Se veio de um orçamento, gerar rascunho de venda
   const draftBase: Sale = initialSale
@@ -253,9 +256,10 @@ export const PosModal: React.FC<PosModalProps> = ({
   };
 
   // Adicionar Item do Catálogo
-  const handleAddItemFromCatalog = () => {
-    if (!selectedCatalogId) return;
-    const catItem = catalog.find((c) => c.id === selectedCatalogId);
+  const handleAddItemFromCatalog = (customId?: string) => {
+    const targetId = customId || selectedCatalogId;
+    if (!targetId) return;
+    const catItem = catalogList.find((c) => c.id === targetId);
     if (!catItem) return;
 
     if (catItem.type === 'dimensao') {
@@ -289,6 +293,13 @@ export const PosModal: React.FC<PosModalProps> = ({
       setItems([...items, newItem]);
     }
     setSelectedCatalogId('');
+  };
+
+  const handleProductSavedInPos = (savedItem: CatalogItem) => {
+    const updated = getCatalog();
+    setCatalogList(updated);
+    setShowProductModal(false);
+    handleAddItemFromCatalog(savedItem.id);
   };
 
   const handleAddCustomItem = () => {
@@ -631,23 +642,43 @@ export const PosModal: React.FC<PosModalProps> = ({
                     <Plus className="w-4 h-4 text-amber-600" />
                     <span>Adicionar Item do Catálogo</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAddCustomItem}
-                    className="text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline flex items-center gap-1"
-                  >
-                    <span>+ Item Avulso</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowProductModal(true)}
+                      className="text-xs font-extrabold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                      title="Criar novo produto e adicionar ao catálogo agora"
+                    >
+                      <PackagePlus className="w-3.5 h-3.5 text-amber-600" />
+                      <span>+ Criar no Catálogo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomItem}
+                      className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                    >
+                      <span>+ Item Avulso</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
                   <select
                     value={selectedCatalogId}
-                    onChange={(e) => setSelectedCatalogId(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value === '__NEW_PRODUCT__') {
+                        setShowProductModal(true);
+                      } else {
+                        setSelectedCatalogId(e.target.value);
+                      }
+                    }}
                     className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   >
                     <option value="">Selecione um produto ou serviço do catálogo...</option>
-                    {catalog
+                    <option value="__NEW_PRODUCT__" className="font-bold text-amber-700 bg-amber-50">
+                      ✨ + Criar Novo Produto no Catálogo...
+                    </option>
+                    {catalogList
                       .filter((c) => c.status === 'ativo')
                       .map((item) => (
                         <option key={item.id} value={item.id}>
@@ -658,8 +689,8 @@ export const PosModal: React.FC<PosModalProps> = ({
 
                   <button
                     type="button"
-                    onClick={handleAddItemFromCatalog}
-                    disabled={!selectedCatalogId}
+                    onClick={() => handleAddItemFromCatalog()}
+                    disabled={!selectedCatalogId || selectedCatalogId === '__NEW_PRODUCT__'}
                     className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl transition-colors shrink-0 shadow-xs cursor-pointer"
                   >
                     Adicionar +
@@ -1338,6 +1369,15 @@ export const PosModal: React.FC<PosModalProps> = ({
             executeFinalizeSale();
           }}
           title="Cadastrar Cliente na Venda"
+        />
+      )}
+
+      {/* Modal: Cadastrar Novo Produto no Catálogo */}
+      {showProductModal && (
+        <ProductFormModal
+          onClose={() => setShowProductModal(false)}
+          onSave={handleProductSavedInPos}
+          title="Cadastrar Novo Produto no Catálogo"
         />
       )}
 

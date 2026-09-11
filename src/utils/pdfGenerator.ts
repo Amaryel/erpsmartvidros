@@ -160,10 +160,63 @@ const ISOLATED_IFRAME_CSS = `
   .border-2 { border-width: 2px !important; border-style: solid !important; }
   .border { border: 1px solid #e2e8f0 !important; }
 
+  /* Images and SVGs */
+  img {
+    max-width: 100% !important;
+    height: auto;
+    object-fit: contain !important;
+    display: inline-block !important;
+  }
+  img.h-14, .h-14 { height: 56px !important; max-height: 56px !important; }
+  img.h-12, .h-12 { height: 48px !important; max-height: 48px !important; }
+  img.h-11, .h-11 { height: 44px !important; max-height: 44px !important; }
+  img.h-10, .h-10 { height: 40px !important; max-height: 40px !important; }
+  img.h-9, .h-9 { height: 36px !important; max-height: 36px !important; }
+  img.h-8, .h-8 { height: 32px !important; max-height: 32px !important; }
+  img.h-6, .h-6 { height: 24px !important; max-height: 24px !important; }
+  img.h-5, .h-5 { height: 20px !important; max-height: 20px !important; }
+  img.h-4, .h-4 { height: 16px !important; max-height: 16px !important; }
+
+  .object-contain { object-fit: contain !important; }
+  .object-cover { object-fit: cover !important; }
+
+  .max-h-48 { max-height: 192px !important; }
+  .max-h-32 { max-height: 128px !important; }
+  .max-h-24 { max-height: 96px !important; }
+  .max-h-20 { max-height: 80px !important; }
+  .max-h-16 { max-height: 64px !important; }
+  .max-h-14 { max-height: 56px !important; }
+  .max-h-12 { max-height: 48px !important; }
+  .max-h-10 { max-height: 40px !important; }
+  
+  svg {
+    display: inline-block !important;
+    vertical-align: middle !important;
+    overflow: visible !important;
+  }
+
   /* Tables */
-  table { width: 100% !important; border-collapse: collapse !important; margin: 8px 0 !important; }
-  th { background-color: #0f172a !important; color: #fbbf24 !important; font-weight: bold !important; text-align: left !important; padding: 8px 10px !important; }
-  td { padding: 6px 10px !important; border-bottom: 1px solid #e2e8f0 !important; }
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    margin: 8px 0 !important;
+  }
+  th {
+    background-color: #0f172a !important;
+    color: #fbbf24 !important;
+    font-weight: bold !important;
+    text-align: left !important;
+    padding: 8px 10px !important;
+    box-sizing: border-box !important;
+  }
+  td {
+    padding: 6px 10px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-sizing: border-box !important;
+  }
+  .table-fixed { table-layout: fixed !important; }
+  .border-collapse { border-collapse: collapse !important; }
   
   .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; }
   .font-light { font-weight: 300 !important; }
@@ -335,6 +388,7 @@ const ISOLATED_IFRAME_CSS = `
   .gap-6 { gap: 24px !important; }
   .gap-5 { gap: 20px !important; }
   .gap-4 { gap: 16px !important; }
+  .gap-3\\.5 { gap: 14px !important; }
   .gap-3 { gap: 12px !important; }
   .gap-2\\.5 { gap: 10px !important; }
   .gap-2 { gap: 8px !important; }
@@ -585,6 +639,34 @@ function sanitizeElementStyles(el: HTMLElement) {
   const styleAttr = el.getAttribute('style');
   if (styleAttr) {
     el.setAttribute('style', convertAllUnsupportedColors(styleAttr));
+  }
+
+  // Trava rígida para imagens no PDF não estourarem dimensões
+  if (el.tagName.toLowerCase() === 'img') {
+    const imgEl = el as HTMLImageElement;
+    imgEl.style.maxWidth = '100%';
+    imgEl.style.objectFit = 'contain';
+    const classStr = el.className || '';
+    if (classStr.includes('h-14')) {
+      imgEl.style.height = '56px';
+      imgEl.style.maxHeight = '56px';
+    } else if (classStr.includes('h-12')) {
+      imgEl.style.height = '48px';
+      imgEl.style.maxHeight = '48px';
+    } else if (classStr.includes('h-10')) {
+      imgEl.style.height = '40px';
+      imgEl.style.maxHeight = '40px';
+    } else if (classStr.includes('h-8')) {
+      imgEl.style.height = '32px';
+      imgEl.style.maxHeight = '32px';
+    }
+  }
+
+  // Trava rígida para tabelas manterem alinhamento exato de colunas
+  if (el.tagName.toLowerCase() === 'table') {
+    el.style.tableLayout = 'fixed';
+    el.style.width = '100%';
+    el.style.borderCollapse = 'collapse';
   }
 
   const colorProps = [

@@ -30,21 +30,29 @@ export const ContractDocumentView: React.FC<ContractDocumentViewProps> = ({
       <div className="border-b-2 border-amber-500 pb-5 mb-6 flex flex-row items-center justify-between gap-4 notranslate" translate="no">
         
         {/* LOGO & IDENTIDADE VISUAL */}
-        <div className="flex items-center gap-3 notranslate" translate="no">
-          <div className="relative w-10 h-10 flex items-center justify-center rounded-lg bg-slate-900 border border-amber-400/60 shadow-inner shrink-0">
-            <div className="absolute top-1 left-1.5 w-7 h-8 border-2 border-amber-500/40 rounded-sm transform -rotate-6"></div>
-            <div className="absolute top-1.5 left-2 w-7 h-8 border-2 border-amber-400/70 rounded-sm transform -rotate-3"></div>
-            <div className="relative z-10 w-7 h-8 border-2 border-amber-400 bg-amber-400/10 rounded-sm flex items-center justify-center">
-              <Layers className="w-4 h-4 text-amber-400" />
-            </div>
-          </div>
+        <div className="flex items-center gap-3.5 notranslate" translate="no">
+          <img
+            src={companyInfo?.logoUrl || '/logo.png'}
+            alt={contractorName}
+            referrerPolicy="no-referrer"
+            style={{
+              height: '56px',
+              maxHeight: '56px',
+              width: '56px',
+              maxWidth: '56px',
+              minWidth: '56px',
+              objectFit: 'contain',
+              display: 'inline-block',
+            }}
+            className="h-14 w-14 object-contain rounded-xl shrink-0 drop-shadow-md border border-amber-500/40"
+          />
 
           <div className="notranslate leading-tight" translate="no">
             <div className="flex items-baseline gap-1.5 notranslate" translate="no">
-              <span className="font-black tracking-widest text-2xl text-amber-600 notranslate" translate="no">
+              <span className="font-black tracking-widest text-xl text-amber-600 notranslate" translate="no">
                 SMART
               </span>
-              <span className="font-extrabold tracking-wider text-xl text-slate-900 uppercase notranslate" translate="no">
+              <span className="font-extrabold tracking-wider text-lg text-slate-900 uppercase notranslate" translate="no">
                 VIDROS
               </span>
             </div>

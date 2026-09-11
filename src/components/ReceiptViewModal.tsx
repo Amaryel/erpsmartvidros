@@ -236,19 +236,28 @@ export const ReceiptViewModal: React.FC<ReceiptViewModalProps> = ({
           
           {/* Cabeçalho Centralizado da Empresa Smart Vidros */}
           <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 text-center mb-4 notranslate" translate="no">
-            <div className="flex flex-col items-center justify-center gap-1.5 mb-2 notranslate" translate="no">
-              <div className="relative w-10 h-10 flex items-center justify-center rounded-lg bg-slate-900 border border-amber-400/60 shadow-inner">
-                <div className="absolute top-1 left-1.5 w-7 h-8 border-2 border-amber-500/40 rounded-sm transform -rotate-6"></div>
-                <div className="absolute top-1.5 left-2 w-7 h-8 border-2 border-amber-400/70 rounded-sm transform -rotate-3"></div>
-                <div className="relative z-10 w-7 h-8 border-2 border-amber-400 bg-amber-400/10 rounded-sm flex items-center justify-center">
-                  <Layers className="w-4 h-4 text-amber-400" />
-                </div>
-              </div>
+            <div className="flex flex-col items-center justify-center gap-2 mb-2 notranslate" translate="no">
+              {/* Logotipo Oficial Emblema */}
+              <img
+                src={companyInfo.logoUrl || '/logo.png'}
+                alt={companyInfo.name || 'Smart Vidros'}
+                referrerPolicy="no-referrer"
+                style={{
+                  height: '64px',
+                  maxHeight: '64px',
+                  width: '64px',
+                  maxWidth: '64px',
+                  minWidth: '64px',
+                  objectFit: 'contain',
+                  display: 'inline-block',
+                }}
+                className="h-16 w-16 object-contain rounded-xl drop-shadow-md border border-amber-500/40"
+              />
 
               <div className="notranslate" translate="no">
                 <div className="flex items-baseline justify-center gap-1.5 notranslate" translate="no">
-                  <span className="font-extrabold tracking-widest text-xl text-amber-400 notranslate" translate="no">SMART</span>
-                  <span className="font-light tracking-widest text-lg text-white uppercase notranslate" translate="no">VIDROS</span>
+                  <span className="font-black tracking-widest text-lg sm:text-xl text-amber-400 notranslate" translate="no">SMART</span>
+                  <span className="font-extrabold tracking-wider text-base sm:text-lg text-white uppercase notranslate" translate="no">VIDROS</span>
                 </div>
                 <p className="text-xs text-amber-200/90 font-semibold tracking-wide notranslate" translate="no">
                   {ownerName}

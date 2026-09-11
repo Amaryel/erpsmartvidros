@@ -12,6 +12,7 @@ interface TechnicalProductPreviewProps {
   openingType?: string;
   leafCount?: string;
   compact?: boolean;
+  showDimensions?: boolean;
   className?: string;
 }
 
@@ -40,10 +41,12 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
   openingType: propOpeningType,
   leafCount: propLeafCount,
   compact = false,
+  showDimensions = false,
   className = '',
 }) => {
   const width = propWidth ?? item?.widthMm ?? 1500;
   const height = propHeight ?? item?.lengthMm ?? 2100;
+  const areaM2 = item?.areaM2 ?? Math.round(((width * height) / 1000000) * 100) / 100;
   const name = propName ?? item?.name ?? 'Produto';
   const category = detectTechnicalCategory(name, propCategory ?? item?.technicalCategory);
   const glassColor = propGlassColor ?? item?.glassColor ?? 'Incolor';
@@ -78,10 +81,10 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
   const svgW = compact ? 220 : 280;
   const svgH = compact ? 160 : 200;
 
-  // Área útil do desenho técnico
-  const padLeft = 38;
-  const padRight = 38;
-  const padTop = 32;
+  // Área útil do desenho técnico (adapta margens se não houver cotas de milímetros)
+  const padLeft = showDimensions ? 38 : 16;
+  const padRight = showDimensions ? 38 : 16;
+  const padTop = showDimensions ? 32 : 14;
   const padBottom = 22;
 
   const drawAreaW = svgW - padLeft - padRight;
@@ -148,85 +151,86 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           </linearGradient>
         </defs>
 
-        {/* ================= LINHAS DE COTA (SUPERIOR - LARGURA) ================= */}
-        {/* Linhas de extensão verticais */}
-        <line x1={boxX} y1={boxY - 4} x2={boxX} y2={boxY - 18} stroke="#64748b" strokeWidth="0.75" strokeDasharray="2,2" />
-        <line x1={boxX + boxW} y1={boxY - 4} x2={boxX + boxW} y2={boxY - 18} stroke="#64748b" strokeWidth="0.75" strokeDasharray="2,2" />
-        {/* Linha dimensional horizontal com setas */}
-        <line
-          x1={boxX}
-          y1={boxY - 12}
-          x2={boxX + boxW}
-          y2={boxY - 12}
-          stroke="#f59e0b"
-          strokeWidth="1.2"
-          markerStart={`url(#arrow-start-${category})`}
-          markerEnd={`url(#arrow-end-${category})`}
-        />
-        {/* Texto da Largura */}
-        <rect
-          x={midX - 32}
-          y={boxY - 22}
-          width="64"
-          height="14"
-          rx="3"
-          fill="#0f172a"
-          stroke="#334155"
-          strokeWidth="0.5"
-        />
-        <text
-          x={midX}
-          y={boxY - 12}
-          fill="#fbbf24"
-          fontSize="9.5"
-          fontWeight="bold"
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontFamily="monospace"
-        >
-          {width} mm
-        </text>
+        {/* ================= LINHAS DE COTA (EXIBIDAS APENAS SE showDimensions === true) ================= */}
+        {showDimensions && (
+          <g>
+            {/* Linhas de extensão verticais */}
+            <line x1={boxX} y1={boxY - 4} x2={boxX} y2={boxY - 18} stroke="#64748b" strokeWidth="0.75" strokeDasharray="2,2" />
+            <line x1={boxX + boxW} y1={boxY - 4} x2={boxX + boxW} y2={boxY - 18} stroke="#64748b" strokeWidth="0.75" strokeDasharray="2,2" />
+            {/* Linha dimensional horizontal com setas */}
+            <line
+              x1={boxX}
+              y1={boxY - 12}
+              x2={boxX + boxW}
+              y2={boxY - 12}
+              stroke="#f59e0b"
+              strokeWidth="1.2"
+              markerStart={`url(#arrow-start-${category})`}
+              markerEnd={`url(#arrow-end-${category})`}
+            />
+            {/* Texto da Largura */}
+            <rect
+              x={midX - 32}
+              y={boxY - 22}
+              width="64"
+              height="14"
+              rx="3"
+              fill="#0f172a"
+              stroke="#334155"
+              strokeWidth="0.5"
+            />
+            <text
+              x={midX}
+              y={boxY - 12}
+              fill="#fbbf24"
+              fontSize="9.5"
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontFamily="monospace"
+            >
+              {width} mm
+            </text>
 
-        {/* ================= LINHAS DE COTA (LATERAL DIREITA - ALTURA) ================= */}
-        {/* Linhas de extensão horizontais */}
-        <line x1={boxX + boxW + 4} y1={boxY} x2={boxX + boxW + 18} y2={boxY} stroke="#64748b" strokeWidth="0.75" strokeDasharray="2,2" />
-        <line x1={boxX + boxW + 4} y1={boxY + boxH} x2={boxX + boxW + 18} y2={boxY + boxH} stroke="#64748b" strokeWidth="0.75" strokeDasharray="2,2" />
-        {/* Linha dimensional vertical com setas */}
-        <line
-          x1={boxX + boxW + 12}
-          y1={boxY}
-          x2={boxX + boxW + 12}
-          y2={boxY + boxH}
-          stroke="#f59e0b"
-          strokeWidth="1.2"
-          markerStart={`url(#arrow-start-${category})`}
-          markerEnd={`url(#arrow-end-${category})`}
-        />
-        {/* Texto da Altura */}
-        <g transform={`translate(${boxX + boxW + 12}, ${midY}) rotate(90)`}>
-          <rect
-            x="-30"
-            y="-7"
-            width="60"
-            height="14"
-            rx="3"
-            fill="#0f172a"
-            stroke="#334155"
-            strokeWidth="0.5"
-          />
-          <text
-            x="0"
-            y="0"
-            fill="#fbbf24"
-            fontSize="9.5"
-            fontWeight="bold"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontFamily="monospace"
-          >
-            {height} mm
-          </text>
-        </g>
+            {/* ================= LINHAS DE COTA (LATERAL DIREITA - ALTURA) ================= */}
+            <line x1={boxX + boxW + 4} y1={boxY} x2={boxX + boxW + 18} y2={boxY} stroke="#64748b" strokeWidth="0.75" strokeDasharray="2,2" />
+            <line x1={boxX + boxW + 4} y1={boxY + boxH} x2={boxX + boxW + 18} y2={boxY + boxH} stroke="#64748b" strokeWidth="0.75" strokeDasharray="2,2" />
+            <line
+              x1={boxX + boxW + 12}
+              y1={boxY}
+              x2={boxX + boxW + 12}
+              y2={boxY + boxH}
+              stroke="#f59e0b"
+              strokeWidth="1.2"
+              markerStart={`url(#arrow-start-${category})`}
+              markerEnd={`url(#arrow-end-${category})`}
+            />
+            <g transform={`translate(${boxX + boxW + 12}, ${midY}) rotate(90)`}>
+              <rect
+                x="-30"
+                y="-7"
+                width="60"
+                height="14"
+                rx="3"
+                fill="#0f172a"
+                stroke="#334155"
+                strokeWidth="0.5"
+              />
+              <text
+                x="0"
+                y="0"
+                fill="#fbbf24"
+                fontSize="9.5"
+                fontWeight="bold"
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontFamily="monospace"
+              >
+                {height} mm
+              </text>
+            </g>
+          </g>
+        )}
 
         {/* ================= DESENHO VETORIAL DO PRODUTO ================= */}
         

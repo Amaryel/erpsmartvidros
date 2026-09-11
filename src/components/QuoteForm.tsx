@@ -39,9 +39,11 @@ import { getCatalog, getClients, findClientByName } from '../services/storage';
 import { validateUserDiscount, getUserPermissions } from '../utils/permissions';
 import { UnregisteredClientPromptModal } from './UnregisteredClientPromptModal';
 import { ClientFormModal } from './ClientFormModal';
+import { ProductFormModal } from './ProductFormModal';
 import { ImportCutCalculationModal } from './CutCalculator/ImportCutCalculationModal';
 import { ClientSelect } from './ClientSelect';
 import { TechnicalProductPreview, detectTechnicalCategory } from './TechnicalProductPreview';
+import { PackagePlus } from 'lucide-react';
 
 interface QuoteFormProps {
   initialQuote?: Quote | null;
@@ -162,6 +164,8 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   // Modais de Cadastro Rápido & Importação
   const [showUnregisteredPrompt, setShowUnregisteredPrompt] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [productModalTargetIndex, setProductModalTargetIndex] = useState<number | null>(null);
   const [showImportCutModal, setShowImportCutModal] = useState(false);
 
   useEffect(() => {
@@ -171,6 +175,59 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   const refreshData = () => {
     setCatalog(getCatalog());
     setRegisteredClients(getClients());
+  };
+
+  const handleOpenNewProductModal = (itemIndex?: number) => {
+    setProductModalTargetIndex(itemIndex !== undefined ? itemIndex : null);
+    setShowProductModal(true);
+  };
+
+  const handleProductSaved = (savedItem: CatalogItem) => {
+    // Atualiza catálogo imediatamente
+    const updatedCatalog = getCatalog();
+    setCatalog(updatedCatalog);
+    setShowProductModal(false);
+
+    // Se a criação foi chamada a partir de um item existente na lista
+    if (productModalTargetIndex !== null && items[productModalTargetIndex]) {
+      handleSelectFromCatalog(productModalTargetIndex, savedItem.id);
+    } else {
+      // Se chamado a partir dos botões do topo, adiciona um novo item ao orçamento
+      const pricePerM2 = savedItem.type === 'dimensao' ? savedItem.defaultPrice : undefined;
+      const unitPrice = savedItem.type === 'simples' ? savedItem.defaultPrice : undefined;
+      const areaM2 = savedItem.type === 'dimensao' ? 3.15 : undefined;
+      const totalPrice = savedItem.type === 'dimensao' ? Math.round(3.15 * savedItem.defaultPrice * 100) / 100 : savedItem.defaultPrice;
+
+      const newItem: QuoteItem = {
+        id: 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+        type: savedItem.type,
+        category: savedItem.category,
+        name: savedItem.name,
+        description: savedItem.description || '',
+        environment: 'Geral',
+        technicalCategory: detectTechnicalCategory(savedItem.name),
+        glassType: savedItem.type === 'dimensao' ? 'Temperado' : undefined,
+        thickness: savedItem.type === 'dimensao' ? '8mm' : undefined,
+        glassColor: savedItem.type === 'dimensao' ? 'Incolor' : undefined,
+        hardwareColor: 'Preto',
+        line: 'Suprema',
+        openingType: 'De Correr (Slide)',
+        leafCount: '2 Folhas (1F+1M)',
+        lengthMm: savedItem.type === 'dimensao' ? 2100 : undefined,
+        widthMm: savedItem.type === 'dimensao' ? 1500 : undefined,
+        areaM2: areaM2,
+        quantity: 1,
+        pricePerM2: pricePerM2,
+        unitPrice: unitPrice,
+        totalPrice: totalPrice,
+      };
+
+      if (items.length === 1 && !items[0].name.trim()) {
+        setItems([newItem]);
+      } else {
+        setItems((prev) => [...prev, newItem]);
+      }
+    }
   };
 
   const toggleExpandItem = (id: string) => {
@@ -242,7 +299,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   const calculateItemTotal = (item: Partial<QuoteItem>): { areaM2?: number; totalPrice: number } => {
     // Quantidade para cálculo: se estiver em branco ou inválida, usa 1 para prever o total sem travar a digitação
     const rawQty = Number(item.quantity);
-    const qty = !isNaN(rawQty) && rawQty > 0 ? rawQty : (item.quantity === '' ? 1 : 1);
+    const qty = !isNaN(rawQty) && rawQty > 0 ? rawQty : 1;
 
     if (item.type === 'dimensao') {
       const rawLength = Number(item.lengthMm);
@@ -802,6 +859,16 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
               <button
                 type="button"
+                onClick={() => handleOpenNewProductModal()}
+                className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold rounded-xl transition-colors shadow-2xs"
+                title="Cadastrar um novo produto e adicionar ao orçamento"
+              >
+                <PackagePlus className="w-3.5 h-3.5 text-amber-600" />
+                <span>+ Novo Produto no Catálogo</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleAddService()}
                 className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold rounded-xl transition-colors"
               >
@@ -896,10 +963,13 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                       </div>
 
                       {/* Catálogo Import */}
-                      {catalog.length > 0 && (
+                      <div className="flex items-center gap-1">
                         <select
                           onChange={(e) => {
-                            if (e.target.value) {
+                            if (e.target.value === '__NEW_PRODUCT__') {
+                              handleOpenNewProductModal(index);
+                              e.target.value = '';
+                            } else if (e.target.value) {
                               handleSelectFromCatalog(index, e.target.value);
                               e.target.value = '';
                             }
@@ -907,13 +977,25 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                           className="bg-white border border-slate-200 text-xs text-slate-700 rounded-lg px-2.5 py-1 focus:outline-none"
                         >
                           <option value="">Importar do Catálogo...</option>
+                          <option value="__NEW_PRODUCT__" className="font-bold text-amber-700 bg-amber-50">
+                            ✨ + Criar Novo Produto no Catálogo...
+                          </option>
                           {catalog.map((cat) => (
                             <option key={cat.id} value={cat.id}>
                               {cat.name} ({cat.type === 'dimensao' ? `R$ ${cat.defaultPrice}/m²` : `R$ ${cat.defaultPrice} un`})
                             </option>
                           ))}
                         </select>
-                      )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenNewProductModal(index)}
+                          className="p-1 text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-300 transition-colors shrink-0"
+                          title="Cadastrar novo produto no catálogo e preencher este item"
+                        >
+                          <PackagePlus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Botões de Ação do Item: Duplicar, Expandir/Recolher, Excluir */}
@@ -1705,6 +1787,15 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
           onClose={() => setShowClientModal(false)}
           onSave={handleSavedClient}
           title="Cadastrar Cliente p/ Orçamento"
+        />
+      )}
+
+      {/* Modal: Cadastrar Produto Diretamente no Catálogo */}
+      {showProductModal && (
+        <ProductFormModal
+          onClose={() => setShowProductModal(false)}
+          onSave={handleProductSaved}
+          title="Cadastrar Novo Produto no Catálogo"
         />
       )}
 
