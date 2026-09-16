@@ -62,14 +62,13 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
           {/* Header com Ícone Personalizado da Aplicação */}
           <div className="flex items-center gap-4">
             <div className="relative shrink-0">
-              <div className="w-18 h-18 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-900 border-2 border-amber-500/40 flex items-center justify-center shadow-lg shadow-amber-500/10 overflow-hidden p-1.5">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-900 border-2 border-amber-500/40 flex items-center justify-center shadow-lg shadow-amber-500/10 overflow-hidden p-1">
                 <img
-                  src="/icons/icon.svg"
+                  src="/logo.png"
                   alt="Ícone ERP Smart Vidros"
                   className="w-full h-full object-contain rounded-xl drop-shadow-md"
                   onError={(e) => {
-                    // Fallback se SVG não carregar
-                    (e.currentTarget as HTMLElement).style.display = 'none';
+                    (e.currentTarget as HTMLImageElement).src = '/icons/icon-192x192.png';
                   }}
                 />
               </div>
@@ -87,7 +86,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
                 Instalar ERP Smart Vidros
               </h2>
               <p className="text-xs text-slate-400">
-                Instale no seu Celular, Tablet ou Computador para abrir em tela cheia como um aplicativo nativo.
+                Instale no seu Tablet, Celular ou Computador para abrir em tela cheia como um aplicativo nativo.
               </p>
             </div>
           </div>

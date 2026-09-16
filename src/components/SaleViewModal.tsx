@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Sale, CompanyInfo } from '../types';
 import { downloadPdfElement } from '../utils/pdfGenerator';
+import SMART_VIDROS_OFFICIAL_LOGO_BASE64 from '../assets/logoBase64';
 
 interface SaleViewModalProps {
   sale: Sale;
@@ -196,28 +197,34 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
           {/* Cabeçalho da Empresa Smart Vidros */}
           <div className="bg-slate-950 text-white rounded-xl p-6 border-b-4 border-amber-500 flex flex-col items-center justify-center text-center gap-3">
             <div className="flex flex-col items-center justify-center gap-2">
-              {/* Logotipo Oficial Emblema */}
+              {/* Logotipo Oficial */}
               <img
-                src={companyInfo.logoUrl || '/logo.png'}
+                src={
+                  companyInfo.logoUrl &&
+                  !companyInfo.logoUrl.includes('178') &&
+                  !companyInfo.logoUrl.includes('badge') &&
+                  !companyInfo.logoUrl.endsWith('.jpg') &&
+                  !companyInfo.logoUrl.includes('.svg')
+                    ? companyInfo.logoUrl
+                    : SMART_VIDROS_OFFICIAL_LOGO_BASE64
+                }
                 alt={companyInfo.name || 'Smart Vidros'}
                 referrerPolicy="no-referrer"
                 style={{
-                  height: '64px',
-                  maxHeight: '64px',
-                  width: '64px',
-                  maxWidth: '64px',
-                  minWidth: '64px',
+                  height: '52px',
+                  maxHeight: '52px',
+                  width: 'auto',
+                  maxWidth: '150px',
                   objectFit: 'contain',
                   display: 'inline-block',
                 }}
-                className="h-16 w-16 object-contain rounded-xl drop-shadow-md border border-amber-500/40"
+                className="h-13 w-auto max-w-[150px] object-contain drop-shadow-md"
               />
 
               <div>
-                <div className="flex items-baseline justify-center gap-1.5">
-                  <span className="font-black tracking-widest text-2xl text-amber-400">SMART</span>
-                  <span className="font-extrabold tracking-wider text-xl text-white uppercase">VIDROS</span>
-                </div>
+                <p className="text-xs text-amber-300 font-bold tracking-wide">
+                  {companyInfo.ownerName || 'James Clayton do Nascimento'}
+                </p>
                 <p className="text-[10px] text-slate-400 tracking-widest uppercase font-semibold">
                   CNPJ: {companyInfo.cnpj || '51.840.669/0001-22'}
                 </p>

@@ -19,19 +19,31 @@
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -40,13 +52,6 @@
       "short_name": "Orçamento",
       "description": "Criar um novo orçamento rápido para vidros e esquadrias",
       "url": "/?action=new_quote",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Medidas de Corte",
-      "short_name": "Cálculo Corte",
-      "description": "Calcular medidas de corte de vidros e perfis",
-      "url": "/?action=cut_calculator",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {

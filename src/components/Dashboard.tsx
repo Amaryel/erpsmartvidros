@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { Quote, Sale, Receivable, Receipt, CompanyInfo, UserAccount, AppUser } from '../types';
 import { calculateCashSummary } from '../services/data/repositories/cashRepository';
-import smartVidrosLogoImg from '../assets/images/smart_vidros_logo_1786536378370.jpg';
+
 
 interface DashboardProps {
   quotes: Quote[];

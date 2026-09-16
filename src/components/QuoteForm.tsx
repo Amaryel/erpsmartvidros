@@ -849,16 +849,6 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
-                onClick={() => setShowImportCutModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-950 border border-amber-500/40 text-xs font-bold rounded-xl transition-colors"
-                title="Importar medidas de corte calculadas"
-              >
-                <Scissors className="w-3.5 h-3.5 text-amber-600" />
-                <span>+ Medida de Corte</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => handleOpenNewProductModal()}
                 className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold rounded-xl transition-colors shadow-2xs"
                 title="Cadastrar um novo produto e adicionar ao orçamento"

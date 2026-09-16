@@ -1,6 +1,7 @@
 import React from 'react';
 import { Contract, CompanyInfo } from '../types';
 import { Layers } from 'lucide-react';
+import SMART_VIDROS_OFFICIAL_LOGO_BASE64 from '../assets/logoBase64';
 
 interface ContractDocumentViewProps {
   contract: Contract;
@@ -32,30 +33,32 @@ export const ContractDocumentView: React.FC<ContractDocumentViewProps> = ({
         {/* LOGO & IDENTIDADE VISUAL */}
         <div className="flex items-center gap-3.5 notranslate" translate="no">
           <img
-            src={companyInfo?.logoUrl || '/logo.png'}
+            src={
+              companyInfo?.logoUrl &&
+              !companyInfo.logoUrl.includes('178') &&
+              !companyInfo.logoUrl.includes('badge') &&
+              !companyInfo.logoUrl.endsWith('.jpg') &&
+              !companyInfo.logoUrl.includes('.svg')
+                ? companyInfo.logoUrl
+                : SMART_VIDROS_OFFICIAL_LOGO_BASE64
+            }
             alt={contractorName}
             referrerPolicy="no-referrer"
             style={{
-              height: '56px',
-              maxHeight: '56px',
-              width: '56px',
-              maxWidth: '56px',
-              minWidth: '56px',
+              height: '50px',
+              maxHeight: '50px',
+              width: 'auto',
+              maxWidth: '140px',
               objectFit: 'contain',
               display: 'inline-block',
             }}
-            className="h-14 w-14 object-contain rounded-xl shrink-0 drop-shadow-md border border-amber-500/40"
+            className="h-12 w-auto max-w-[140px] object-contain shrink-0 drop-shadow-sm"
           />
 
           <div className="notranslate leading-tight" translate="no">
-            <div className="flex items-baseline gap-1.5 notranslate" translate="no">
-              <span className="font-black tracking-widest text-xl text-amber-600 notranslate" translate="no">
-                SMART
-              </span>
-              <span className="font-extrabold tracking-wider text-lg text-slate-900 uppercase notranslate" translate="no">
-                VIDROS
-              </span>
-            </div>
+            <p className="text-xs font-bold text-slate-800 tracking-wide">
+              {contractorName}
+            </p>
             <p className="text-[11px] font-semibold text-slate-500 tracking-wide mt-0.5">
               {contractorPhone}
             </p>

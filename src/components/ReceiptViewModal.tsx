@@ -4,6 +4,7 @@ import { Receipt, CompanyInfo, Sale, Receivable, PaymentMethod } from '../types'
 import { numberToWordsBRL, formatDateExtenso } from '../utils/numberToWords';
 import { downloadPdfElement } from '../utils/pdfGenerator';
 import { getSales, getReceivables, getQuotes } from '../services/storage';
+import SMART_VIDROS_OFFICIAL_LOGO_BASE64 from '../assets/logoBase64';
 
 interface ReceiptViewModalProps {
   receipt: Receipt;
@@ -237,29 +238,32 @@ export const ReceiptViewModal: React.FC<ReceiptViewModalProps> = ({
           {/* Cabeçalho Centralizado da Empresa Smart Vidros */}
           <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 text-center mb-4 notranslate" translate="no">
             <div className="flex flex-col items-center justify-center gap-2 mb-2 notranslate" translate="no">
-              {/* Logotipo Oficial Emblema */}
+              {/* Logotipo Oficial */}
               <img
-                src={companyInfo.logoUrl || '/logo.png'}
+                src={
+                  companyInfo.logoUrl &&
+                  !companyInfo.logoUrl.includes('178') &&
+                  !companyInfo.logoUrl.includes('badge') &&
+                  !companyInfo.logoUrl.endsWith('.jpg') &&
+                  !companyInfo.logoUrl.includes('.svg')
+                    ? companyInfo.logoUrl
+                    : SMART_VIDROS_OFFICIAL_LOGO_BASE64
+                }
                 alt={companyInfo.name || 'Smart Vidros'}
                 referrerPolicy="no-referrer"
                 style={{
-                  height: '64px',
-                  maxHeight: '64px',
-                  width: '64px',
-                  maxWidth: '64px',
-                  minWidth: '64px',
+                  height: '52px',
+                  maxHeight: '52px',
+                  width: 'auto',
+                  maxWidth: '150px',
                   objectFit: 'contain',
                   display: 'inline-block',
                 }}
-                className="h-16 w-16 object-contain rounded-xl drop-shadow-md border border-amber-500/40"
+                className="h-13 w-auto max-w-[150px] object-contain drop-shadow-md"
               />
 
               <div className="notranslate" translate="no">
-                <div className="flex items-baseline justify-center gap-1.5 notranslate" translate="no">
-                  <span className="font-black tracking-widest text-lg sm:text-xl text-amber-400 notranslate" translate="no">SMART</span>
-                  <span className="font-extrabold tracking-wider text-base sm:text-lg text-white uppercase notranslate" translate="no">VIDROS</span>
-                </div>
-                <p className="text-xs text-amber-200/90 font-semibold tracking-wide notranslate" translate="no">
+                <p className="text-xs text-amber-300 font-bold tracking-wide notranslate" translate="no">
                   {ownerName}
                 </p>
                 <p className="text-[11px] text-slate-400 notranslate" translate="no">

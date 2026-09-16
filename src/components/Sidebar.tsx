@@ -144,11 +144,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
         },
         {
-          id: 'cut_calculator',
-          label: 'Medidas de Corte',
-          icon: Scissors,
-        },
-        {
           id: 'sales',
           label: 'Vendas / PDV',
           icon: ShoppingBag,

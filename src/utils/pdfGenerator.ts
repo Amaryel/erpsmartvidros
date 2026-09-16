@@ -167,7 +167,9 @@ const ISOLATED_IFRAME_CSS = `
     object-fit: contain !important;
     display: inline-block !important;
   }
+  img.h-15, .h-15 { height: 60px !important; max-height: 60px !important; }
   img.h-14, .h-14 { height: 56px !important; max-height: 56px !important; }
+  img.h-13, .h-13 { height: 52px !important; max-height: 52px !important; }
   img.h-12, .h-12 { height: 48px !important; max-height: 48px !important; }
   img.h-11, .h-11 { height: 44px !important; max-height: 44px !important; }
   img.h-10, .h-10 { height: 40px !important; max-height: 40px !important; }
@@ -176,6 +178,14 @@ const ISOLATED_IFRAME_CSS = `
   img.h-6, .h-6 { height: 24px !important; max-height: 24px !important; }
   img.h-5, .h-5 { height: 20px !important; max-height: 20px !important; }
   img.h-4, .h-4 { height: 16px !important; max-height: 16px !important; }
+
+  .max-w-\\[140px\\] { max-width: 140px !important; }
+  .max-w-\\[150px\\] { max-width: 150px !important; }
+  .max-w-\\[180px\\] { max-width: 180px !important; }
+  .max-w-\\[220px\\] { max-width: 220px !important; }
+  .max-w-\\[240px\\] { max-width: 240px !important; }
+  .w-auto { width: auto !important; }
+  .shrink-0 { flex-shrink: 0 !important; }
 
   .object-contain { object-fit: contain !important; }
   .object-cover { object-fit: cover !important; }
@@ -731,13 +741,25 @@ export const downloadPdfElement = async (elementId: string, filename: string): P
     `);
     iframeDoc.close();
 
-    // Pausa para montagem e estabilização do layout
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    // Pausa para montagem e estabilização do layout + garantia de carregamento de imagens
+    const images = Array.from(iframeDoc.querySelectorAll('img'));
+    await Promise.all([
+      new Promise((resolve) => setTimeout(resolve, 250)),
+      ...images.map((img) => {
+        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = () => resolve(null);
+          img.onerror = () => resolve(null);
+          setTimeout(resolve, 800); // timeout de segurança
+        });
+      }),
+    ]);
 
     const rootEl = iframeDoc.getElementById('pdf-root');
     if (rootEl) {
       sanitizeElementStyles(rootEl);
     }
+
 
     // 3. Renderizar Canvas do documento inteiro
     const canvas = await html2canvas(iframeDoc.body, {

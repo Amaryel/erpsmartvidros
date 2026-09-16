@@ -3,6 +3,7 @@ import { X, Printer, Share2, Layers, Check, Edit, ArrowRightLeft, Download, Load
 import { Quote, CompanyInfo, QuoteItem } from '../types';
 import { downloadPdfElement } from '../utils/pdfGenerator';
 import { TechnicalProductPreview } from './TechnicalProductPreview';
+import SMART_VIDROS_OFFICIAL_LOGO_BASE64 from '../assets/logoBase64';
 
 interface QuoteViewModalProps {
   quote: Quote;
@@ -161,29 +162,32 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
           <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 notranslate" translate="no">
             
             <div className="flex items-center gap-3.5 notranslate" translate="no">
-              {/* Logotipo Oficial Emblema */}
+              {/* Logotipo Oficial */}
               <img
-                src={companyInfo.logoUrl || '/logo.png'}
+                src={
+                  companyInfo.logoUrl &&
+                  !companyInfo.logoUrl.includes('178') &&
+                  !companyInfo.logoUrl.includes('badge') &&
+                  !companyInfo.logoUrl.endsWith('.jpg') &&
+                  !companyInfo.logoUrl.includes('.svg')
+                    ? companyInfo.logoUrl
+                    : SMART_VIDROS_OFFICIAL_LOGO_BASE64
+                }
                 alt={companyInfo.name || 'Smart Vidros'}
                 referrerPolicy="no-referrer"
                 style={{
-                  height: '56px',
-                  maxHeight: '56px',
-                  width: '56px',
-                  maxWidth: '56px',
-                  minWidth: '56px',
+                  height: '50px',
+                  maxHeight: '50px',
+                  width: 'auto',
+                  maxWidth: '140px',
                   objectFit: 'contain',
                   display: 'inline-block',
                 }}
-                className="h-14 w-14 object-contain rounded-xl shrink-0 drop-shadow-md border border-amber-500/40"
+                className="h-12 w-auto max-w-[140px] object-contain shrink-0 drop-shadow-md"
               />
 
               <div className="notranslate" translate="no">
-                <div className="flex items-baseline gap-1.5 notranslate" translate="no">
-                  <span className="font-black tracking-widest text-lg sm:text-xl text-amber-400 notranslate" translate="no">SMART</span>
-                  <span className="font-extrabold tracking-wider text-base sm:text-lg text-white uppercase notranslate" translate="no">VIDROS</span>
-                </div>
-                <p className="text-xs text-amber-200/90 font-semibold tracking-wide notranslate" translate="no">
+                <p className="text-xs text-amber-300 font-bold tracking-wide notranslate" translate="no">
                   {companyInfo.ownerName || 'James Clayton do Nascimento'}
                 </p>
                 <p className="text-[11px] text-slate-400 notranslate" translate="no">
@@ -243,17 +247,15 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                 <table className="w-full text-left text-xs table-fixed border-collapse" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
                   <colgroup>
                     <col style={{ width: '4%' }} />
-                    <col style={{ width: '56%' }} />
-                    <col style={{ width: '13%' }} />
-                    <col style={{ width: '13%' }} />
+                    <col style={{ width: '68%' }} />
+                    <col style={{ width: '14%' }} />
                     <col style={{ width: '14%' }} />
                   </colgroup>
                   <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                     <tr>
                       <th style={{ width: '4%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-1.5 text-center">#</th>
-                      <th style={{ width: '56%', textAlign: 'left', boxSizing: 'border-box' }} className="py-2.5 px-3">Item / Especificações Técnicas</th>
-                      <th style={{ width: '13%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Área (m²) / Qtd</th>
-                      <th style={{ width: '13%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Valor Unit / m²</th>
+                      <th style={{ width: '68%', textAlign: 'left', boxSizing: 'border-box' }} className="py-2.5 px-3">Item / Especificações Técnicas</th>
+                      <th style={{ width: '14%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Área (m²) / Qtd</th>
                       <th style={{ width: '14%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Total (R$)</th>
                     </tr>
                   </thead>
@@ -264,7 +266,7 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                           {idx + 1}
                         </td>
 
-                        <td style={{ width: '56%', textAlign: 'left', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 align-top">
+                        <td style={{ width: '68%', textAlign: 'left', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 align-top">
                           <div className="flex flex-row items-start gap-3.5">
                             {/* Ilustração Técnica do Produto (INDISPENSÁVEL) */}
                             {item.type === 'dimensao' && (
@@ -337,7 +339,7 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                         </td>
 
                         {/* Área m² ou Quantidade (Exibindo estritamente a Área e Qtd) */}
-                        <td style={{ width: '13%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2 text-center font-mono align-top">
+                        <td style={{ width: '14%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2 text-center font-mono align-top">
                           {item.type === 'dimensao' ? (
                             <div className="flex flex-col items-center justify-center">
                               <span className="font-black text-slate-900 text-xs">{item.areaM2 || 0} m²</span>
@@ -348,11 +350,6 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                           ) : (
                             <span className="font-bold text-slate-900 text-xs">{item.quantity} un</span>
                           )}
-                        </td>
-
-                        {/* Valor Unitário ou m² */}
-                        <td style={{ width: '13%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 text-right font-mono text-slate-700 align-top text-xs">
-                          R$ {item.type === 'dimensao' ? (item.pricePerM2 || 0).toFixed(2) : (item.unitPrice || 0).toFixed(2)}
                         </td>
 
                         {/* Total do Item */}

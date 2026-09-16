@@ -1,6 +1,5 @@
 import { CompanyInfo } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
-import smartVidrosLogoImg from '../../../assets/images/smart_vidros_badge_icon_1789127056541.jpg';
 import { getCurrentCompanyId } from '../auth';
 import { autoSyncEntityChange } from '../supabaseSync';
 
@@ -16,16 +15,23 @@ export const DEFAULT_COMPANY_INFO: CompanyInfo = {
   email: 'contato.smartvidros@gmail.com',
   address: 'Rua Projetada – Sussuapara-PI',
   city: 'Picos – PI',
-  logoUrl: smartVidrosLogoImg || '/logo.png',
+  logoUrl: '/logo.png',
 };
 
 export function getCompanyInfo(): CompanyInfo {
   const data = storageAdapter.getItem<CompanyInfo>(COMPANY_KEY, null);
   if (!data) return DEFAULT_COMPANY_INFO;
   
-  // Se a logo for a antiga gerada ou nula, atualiza para o novo logo oficial
+  // Limpa logos antigas que tinham fundo cinza/quadrado ou formatos incompatíveis
   let currentLogo = data.logoUrl;
-  if (!currentLogo || currentLogo.includes('1786536378370')) {
+  if (
+    !currentLogo ||
+    currentLogo.includes('178') ||
+    currentLogo.includes('badge') ||
+    currentLogo.includes('smart_vidros_') ||
+    currentLogo.endsWith('.jpg') ||
+    currentLogo.includes('.svg')
+  ) {
     currentLogo = '/logo.png';
   }
 
@@ -46,3 +52,4 @@ export function saveCompanyInfo(info: CompanyInfo): void {
   storageAdapter.setItem(COMPANY_KEY, updatedInfo);
   autoSyncEntityChange('companies', 'upsert', updatedInfo);
 }
+

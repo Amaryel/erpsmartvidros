@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CompanyInfo } from '../types';
-import officialLogoImg from '../assets/images/smart_vidros_badge_icon_1789127056541.jpg';
+import SMART_VIDROS_OFFICIAL_LOGO_BASE64 from '../assets/logoBase64';
 
 interface SmartVidrosLogoProps {
   companyInfo?: CompanyInfo;
@@ -21,15 +21,23 @@ export const SmartVidrosLogo: React.FC<SmartVidrosLogoProps> = ({
   className = '',
 }) => {
   const [imgError, setImgError] = useState(false);
-  const logoSrc = companyInfo?.logoUrl || officialLogoImg || '/logo.png';
+  const rawLogo = companyInfo?.logoUrl;
+  const logoSrc =
+    rawLogo &&
+    !rawLogo.includes('178') &&
+    !rawLogo.includes('badge') &&
+    !rawLogo.endsWith('.jpg') &&
+    !rawLogo.includes('.svg')
+      ? rawLogo
+      : SMART_VIDROS_OFFICIAL_LOGO_BASE64;
   const phone = companyInfo?.phone || '';
   const customName = companyInfo?.name || 'Smart Vidros';
 
-  // Configurações de dimensão da imagem do Emblema / Ícone (1:1 aspect ratio)
+  // Configurações de dimensão da logo horizontal proporcional
   const sizeStyles = {
-    sm: { size: '36px', class: 'h-9 w-9' },
-    md: { size: '44px', class: 'h-11 w-11' },
-    lg: { size: '54px', class: 'h-14 w-14' },
+    sm: { height: '32px', maxWidth: '140px', class: 'h-8 w-auto' },
+    md: { height: '40px', maxWidth: '180px', class: 'h-10 w-auto' },
+    lg: { height: '52px', maxWidth: '220px', class: 'h-13 w-auto' },
   };
 
   return (
@@ -48,14 +56,14 @@ export const SmartVidrosLogo: React.FC<SmartVidrosLogoProps> = ({
           referrerPolicy="no-referrer"
           onError={() => setImgError(true)}
           style={{
-            height: sizeStyles[size].size,
-            maxHeight: sizeStyles[size].size,
-            width: sizeStyles[size].size,
-            maxWidth: sizeStyles[size].size,
+            height: sizeStyles[size].height,
+            maxHeight: sizeStyles[size].height,
+            width: 'auto',
+            maxWidth: sizeStyles[size].maxWidth,
             objectFit: 'contain',
             display: 'inline-block',
           }}
-          className={`${sizeStyles[size].class} object-contain rounded-xl drop-shadow-md border border-amber-500/30 transition-transform group-hover:scale-105 shrink-0`}
+          className={`${sizeStyles[size].class} object-contain transition-transform group-hover:scale-105 shrink-0`}
         />
       ) : (
         <div className="leading-tight notranslate" translate="no">
@@ -79,20 +87,17 @@ export const SmartVidrosLogo: React.FC<SmartVidrosLogoProps> = ({
       )}
 
       {/* Identificação textual complementar quando desejado */}
-      <div className="hidden sm:flex flex-col notranslate" translate="no">
-        <div className="flex items-baseline gap-1">
-          <span className="font-black tracking-wider text-amber-500 text-sm drop-shadow-xs">SMART</span>
-          <span className={`font-bold tracking-wide text-xs uppercase ${variant === 'light' ? 'text-slate-900' : 'text-white'}`}>VIDROS</span>
-        </div>
-        {showSubtitle && phone && (
+      {showSubtitle && phone && (
+        <div className="hidden sm:flex flex-col notranslate" translate="no">
           <span className={`text-[10px] tracking-wider uppercase font-medium ${variant === 'light' ? 'text-slate-500' : 'text-zinc-400'}`}>
             {phone}
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 
 

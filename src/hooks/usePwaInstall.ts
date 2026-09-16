@@ -25,13 +25,21 @@ export function usePwaInstall() {
 
     setIsInstalled(isStandalone);
 
-    // 2. Detectar se é iOS (iPhone/iPad/iPod)
+    // 2. Detectar se é iOS (iPhone/iPad/iPod/iPadOS)
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isIosDevice =
+      /iphone|ipad|ipod/.test(userAgent) ||
+      (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints > 1 || 'ontouchend' in document));
     setIsIOS(isIosDevice);
 
-    // 3. Detectar Mobile ou Tablet
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || window.innerWidth <= 1024;
+    // 3. Detectar Mobile ou Tablet (Android Tablets, iPads, Surfaces, etc.)
+    const isTablet =
+      /ipad|tablet|(android(?!.*mobile))/i.test(userAgent) ||
+      (navigator.maxTouchPoints > 1 && window.innerWidth <= 1366);
+    const isMobile =
+      /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) ||
+      window.innerWidth <= 1024 ||
+      isTablet;
     setIsMobileOrTablet(isMobile);
 
     // 4. Capturar evento beforeinstallprompt (Android / Chrome / Edge)
