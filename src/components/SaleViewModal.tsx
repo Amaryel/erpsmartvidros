@@ -195,8 +195,9 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
         <div className="p-6 sm:p-10 bg-white overflow-y-auto flex-1 space-y-8 text-slate-900 font-sans" id="printable-sale-area">
           
           {/* Cabeçalho da Empresa Smart Vidros */}
-          <div className="bg-slate-950 text-white rounded-xl p-6 border-b-4 border-amber-500 flex flex-col items-center justify-center text-center gap-3">
-            <div className="flex flex-col items-center justify-center gap-2">
+          <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 notranslate" translate="no">
+            
+            <div className="flex items-center gap-3.5 notranslate" translate="no">
               {/* Logotipo Oficial */}
               <img
                 src={
@@ -211,27 +212,30 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
                 alt={companyInfo.name || 'Smart Vidros'}
                 referrerPolicy="no-referrer"
                 style={{
-                  height: '52px',
-                  maxHeight: '52px',
+                  height: '50px',
+                  maxHeight: '50px',
                   width: 'auto',
-                  maxWidth: '150px',
+                  maxWidth: '140px',
                   objectFit: 'contain',
                   display: 'inline-block',
                 }}
-                className="h-13 w-auto max-w-[150px] object-contain drop-shadow-md"
+                className="h-12 w-auto max-w-[140px] object-contain shrink-0 drop-shadow-md"
               />
 
-              <div>
-                <p className="text-xs text-amber-300 font-bold tracking-wide">
+              <div className="notranslate" translate="no">
+                <p className="text-xs text-amber-300 font-bold tracking-wide notranslate" translate="no">
                   {companyInfo.ownerName || 'James Clayton do Nascimento'}
                 </p>
-                <p className="text-[10px] text-slate-400 tracking-widest uppercase font-semibold">
+                <p className="text-[11px] text-slate-400 notranslate" translate="no">
                   CNPJ: {companyInfo.cnpj || '51.840.669/0001-22'}
                 </p>
               </div>
             </div>
 
-            <div className="text-center text-xs text-slate-300 space-y-0.5 pt-2 border-t border-slate-800/80 w-full">
+            <div className="text-left sm:text-right text-xs text-slate-300 space-y-0.5 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800 w-full sm:w-auto">
+              <div className="font-bold text-amber-400 uppercase text-xs tracking-wider mb-0.5">
+                PEDIDO DE VENDA / ORDEM DE SERVIÇO
+              </div>
               <p>📍 {companyInfo.address || 'Rua Projetada – Sussuapara-PI'} • {companyInfo.city || 'Picos – PI'}</p>
               <p>📞 WhatsApp: {companyInfo.phone || '(89) 9 9991-0028'} • ✉️ {companyInfo.email || 'contato.smartvidros@gmail.com'}</p>
             </div>

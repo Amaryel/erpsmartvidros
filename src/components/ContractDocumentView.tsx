@@ -28,7 +28,7 @@ export const ContractDocumentView: React.FC<ContractDocumentViewProps> = ({
       style={{ minHeight: '297mm' }}
     >
       {/* CABEÇALHO DO DOCUMENTO A4 SMART VIDROS */}
-      <div className="border-b-2 border-amber-500 pb-5 mb-6 flex flex-row items-center justify-between gap-4 notranslate" translate="no">
+      <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 notranslate" translate="no">
         
         {/* LOGO & IDENTIDADE VISUAL */}
         <div className="flex items-center gap-3.5 notranslate" translate="no">
@@ -52,31 +52,28 @@ export const ContractDocumentView: React.FC<ContractDocumentViewProps> = ({
               objectFit: 'contain',
               display: 'inline-block',
             }}
-            className="h-12 w-auto max-w-[140px] object-contain shrink-0 drop-shadow-sm"
+            className="h-12 w-auto max-w-[140px] object-contain shrink-0 drop-shadow-md"
           />
 
           <div className="notranslate leading-tight" translate="no">
-            <p className="text-xs font-bold text-slate-800 tracking-wide">
+            <p className="text-xs font-bold text-amber-300 tracking-wide">
               {contractorName}
             </p>
-            <p className="text-[11px] font-semibold text-slate-500 tracking-wide mt-0.5">
-              {contractorPhone}
+            <p className="text-[11px] text-slate-400 notranslate mt-0.5">
+              CNPJ: {contractorCnpj}
             </p>
           </div>
         </div>
 
         {/* IDENTIFICAÇÃO DO CONTRATO E DADOS DO EMISSOR */}
-        <div className="text-right text-xs text-slate-600 notranslate" translate="no">
-          <div className="inline-block bg-slate-900 text-amber-400 font-black text-xs px-3 py-1 rounded-md mb-1 uppercase tracking-wider shadow-sm">
-            {contract.code || 'CONTRATO'}
+        <div className="text-left sm:text-right text-xs text-slate-300 space-y-0.5 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800 w-full sm:w-auto">
+          <div className="flex items-center justify-start sm:justify-end gap-2 mb-1">
+            <span className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+              {contract.code || 'CONTRATO'}
+            </span>
           </div>
-          <p className="font-bold text-slate-800 text-[11px]">
-            CNPJ: {contractorCnpj}
-          </p>
-          <p className="text-[11px] text-slate-600">{contractorAddress}</p>
-          <p className="text-[10px] text-slate-500">
-            Telefone: {contractorPhone} | Email: {contractorEmail}
-          </p>
+          <p>📍 {contractorAddress}</p>
+          <p>📞 WhatsApp: {contractorPhone} • ✉️ {contractorEmail}</p>
         </div>
       </div>
 
