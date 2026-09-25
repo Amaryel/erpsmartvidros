@@ -13,27 +13,31 @@ import {
   Sliders,
   ChevronDown,
   ChevronUp,
-  Layers
+  Layers,
+  Eye
 } from 'lucide-react';
 import { CatalogItem, ProductType, TechnicalCategory } from '../types';
 import { saveCatalogItem } from '../services/storage';
 import { getSmartProductImage } from '../services/data/repositories/productsRepository';
+import { TechnicalFieldSelect } from './TechnicalFieldSelect';
+import { TechnicalProductPreview, detectTechnicalCategory } from './TechnicalProductPreview';
 
-const GLASS_TYPES = ['Temperado', 'Laminado', 'Comum (Float)', 'Insulado', 'Aramado', 'Serigrafado', 'Outro'];
-const GLASS_THICKNESSES = ['3mm', '4mm', '5mm', '6mm', '8mm', '10mm', '12mm', '15mm', 'Outra'];
-const GLASS_COLORS = ['Incolor', 'Fumê', 'Verde', 'Bronze', 'Astral', 'Antílope', 'Pontilhado', 'Quadrato', 'Jateado', 'Refletivo', 'Outra'];
-const HARDWARE_COLORS = ['Preto', 'Branco', 'Fosco/Natural', 'Bronze', 'Champagne', 'Cromado/Inox', 'Ouro/Dourado', 'Cinza', 'Outra'];
-const ALUMINUM_LINES = ['Suprema', 'Gold', 'Convencional', 'Elegance', 'Slide', 'Versatik', 'Engenharia', 'Outra'];
-const OPENING_TYPES = ['De Correr (Slide)', 'Pivotante', 'Fixo', 'Basculante', 'Maxim-ar', 'De Abrir (Giro)', 'Sanfonada (Articulada)', 'Outro'];
+const GLASS_TYPES = ['Temperado', 'Laminado', 'Comum (Float)', 'Insulado', 'Aramado', 'Serigrafado'];
+const GLASS_THICKNESSES = ['3mm', '4mm', '5mm', '6mm', '8mm', '10mm', '12mm', '15mm', '19mm'];
+const GLASS_COLORS = ['Incolor', 'Fumê', 'Verde', 'Bronze', 'Astral (Azul)', 'Antílope', 'Pontilhado', 'Quadrato', 'Jateado / Fosco', 'Refletivo'];
+const HARDWARE_COLORS = ['Preta', 'Branca', 'Fosco / Natural', 'Bronze', 'Champagne', 'Cromada / Inox', 'Dourada / Ouro', 'Cinza'];
+const ALUMINUM_LINES = ['Suprema', 'Gold', 'Convencional', 'Elegance', 'Slide', 'Versatik', 'Engenharia', 'Linha 25'];
+const OPENING_TYPES = ['De Correr (Slide)', 'Pivotante', 'Fixo', 'Basculante', 'Maxim-ar', 'De Abrir (Giro)', 'Sanfonada (Articulada)'];
 const LEAF_COUNTS = ['1 Folha', '2 Folhas (1F+1M)', '4 Folhas (2F+2M)', '3 Folhas (2F+1M)', '3 Folhas Móveis', '6 Folhas (4F+2M)', 'Fixo Inteiro'];
 const FINISH_OPTIONS = ['Lapidado Reto', 'Bisotê 25mm', 'Bisotê 15mm', 'Bisotê 10mm', 'Canto Moeda', 'Jateado Total', 'Jateado com Desenho', 'Canto Reto'];
+
 const TECH_CATEGORIES: { id: TechnicalCategory; label: string }[] = [
   { id: 'vidro', label: 'Vidro / Painel' },
   { id: 'box', label: 'Box de Banheiro' },
   { id: 'porta', label: 'Porta' },
   { id: 'janela', label: 'Janela' },
   { id: 'espelho', label: 'Espelho' },
-  { id: 'guarda_corpo', label: 'Guarda-Corpo' },
+  { id: 'guarda_corpo', label: 'Guarda-Corpo / Sacada' },
   { id: 'outro', label: 'Outro' },
 ];
 
@@ -60,16 +64,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [status, setStatus] = useState<'ativo' | 'inativo'>(initialData?.status || 'ativo');
   const [imageUrl, setImageUrl] = useState<string>(initialData?.imageUrl || '');
 
-  // Características Técnicas Editáveis
-  const [technicalCategory, setTechnicalCategory] = useState<TechnicalCategory>(initialData?.technicalCategory || 'vidro');
-  const [glassType, setGlassType] = useState(initialData?.glassType || 'Temperado');
-  const [thickness, setThickness] = useState(initialData?.thickness || '8mm');
-  const [glassColor, setGlassColor] = useState(initialData?.glassColor || 'Incolor');
-  const [hardwareColor, setHardwareColor] = useState(initialData?.hardwareColor || 'Preto');
-  const [line, setLine] = useState(initialData?.line || 'Suprema');
-  const [openingType, setOpeningType] = useState(initialData?.openingType || 'De Correr (Slide)');
-  const [leafCount, setLeafCount] = useState(initialData?.leafCount || '2 Folhas (1F+1M)');
-  const [finish, setFinish] = useState(initialData?.finish || 'Lapidado Reto');
+  // Características Técnicas Editáveis com suporte a vazio e novos tipos
+  const [technicalCategory, setTechnicalCategory] = useState<TechnicalCategory>(
+    initialData?.technicalCategory || detectTechnicalCategory(initialData?.name || '')
+  );
+  const [glassType, setGlassType] = useState(initialData?.glassType ?? 'Temperado');
+  const [thickness, setThickness] = useState(initialData?.thickness ?? '8mm');
+  const [glassColor, setGlassColor] = useState(initialData?.glassColor ?? 'Incolor');
+  const [hardwareColor, setHardwareColor] = useState(initialData?.hardwareColor ?? 'Preta');
+  const [line, setLine] = useState(initialData?.line ?? 'Suprema');
+  const [openingType, setOpeningType] = useState(initialData?.openingType ?? 'De Correr (Slide)');
+  const [leafCount, setLeafCount] = useState(initialData?.leafCount ?? '2 Folhas (1F+1M)');
+  const [finish, setFinish] = useState(initialData?.finish ?? 'Lapidado Reto');
   
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(
     Boolean(initialData?.glassType || initialData?.thickness || initialData?.hardwareColor || initialData?.line || initialData?.type === 'dimensao')
@@ -185,15 +191,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       
       // Características Técnicas
       technicalCategory,
-      glassType: glassType.trim() || undefined,
-      thickness: thickness.trim() || undefined,
-      glassColor: glassColor.trim() || undefined,
-      hardwareColor: hardwareColor.trim() || undefined,
-      aluminumColor: hardwareColor.trim() || undefined,
-      line: line.trim() || undefined,
-      openingType: openingType.trim() || undefined,
-      leafCount: leafCount.trim() || undefined,
-      finish: finish.trim() || undefined,
+      glassType: glassType.trim() ? glassType.trim() : undefined,
+      thickness: thickness.trim() ? thickness.trim() : undefined,
+      glassColor: glassColor.trim() ? glassColor.trim() : undefined,
+      hardwareColor: hardwareColor.trim() ? hardwareColor.trim() : undefined,
+      aluminumColor: hardwareColor.trim() ? hardwareColor.trim() : undefined,
+      line: line.trim() ? line.trim() : undefined,
+      openingType: openingType.trim() ? openingType.trim() : undefined,
+      leafCount: leafCount.trim() ? leafCount.trim() : undefined,
+      finish: finish.trim() ? finish.trim() : undefined,
     });
 
     const saved = updatedCatalog.find((c) => c.id === initialData?.id || c.name.trim().toLowerCase() === name.trim().toLowerCase()) || updatedCatalog[0];
@@ -202,7 +208,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl max-w-xl w-full border border-slate-200 my-6 space-y-4 animate-in fade-in zoom-in duration-200 text-slate-900 max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl max-w-2xl w-full border border-slate-200 my-6 space-y-4 animate-in fade-in zoom-in duration-200 text-slate-900 max-h-[94vh] flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
@@ -213,7 +219,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             <div>
               <h2 className="text-base font-extrabold text-slate-900">{title}</h2>
               <p className="text-xs text-slate-500">
-                {initialData?.id ? 'Edite os dados, especificações técnicas e foto do produto' : 'Cadastre um novo produto com especificações técnicas e fotos'}
+                {initialData?.id ? 'Edite os dados, características técnicas (ou deixe vazio) e foto' : 'Cadastre um novo produto com especificações técnicas e desenhos'}
               </p>
             </div>
           </div>
@@ -268,108 +274,100 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               className="hidden"
             />
 
-            {imageUrl ? (
-              <div className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white aspect-video max-h-40 flex items-center justify-center">
-                <img
-                  src={imageUrl}
-                  alt={name || 'Produto'}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Preview da Foto */}
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-slate-200/70 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shrink-0 relative group shadow-inner">
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt="Preview do produto"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="text-center p-2 text-slate-400 flex flex-col items-center">
+                    <Package className="w-7 h-7 mb-1 opacity-40" />
+                    <span className="text-[10px] font-semibold">Sem foto</span>
+                  </div>
+                )}
+                {isCompressing && (
+                  <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center text-white text-[10px] font-bold">
+                    Otimizando...
+                  </div>
+                )}
+              </div>
+
+              {/* Ações de Foto */}
+              <div className="flex-1 w-full space-y-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => cameraInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black text-[11px] shadow-lg flex items-center gap-1"
+                    className="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-3 rounded-xl transition-colors shadow-xs active:scale-95"
                   >
-                    <Camera className="w-3.5 h-3.5" />
+                    <Camera className="w-3.5 h-3.5 text-amber-400" />
                     <span>Tirar Foto</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl font-black text-[11px] shadow-lg flex items-center gap-1"
+                    className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold py-2 px-3 rounded-xl transition-colors shadow-xs active:scale-95"
                   >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Trocar</span>
+                    <Upload className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Galeria</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSuggestImage}
+                    className="text-[11px] text-amber-700 hover:text-amber-800 font-bold flex items-center gap-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 py-1.5 px-2.5 rounded-lg transition-colors w-full justify-center"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    <span>Sugerir Foto Inteligente de Vidraçaria</span>
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-100 text-amber-900 transition-all font-bold group"
-                >
-                  <div className="w-7 h-7 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform shadow-sm">
-                    <Camera className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-[11px] font-black">Tirar Foto</span>
-                  <span className="text-[9px] text-amber-700/80">Câmera</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-slate-300 bg-white hover:bg-slate-100 text-slate-800 transition-all font-bold group"
-                >
-                  <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                    <Upload className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-[11px] font-black">Galeria</span>
-                  <span className="text-[9px] text-slate-500">Arquivo</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSuggestImage}
-                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-900 transition-all font-bold group"
-                >
-                  <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 group-hover:scale-110 transition-transform shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-[11px] font-black">Sugerir Foto</span>
-                  <span className="text-[9px] text-blue-700/80">Automática</span>
-                </button>
-              </div>
-            )}
-
-            {isCompressing && (
-              <div className="text-center text-amber-700 font-bold text-[11px] flex items-center justify-center gap-1.5 py-1">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Otimizando e comprimindo imagem...</span>
-              </div>
-            )}
+            </div>
           </div>
 
-          {/* Tipo de Cálculo de Preço */}
+          {/* Tipo de Cálculo: Metro Quadrado vs Unidade */}
           <div>
             <label className="block font-bold text-slate-700 uppercase mb-1">
               Tipo de Precificação <span className="text-amber-600">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => handleTypeChange('dimensao')}
-                className={`py-2 rounded-lg font-bold transition-all text-center ${
+                className={`p-2.5 rounded-xl border text-left font-bold transition-all flex items-center justify-between ${
                   type === 'dimensao'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm font-black'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'border-amber-500 bg-amber-500/10 text-amber-950 ring-2 ring-amber-500/20'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                Com Dimensões (m²)
+                <div>
+                  <div className="text-xs">Por Metro Quadrado (m²)</div>
+                  <div className="text-[10px] font-normal text-slate-500">Vidros, Box, Portas, Janelas, Espelhos</div>
+                </div>
+                {type === 'dimensao' && <Check className="w-4 h-4 text-amber-600 shrink-0 ml-1" />}
               </button>
+
               <button
                 type="button"
                 onClick={() => handleTypeChange('simples')}
-                className={`py-2 rounded-lg font-bold transition-all text-center ${
+                className={`p-2.5 rounded-xl border text-left font-bold transition-all flex items-center justify-between ${
                   type === 'simples'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm font-black'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'border-amber-500 bg-amber-500/10 text-amber-950 ring-2 ring-amber-500/20'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                Produto Simples (Unid)
+                <div>
+                  <div className="text-xs">Por Unidade / Peça / Serviço</div>
+                  <div className="text-[10px] font-normal text-slate-500">Puxadores, Fechaduras, Kits, Mão de obra</div>
+                </div>
+                {type === 'simples' && <Check className="w-4 h-4 text-amber-600 shrink-0 ml-1" />}
               </button>
             </div>
           </div>
@@ -387,6 +385,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               onChange={(e) => {
                 setName(e.target.value);
                 if (error) setError(null);
+                setTechnicalCategory(detectTechnicalCategory(e.target.value, technicalCategory));
               }}
               placeholder={type === 'dimensao' ? 'Ex: Box Frontal 8mm Incolor F1' : 'Ex: Espelho Lapidado 60cm'}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
@@ -435,7 +434,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
-          {/* SEÇÃO EXPANSÍVEL: Características Técnicas Detalhadas */}
+          {/* SEÇÃO EXPANSÍVEL: Características Técnicas Detalhadas + Desenho Técnico em Tempo Real */}
           <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/70">
             <button
               type="button"
@@ -444,14 +443,39 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             >
               <span className="flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-amber-600" />
-                <span>Características Técnicas & Especificações Padrão</span>
+                <span>Características Técnicas & Desenho Técnico Arquitetônico</span>
               </span>
               {showTechnicalDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
             </button>
 
             {showTechnicalDetails && (
-              <div className="p-3.5 pt-1 space-y-3 border-t border-slate-200 bg-white">
+              <div className="p-3.5 pt-1 space-y-3.5 border-t border-slate-200 bg-white">
                 
+                {/* Visualizador do Desenho Técnico em Tempo Real */}
+                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center gap-3">
+                  <div className="w-full sm:w-48 shrink-0">
+                    <TechnicalProductPreview
+                      name={name || 'Produto'}
+                      category={technicalCategory}
+                      glassColor={glassColor}
+                      hardwareColor={hardwareColor}
+                      openingType={openingType}
+                      leafCount={leafCount}
+                      compact={true}
+                      showDimensions={false}
+                    />
+                  </div>
+                  <div className="text-slate-300 text-xs space-y-1">
+                    <div className="font-bold text-amber-400 flex items-center gap-1">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Desenho Técnico Gerado Automaticamente</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      O sistema reconhece automaticamente a quantidade de folhas (<strong className="text-white">{leafCount || '2 Folhas'}</strong>), as cores do vidro (<strong className="text-white">{glassColor || 'Incolor'}</strong>) e ferragens (<strong className="text-white">{hardwareColor || 'Vazio'}</strong>) para desenhar com precisão nos orçamentos e PDFs.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Categoria Técnica */}
                 <div>
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
@@ -460,7 +484,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   <select
                     value={technicalCategory}
                     onChange={(e) => setTechnicalCategory(e.target.value as TechnicalCategory)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-900 font-semibold focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-900 font-semibold focus:outline-none focus:border-amber-500 text-xs"
                   >
                     {TECH_CATEGORIES.map((tc) => (
                       <option key={tc.id} value={tc.id}>{tc.label}</option>
@@ -468,150 +492,87 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {/* Tipo de Vidro */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Vidro</label>
-                    <input
-                      type="text"
-                      list="glass-types-list"
-                      value={glassType}
-                      onChange={(e) => setGlassType(e.target.value)}
-                      placeholder="Temperado"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                    />
-                    <datalist id="glass-types-list">
-                      {GLASS_TYPES.map((gt) => (
-                        <option key={gt} value={gt} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  {/* Espessura */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Espessura</label>
-                    <input
-                      type="text"
-                      list="glass-thicknesses-list"
-                      value={thickness}
-                      onChange={(e) => setThickness(e.target.value)}
-                      placeholder="8mm"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium font-mono"
-                    />
-                    <datalist id="glass-thicknesses-list">
-                      {GLASS_THICKNESSES.map((th) => (
-                        <option key={th} value={th} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  {/* Cor do Vidro */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Cor do Vidro</label>
-                    <input
-                      type="text"
-                      list="glass-colors-list"
-                      value={glassColor}
-                      onChange={(e) => setGlassColor(e.target.value)}
-                      placeholder="Incolor"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                    />
-                    <datalist id="glass-colors-list">
-                      {GLASS_COLORS.map((gc) => (
-                        <option key={gc} value={gc} />
-                      ))}
-                    </datalist>
-                  </div>
-
+                {/* Grid de Características Técnicas com Seleção Inteligente, Opção Vazio e Cadastro de Novo */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {/* Cor da Ferragem / Alumínio */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Ferragem / Alumínio</label>
-                    <input
-                      type="text"
-                      list="hardware-colors-list"
-                      value={hardwareColor}
-                      onChange={(e) => setHardwareColor(e.target.value)}
-                      placeholder="Preto"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                    />
-                    <datalist id="hardware-colors-list">
-                      {HARDWARE_COLORS.map((hc) => (
-                        <option key={hc} value={hc} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  {/* Linha de Perfil */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Linha do Perfil</label>
-                    <input
-                      type="text"
-                      list="aluminum-lines-list"
-                      value={line}
-                      onChange={(e) => setLine(e.target.value)}
-                      placeholder="Suprema"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                    />
-                    <datalist id="aluminum-lines-list">
-                      {ALUMINUM_LINES.map((al) => (
-                        <option key={al} value={al} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  {/* Tipo de Abertura */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Abertura</label>
-                    <input
-                      type="text"
-                      list="opening-types-list"
-                      value={openingType}
-                      onChange={(e) => setOpeningType(e.target.value)}
-                      placeholder="De Correr (Slide)"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                    />
-                    <datalist id="opening-types-list">
-                      {OPENING_TYPES.map((ot) => (
-                        <option key={ot} value={ot} />
-                      ))}
-                    </datalist>
-                  </div>
+                  <TechnicalFieldSelect
+                    label="Cor da Ferragem / Alumínio"
+                    value={hardwareColor}
+                    onChange={setHardwareColor}
+                    presets={HARDWARE_COLORS}
+                    placeholder="Ex: Dourada Rosé, Champanhe..."
+                    emptyLabel="🚫 Vazio (Sem ferragem / Não se aplica)"
+                  />
 
                   {/* Número de Folhas */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Número de Folhas</label>
-                    <input
-                      type="text"
-                      list="leaf-counts-list"
-                      value={leafCount}
-                      onChange={(e) => setLeafCount(e.target.value)}
-                      placeholder="2 Folhas (1F+1M)"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                    />
-                    <datalist id="leaf-counts-list">
-                      {LEAF_COUNTS.map((lc) => (
-                        <option key={lc} value={lc} />
-                      ))}
-                    </datalist>
-                  </div>
+                  <TechnicalFieldSelect
+                    label="Número de Folhas (Layout)"
+                    value={leafCount}
+                    onChange={setLeafCount}
+                    presets={LEAF_COUNTS}
+                    placeholder="Ex: 4 Folhas (2F+2M), 1F..."
+                    emptyLabel="🚫 Vazio (Não especificado)"
+                  />
 
-                  {/* Acabamento / Lapidação */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Lapidação / Acabamento</label>
-                    <input
-                      type="text"
-                      list="finish-options-list"
-                      value={finish}
-                      onChange={(e) => setFinish(e.target.value)}
-                      placeholder="Lapidado Reto"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                    />
-                    <datalist id="finish-options-list">
-                      {FINISH_OPTIONS.map((fo) => (
-                        <option key={fo} value={fo} />
-                      ))}
-                    </datalist>
-                  </div>
+                  {/* Tipo de Vidro */}
+                  <TechnicalFieldSelect
+                    label="Tipo de Vidro"
+                    value={glassType}
+                    onChange={setGlassType}
+                    presets={GLASS_TYPES}
+                    placeholder="Ex: Temperado, Laminado..."
+                    emptyLabel="🚫 Vazio (Sem vidro / Não se aplica)"
+                  />
+
+                  {/* Espessura */}
+                  <TechnicalFieldSelect
+                    label="Espessura"
+                    value={thickness}
+                    onChange={setThickness}
+                    presets={GLASS_THICKNESSES}
+                    placeholder="Ex: 8mm, 10mm, 6+6mm..."
+                    emptyLabel="🚫 Vazio (Não especificado)"
+                  />
+
+                  {/* Cor do Vidro */}
+                  <TechnicalFieldSelect
+                    label="Cor do Vidro"
+                    value={glassColor}
+                    onChange={setGlassColor}
+                    presets={GLASS_COLORS}
+                    placeholder="Ex: Fumê, Incolor, Astral..."
+                    emptyLabel="🚫 Vazio (Não especificado)"
+                  />
+
+                  {/* Linha de Perfil */}
+                  <TechnicalFieldSelect
+                    label="Linha do Perfil / Alumínio"
+                    value={line}
+                    onChange={setLine}
+                    presets={ALUMINUM_LINES}
+                    placeholder="Ex: Suprema, Gold, Versatik..."
+                    emptyLabel="🚫 Vazio (Sem linha específica)"
+                  />
+
+                  {/* Tipo de Abertura */}
+                  <TechnicalFieldSelect
+                    label="Tipo de Abertura"
+                    value={openingType}
+                    onChange={setOpeningType}
+                    presets={OPENING_TYPES}
+                    placeholder="Ex: De Correr, Pivotante, Maxim-ar..."
+                    emptyLabel="🚫 Vazio (Não especificado)"
+                  />
+
+                  {/* Lapidação / Acabamento */}
+                  <TechnicalFieldSelect
+                    label="Lapidação / Acabamento"
+                    value={finish}
+                    onChange={setFinish}
+                    presets={FINISH_OPTIONS}
+                    placeholder="Ex: Lapidado Reto, Bisotê 25mm..."
+                    emptyLabel="🚫 Vazio (Sem acabamento especial)"
+                  />
                 </div>
               </div>
             )}
@@ -657,23 +618,23 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   onChange={() => setStatus('inativo')}
                   className="text-amber-500 focus:ring-amber-500"
                 />
-                <span className="text-slate-500">Inativo</span>
+                <span className="text-slate-500 font-bold">Inativo</span> (Oculto no catálogo)
               </label>
             </div>
           </div>
 
           {/* Botões de Ação */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              className="px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl font-bold transition-colors text-xs"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 text-xs font-extrabold text-slate-950 bg-amber-500 hover:bg-amber-400 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+              className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black transition-all shadow-md active:scale-95 text-xs flex items-center gap-1.5"
             >
               <Check className="w-4 h-4" />
               <span>Salvar Produto</span>

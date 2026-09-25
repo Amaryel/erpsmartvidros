@@ -67,9 +67,13 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
         const unitVal = item.quantity > 0 ? (item.totalPrice / item.quantity) : item.totalPrice;
         msg += `  ${idx + 1}. *${item.name}*\n`;
         if (item.type === 'dimensao') {
-          msg += `     Medidas: ${item.widthMm || 0}x${item.lengthMm || 0}mm (${item.areaM2 || 0}m²) | Qtd: ${item.quantity} ${item.quantity > 1 ? 'peças' : 'peça'}\n`;
-          if (item.glassType || item.glassColor) {
-            msg += `     Vidro: ${item.glassType || 'Temperado'} ${item.thickness || '8mm'} ${item.glassColor || 'Incolor'}\n`;
+          msg += `     Área: ${(item.areaM2 || 0).toFixed(2)} m² | Qtd: ${item.quantity} ${item.quantity > 1 ? 'peças' : 'peça'}\n`;
+          const glassSpecs = [item.glassType, item.thickness, item.glassColor].filter((s) => s && s.trim() && s.toLowerCase() !== 'vazio' && s.toLowerCase() !== 'nenhum').join(' ');
+          if (glassSpecs) {
+            msg += `     Vidro: ${glassSpecs}\n`;
+          }
+          if (item.hardwareColor && item.hardwareColor.trim() && item.hardwareColor.toLowerCase() !== 'vazio' && item.hardwareColor.toLowerCase() !== 'nenhum') {
+            msg += `     Ferragens: ${item.hardwareColor}\n`;
           }
           msg += `     *Valor Unitário:* R$ ${unitVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} -> *Total:* R$ ${item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
         } else {
@@ -257,7 +261,7 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                     <tr>
                       <th style={{ width: '4%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-1 text-center">#</th>
                       <th style={{ width: '51%', textAlign: 'left', boxSizing: 'border-box' }} className="py-2.5 px-3">Item / Especificações Técnicas</th>
-                      <th style={{ width: '15%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Qtd / Medidas</th>
+                      <th style={{ width: '15%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Área (m²) / Qtd</th>
                       <th style={{ width: '15%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-2.5 text-right">Valor Unit. (R$)</th>
                       <th style={{ width: '15%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Total (R$)</th>
                     </tr>
@@ -265,6 +269,16 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                   <tbody className="divide-y divide-slate-200 bg-white">
                     {envItems.map((item, idx) => {
                       const clientUnitPrice = item.quantity > 0 ? (item.totalPrice / item.quantity) : item.totalPrice;
+
+                      const glassSpecs = [item.glassType, item.thickness, item.glassColor]
+                        .filter((s) => s && s.trim() && s.toLowerCase() !== 'vazio' && s.toLowerCase() !== 'nenhum')
+                        .join(' ');
+
+                      const hasHardware = item.hardwareColor && item.hardwareColor.trim() && item.hardwareColor.toLowerCase() !== 'vazio' && item.hardwareColor.toLowerCase() !== 'nenhum';
+                      const hasLine = item.line && item.line.trim() && item.line.toLowerCase() !== 'vazio' && item.line.toLowerCase() !== 'nenhum';
+                      const hasOpening = item.openingType && item.openingType.trim() && item.openingType.toLowerCase() !== 'vazio' && item.openingType.toLowerCase() !== 'nenhum';
+                      const hasLeafCount = item.leafCount && item.leafCount.trim() && item.leafCount.toLowerCase() !== 'vazio' && item.leafCount.toLowerCase() !== 'nenhum';
+                      const hasFinish = item.finish && item.finish.trim() && item.finish.toLowerCase() !== 'vazio' && item.finish.toLowerCase() !== 'nenhum';
 
                       return (
                         <tr key={item.id} className="hover:bg-slate-50/50 break-inside-avoid">
@@ -302,31 +316,37 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                                 {/* Subitens em Lista Limpa e Vertical */}
                                 {item.type === 'dimensao' && (
                                   <div className="text-xs text-slate-600 space-y-0.5 pt-0.5">
-                                    {item.glassType && (
+                                    {glassSpecs && (
                                       <div>
                                         <span className="text-slate-400 mr-1.5">•</span>
-                                        <span className="font-semibold text-slate-700">Vidro:</span> {item.glassType} {item.thickness || '8mm'} {item.glassColor || 'Incolor'}
+                                        <span className="font-semibold text-slate-700">Vidro:</span> {glassSpecs}
                                       </div>
                                     )}
-                                    {item.hardwareColor && (
+                                    {hasHardware && (
                                       <div>
                                         <span className="text-slate-400 mr-1.5">•</span>
                                         <span className="font-semibold text-slate-700">Ferragens:</span> {item.hardwareColor}
                                       </div>
                                     )}
-                                    {item.line && (
+                                    {hasLine && (
                                       <div>
                                         <span className="text-slate-400 mr-1.5">•</span>
                                         <span className="font-semibold text-slate-700">Linha:</span> {item.line}
                                       </div>
                                     )}
-                                    {item.openingType && (
+                                    {hasOpening && (
                                       <div>
                                         <span className="text-slate-400 mr-1.5">•</span>
                                         <span className="font-semibold text-slate-700">Abertura:</span> {item.openingType}
                                       </div>
                                     )}
-                                    {item.finish && (
+                                    {hasLeafCount && (
+                                      <div>
+                                        <span className="text-slate-400 mr-1.5">•</span>
+                                        <span className="font-semibold text-slate-700">Folhas:</span> {item.leafCount}
+                                      </div>
+                                    )}
+                                    {hasFinish && (
                                       <div>
                                         <span className="text-slate-400 mr-1.5">•</span>
                                         <span className="font-semibold text-slate-700">Acabamento:</span> {item.finish}
@@ -344,18 +364,15 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                             </div>
                           </td>
 
-                          {/* Quantidade e Medidas */}
+                          {/* Quantidade e Área (Sem exibir dimensões de mm) */}
                           <td style={{ width: '15%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2 text-center align-top">
                             {item.type === 'dimensao' ? (
                               <div className="flex flex-col items-center justify-center">
                                 <span className="font-bold text-slate-900 text-xs">
                                   {item.quantity} {item.quantity > 1 ? 'peças' : 'peça'}
                                 </span>
-                                <span className="text-[10.5px] text-slate-500 font-mono mt-0.5">
-                                  {item.widthMm || 0} x {item.lengthMm || 0} mm
-                                </span>
-                                <span className="text-[9.5px] text-slate-400 font-medium">
-                                  ({(item.areaM2 || 0).toFixed(2)} m²)
+                                <span className="text-[11px] font-bold text-amber-800 bg-amber-50/90 border border-amber-200/80 px-2 py-0.5 rounded-md mt-1 font-mono">
+                                  {(item.areaM2 || 0).toFixed(2)} m²
                                 </span>
                               </div>
                             ) : (

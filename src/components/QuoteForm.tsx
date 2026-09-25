@@ -43,6 +43,7 @@ import { ProductFormModal } from './ProductFormModal';
 import { ImportCutCalculationModal } from './CutCalculator/ImportCutCalculationModal';
 import { ClientSelect } from './ClientSelect';
 import { TechnicalProductPreview, detectTechnicalCategory } from './TechnicalProductPreview';
+import { TechnicalFieldSelect } from './TechnicalFieldSelect';
 import { PackagePlus } from 'lucide-react';
 
 interface QuoteFormProps {
@@ -384,15 +385,15 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
         pricePerM2: selected.type === 'dimensao' ? selected.defaultPrice : undefined,
         unitPrice: selected.type === 'simples' ? selected.defaultPrice : undefined,
         technicalCategory: selected.technicalCategory || detectTechnicalCategory(selected.name),
-        glassType: selected.glassType || current.glassType || 'Temperado',
-        thickness: selected.thickness || current.thickness || '8mm',
-        glassColor: selected.glassColor || current.glassColor || 'Incolor',
-        hardwareColor: selected.hardwareColor || current.hardwareColor || 'Preto',
-        aluminumColor: selected.aluminumColor || selected.hardwareColor || current.aluminumColor || 'Preto',
-        line: selected.line || current.line || 'Suprema',
-        openingType: selected.openingType || current.openingType || 'De Correr (Slide)',
-        leafCount: selected.leafCount || current.leafCount || '2 Folhas (1F+1M)',
-        finish: selected.finish || current.finish || 'Lapidado Reto',
+        glassType: selected.glassType !== undefined ? selected.glassType : current.glassType,
+        thickness: selected.thickness !== undefined ? selected.thickness : current.thickness,
+        glassColor: selected.glassColor !== undefined ? selected.glassColor : current.glassColor,
+        hardwareColor: selected.hardwareColor !== undefined ? selected.hardwareColor : current.hardwareColor,
+        aluminumColor: selected.aluminumColor !== undefined ? selected.aluminumColor : (selected.hardwareColor !== undefined ? selected.hardwareColor : current.aluminumColor),
+        line: selected.line !== undefined ? selected.line : current.line,
+        openingType: selected.openingType !== undefined ? selected.openingType : current.openingType,
+        leafCount: selected.leafCount !== undefined ? selected.leafCount : current.leafCount,
+        finish: selected.finish !== undefined ? selected.finish : current.finish,
       };
 
       const { areaM2, totalPrice } = calculateItemTotal(item);
@@ -1234,153 +1235,89 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                               <span className="text-[11px] font-normal text-slate-500">Exibidas no Orçamento & PDF</span>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                              {/* Tipo de Vidro */}
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Vidro</label>
-                                <input
-                                  type="text"
-                                  list="quote-glass-types"
-                                  value={item.glassType || 'Temperado'}
-                                  onChange={(e) => handleItemChange(index, 'glassType', e.target.value)}
-                                  placeholder="Temperado"
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                                />
-                                <datalist id="quote-glass-types">
-                                  {GLASS_TYPES.map((t) => (
-                                    <option key={t} value={t} />
-                                  ))}
-                                </datalist>
-                              </div>
-
-                              {/* Espessura */}
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Espessura</label>
-                                <input
-                                  type="text"
-                                  list="quote-glass-thicknesses"
-                                  value={item.thickness || '8mm'}
-                                  onChange={(e) => handleItemChange(index, 'thickness', e.target.value)}
-                                  placeholder="8mm"
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-mono font-medium"
-                                />
-                                <datalist id="quote-glass-thicknesses">
-                                  {GLASS_THICKNESSES.map((th) => (
-                                    <option key={th} value={th} />
-                                  ))}
-                                </datalist>
-                              </div>
-
-                              {/* Cor do Vidro */}
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Cor do Vidro</label>
-                                <input
-                                  type="text"
-                                  list="quote-glass-colors"
-                                  value={item.glassColor || 'Incolor'}
-                                  onChange={(e) => handleItemChange(index, 'glassColor', e.target.value)}
-                                  placeholder="Incolor"
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                                />
-                                <datalist id="quote-glass-colors">
-                                  {GLASS_COLORS.map((c) => (
-                                    <option key={c} value={c} />
-                                  ))}
-                                </datalist>
-                              </div>
-
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
                               {/* Cor da Ferragem / Alumínio */}
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Cor Ferragem / Alumínio</label>
-                                <input
-                                  type="text"
-                                  list="quote-hardware-colors"
-                                  value={item.hardwareColor || 'Preto'}
-                                  onChange={(e) => {
-                                    handleItemChange(index, 'hardwareColor', e.target.value);
-                                    handleItemChange(index, 'aluminumColor', e.target.value);
-                                  }}
-                                  placeholder="Preto"
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                                />
-                                <datalist id="quote-hardware-colors">
-                                  {HARDWARE_COLORS.map((hc) => (
-                                    <option key={hc} value={hc} />
-                                  ))}
-                                </datalist>
-                              </div>
-
-                              {/* Linha de Alumínio */}
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Linha de Perfil</label>
-                                <input
-                                  type="text"
-                                  list="quote-aluminum-lines"
-                                  value={item.line || 'Suprema'}
-                                  onChange={(e) => handleItemChange(index, 'line', e.target.value)}
-                                  placeholder="Suprema"
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                                />
-                                <datalist id="quote-aluminum-lines">
-                                  {ALUMINUM_LINES.map((l) => (
-                                    <option key={l} value={l} />
-                                  ))}
-                                </datalist>
-                              </div>
-
-                              {/* Tipo de Abertura */}
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Abertura</label>
-                                <input
-                                  type="text"
-                                  list="quote-opening-types"
-                                  value={item.openingType || 'De Correr (Slide)'}
-                                  onChange={(e) => handleItemChange(index, 'openingType', e.target.value)}
-                                  placeholder="De Correr (Slide)"
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                                />
-                                <datalist id="quote-opening-types">
-                                  {OPENING_TYPES.map((ot) => (
-                                    <option key={ot} value={ot} />
-                                  ))}
-                                </datalist>
-                              </div>
+                              <TechnicalFieldSelect
+                                label="Cor Ferragem / Alumínio"
+                                value={item.hardwareColor || ''}
+                                onChange={(val) => {
+                                  handleItemChange(index, 'hardwareColor', val);
+                                  handleItemChange(index, 'aluminumColor', val);
+                                }}
+                                presets={HARDWARE_COLORS}
+                                placeholder="Preta, Dourada..."
+                                emptyLabel="🚫 Vazio (Sem ferragem)"
+                              />
 
                               {/* Número de Folhas */}
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Número de Folhas</label>
-                                <input
-                                  type="text"
-                                  list="quote-leaf-counts"
-                                  value={item.leafCount || '2 Folhas (1F+1M)'}
-                                  onChange={(e) => handleItemChange(index, 'leafCount', e.target.value)}
-                                  placeholder="2 Folhas (1F+1M)"
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                                />
-                                <datalist id="quote-leaf-counts">
-                                  {LEAF_COUNTS.map((lf) => (
-                                    <option key={lf} value={lf} />
-                                  ))}
-                                </datalist>
-                              </div>
+                              <TechnicalFieldSelect
+                                label="Número de Folhas"
+                                value={item.leafCount || ''}
+                                onChange={(val) => handleItemChange(index, 'leafCount', val)}
+                                presets={LEAF_COUNTS}
+                                placeholder="2 Folhas (1F+1M)..."
+                                emptyLabel="🚫 Vazio (Padrão)"
+                              />
 
-                              {/* Acabamento / Lapidação */}
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Acabamento</label>
-                                <input
-                                  type="text"
-                                  list="quote-finish-options"
-                                  value={item.finish || 'Lapidado Reto'}
-                                  onChange={(e) => handleItemChange(index, 'finish', e.target.value)}
-                                  placeholder="Lapidado Reto"
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
-                                />
-                                <datalist id="quote-finish-options">
-                                  {FINISH_OPTIONS.map((f) => (
-                                    <option key={f} value={f} />
-                                  ))}
-                                </datalist>
-                              </div>
+                              {/* Tipo de Vidro */}
+                              <TechnicalFieldSelect
+                                label="Tipo de Vidro"
+                                value={item.glassType || ''}
+                                onChange={(val) => handleItemChange(index, 'glassType', val)}
+                                presets={GLASS_TYPES}
+                                placeholder="Temperado, Laminado..."
+                                emptyLabel="🚫 Vazio (Sem vidro)"
+                              />
+
+                              {/* Espessura */}
+                              <TechnicalFieldSelect
+                                label="Espessura"
+                                value={item.thickness || ''}
+                                onChange={(val) => handleItemChange(index, 'thickness', val)}
+                                presets={GLASS_THICKNESSES}
+                                placeholder="8mm, 10mm..."
+                                emptyLabel="🚫 Vazio"
+                              />
+
+                              {/* Cor do Vidro */}
+                              <TechnicalFieldSelect
+                                label="Cor do Vidro"
+                                value={item.glassColor || ''}
+                                onChange={(val) => handleItemChange(index, 'glassColor', val)}
+                                presets={GLASS_COLORS}
+                                placeholder="Incolor, Fumê..."
+                                emptyLabel="🚫 Vazio"
+                              />
+
+                              {/* Linha de Perfil */}
+                              <TechnicalFieldSelect
+                                label="Linha do Perfil"
+                                value={item.line || ''}
+                                onChange={(val) => handleItemChange(index, 'line', val)}
+                                presets={ALUMINUM_LINES}
+                                placeholder="Suprema, Gold..."
+                                emptyLabel="🚫 Vazio (Sem linha)"
+                              />
+
+                              {/* Tipo de Abertura */}
+                              <TechnicalFieldSelect
+                                label="Tipo de Abertura"
+                                value={item.openingType || ''}
+                                onChange={(val) => handleItemChange(index, 'openingType', val)}
+                                presets={OPENING_TYPES}
+                                placeholder="De Correr, Pivotante..."
+                                emptyLabel="🚫 Vazio"
+                              />
+
+                              {/* Acabamento */}
+                              <TechnicalFieldSelect
+                                label="Acabamento"
+                                value={item.finish || ''}
+                                onChange={(val) => handleItemChange(index, 'finish', val)}
+                                presets={FINISH_OPTIONS}
+                                placeholder="Lapidado, Bisotê..."
+                                emptyLabel="🚫 Vazio"
+                              />
                             </div>
                           </div>
                         )}
