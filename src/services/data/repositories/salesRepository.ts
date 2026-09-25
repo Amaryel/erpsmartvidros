@@ -489,3 +489,12 @@ export function addWorkLogEntry(
     authorName: entry.authorName,
   });
 }
+
+/**
+ * Zera todas as vendas realizadas e reinicia o contador
+ */
+export function clearAllSales(): Sale[] {
+  storageAdapter.setItem(SALES_KEY, []);
+  storageAdapter.setItem(SALES_COUNTER_KEY, '1');
+  return [];
+}

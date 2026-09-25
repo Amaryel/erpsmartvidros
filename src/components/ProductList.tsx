@@ -273,6 +273,32 @@ export const ProductList: React.FC<ProductListProps> = ({ catalog, onRefresh }) 
                     {product.description && (
                       <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{product.description}</p>
                     )}
+
+                    {/* Características Técnicas (se preenchidas) */}
+                    {(product.glassType || product.thickness || product.hardwareColor || product.line || product.openingType) && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {product.glassType && (
+                          <span className="bg-slate-100 text-slate-700 font-semibold text-[10px] px-2 py-0.5 rounded-md">
+                            {product.glassType} {product.thickness || ''}
+                          </span>
+                        )}
+                        {product.glassColor && (
+                          <span className="bg-slate-100 text-slate-700 font-semibold text-[10px] px-2 py-0.5 rounded-md">
+                            {product.glassColor}
+                          </span>
+                        )}
+                        {product.hardwareColor && (
+                          <span className="bg-amber-50 text-amber-900 border border-amber-200/60 font-semibold text-[10px] px-2 py-0.5 rounded-md">
+                            {product.hardwareColor}
+                          </span>
+                        )}
+                        {product.line && (
+                          <span className="bg-slate-100 text-slate-700 font-semibold text-[10px] px-2 py-0.5 rounded-md">
+                            Linha {product.line}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Preço e Status Toggle */}

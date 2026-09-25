@@ -64,15 +64,16 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
     Object.entries(environmentGroups).forEach(([envName, envItems]) => {
       msg += `\n📍 *AMBIENTE: ${envName}*\n`;
       envItems.forEach((item, idx) => {
+        const unitVal = item.quantity > 0 ? (item.totalPrice / item.quantity) : item.totalPrice;
         msg += `  ${idx + 1}. *${item.name}*\n`;
         if (item.type === 'dimensao') {
-          msg += `     Área: ${item.areaM2}m² | Qtd: ${item.quantity} ${item.quantity > 1 ? 'peças' : 'peça'}\n`;
+          msg += `     Medidas: ${item.widthMm || 0}x${item.lengthMm || 0}mm (${item.areaM2 || 0}m²) | Qtd: ${item.quantity} ${item.quantity > 1 ? 'peças' : 'peça'}\n`;
           if (item.glassType || item.glassColor) {
             msg += `     Vidro: ${item.glassType || 'Temperado'} ${item.thickness || '8mm'} ${item.glassColor || 'Incolor'}\n`;
           }
-          msg += `     Valor m²: R$ ${(item.pricePerM2 || 0).toFixed(2)} -> *Total: R$ ${item.totalPrice.toFixed(2)}*\n`;
+          msg += `     *Valor Unitário:* R$ ${unitVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} -> *Total:* R$ ${item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
         } else {
-          msg += `     Qtd: ${item.quantity} un x R$ ${(item.unitPrice || 0).toFixed(2)} -> *Total: R$ ${item.totalPrice.toFixed(2)}*\n`;
+          msg += `     Qtd: ${item.quantity} un x *Valor Unitário:* R$ ${unitVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} -> *Total:* R$ ${item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
         }
       });
     });
@@ -247,117 +248,140 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                 <table className="w-full text-left text-xs table-fixed border-collapse" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
                   <colgroup>
                     <col style={{ width: '4%' }} />
-                    <col style={{ width: '68%' }} />
-                    <col style={{ width: '14%' }} />
-                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '51%' }} />
+                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '15%' }} />
                   </colgroup>
                   <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                     <tr>
-                      <th style={{ width: '4%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-1.5 text-center">#</th>
-                      <th style={{ width: '68%', textAlign: 'left', boxSizing: 'border-box' }} className="py-2.5 px-3">Item / Especificações Técnicas</th>
-                      <th style={{ width: '14%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Área (m²) / Qtd</th>
-                      <th style={{ width: '14%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Total (R$)</th>
+                      <th style={{ width: '4%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-1 text-center">#</th>
+                      <th style={{ width: '51%', textAlign: 'left', boxSizing: 'border-box' }} className="py-2.5 px-3">Item / Especificações Técnicas</th>
+                      <th style={{ width: '15%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Qtd / Medidas</th>
+                      <th style={{ width: '15%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-2.5 text-right">Valor Unit. (R$)</th>
+                      <th style={{ width: '15%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Total (R$)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white">
-                    {envItems.map((item, idx) => (
-                      <tr key={item.id} className="hover:bg-slate-50/50 break-inside-avoid">
-                        <td style={{ width: '4%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-1.5 font-mono font-bold text-slate-400 align-top text-center text-xs">
-                          {idx + 1}
-                        </td>
+                    {envItems.map((item, idx) => {
+                      const clientUnitPrice = item.quantity > 0 ? (item.totalPrice / item.quantity) : item.totalPrice;
 
-                        <td style={{ width: '68%', textAlign: 'left', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 align-top">
-                          <div className="flex flex-row items-start gap-3.5">
-                            {/* Ilustração Técnica do Produto (INDISPENSÁVEL) */}
-                            {item.type === 'dimensao' && (
-                              <div
-                                className="shrink-0"
-                                style={{
-                                  width: '92px',
-                                  minWidth: '92px',
-                                  maxWidth: '92px',
-                                }}
-                              >
-                                <TechnicalProductPreview
-                                  item={item}
-                                  widthMm={item.widthMm}
-                                  heightMm={item.lengthMm}
-                                  name={item.name}
-                                  compact={true}
-                                  showDimensions={false}
-                                  className="w-full shadow-xs"
-                                />
-                              </div>
-                            )}
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50/50 break-inside-avoid">
+                          <td style={{ width: '4%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-1 font-mono font-bold text-slate-400 align-top text-center text-xs">
+                            {idx + 1}
+                          </td>
 
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <div className="font-bold text-slate-900 text-sm">{item.name}</div>
-                              
-                              {/* Subitens em Lista Limpa e Vertical */}
+                          <td style={{ width: '51%', textAlign: 'left', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 align-top">
+                            <div className="flex flex-row items-start gap-3">
+                              {/* Ilustração Técnica do Produto */}
                               {item.type === 'dimensao' && (
-                                <div className="text-xs text-slate-600 space-y-0.5 pt-0.5">
-                                  {item.glassType && (
-                                    <div>
-                                      <span className="text-slate-400 mr-1.5">•</span>
-                                      <span className="font-semibold text-slate-700">Vidro:</span> {item.glassType} {item.thickness || '8mm'} {item.glassColor || 'Incolor'}
-                                    </div>
-                                  )}
-                                  {item.hardwareColor && (
-                                    <div>
-                                      <span className="text-slate-400 mr-1.5">•</span>
-                                      <span className="font-semibold text-slate-700">Ferragens:</span> {item.hardwareColor}
-                                    </div>
-                                  )}
-                                  {item.line && (
-                                    <div>
-                                      <span className="text-slate-400 mr-1.5">•</span>
-                                      <span className="font-semibold text-slate-700">Linha:</span> {item.line}
-                                    </div>
-                                  )}
-                                  {item.openingType && (
-                                    <div>
-                                      <span className="text-slate-400 mr-1.5">•</span>
-                                      <span className="font-semibold text-slate-700">Abertura:</span> {item.openingType}
-                                    </div>
-                                  )}
-                                  {item.finish && (
-                                    <div>
-                                      <span className="text-slate-400 mr-1.5">•</span>
-                                      <span className="font-semibold text-slate-700">Acabamento:</span> {item.finish}
-                                    </div>
-                                  )}
+                                <div
+                                  className="shrink-0"
+                                  style={{
+                                    width: '85px',
+                                    minWidth: '85px',
+                                    maxWidth: '85px',
+                                  }}
+                                >
+                                  <TechnicalProductPreview
+                                    item={item}
+                                    widthMm={item.widthMm}
+                                    heightMm={item.lengthMm}
+                                    name={item.name}
+                                    compact={true}
+                                    showDimensions={false}
+                                    className="w-full shadow-xs"
+                                  />
                                 </div>
                               )}
 
-                              {item.description && (
-                                <div className="text-[11px] text-slate-500 italic pt-0.5">
-                                  Obs: {item.description}
-                                </div>
-                              )}
+                              <div className="space-y-1 min-w-0 flex-1">
+                                <div className="font-bold text-slate-900 text-sm">{item.name}</div>
+                                
+                                {/* Subitens em Lista Limpa e Vertical */}
+                                {item.type === 'dimensao' && (
+                                  <div className="text-xs text-slate-600 space-y-0.5 pt-0.5">
+                                    {item.glassType && (
+                                      <div>
+                                        <span className="text-slate-400 mr-1.5">•</span>
+                                        <span className="font-semibold text-slate-700">Vidro:</span> {item.glassType} {item.thickness || '8mm'} {item.glassColor || 'Incolor'}
+                                      </div>
+                                    )}
+                                    {item.hardwareColor && (
+                                      <div>
+                                        <span className="text-slate-400 mr-1.5">•</span>
+                                        <span className="font-semibold text-slate-700">Ferragens:</span> {item.hardwareColor}
+                                      </div>
+                                    )}
+                                    {item.line && (
+                                      <div>
+                                        <span className="text-slate-400 mr-1.5">•</span>
+                                        <span className="font-semibold text-slate-700">Linha:</span> {item.line}
+                                      </div>
+                                    )}
+                                    {item.openingType && (
+                                      <div>
+                                        <span className="text-slate-400 mr-1.5">•</span>
+                                        <span className="font-semibold text-slate-700">Abertura:</span> {item.openingType}
+                                      </div>
+                                    )}
+                                    {item.finish && (
+                                      <div>
+                                        <span className="text-slate-400 mr-1.5">•</span>
+                                        <span className="font-semibold text-slate-700">Acabamento:</span> {item.finish}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {item.description && (
+                                  <div className="text-[11px] text-slate-500 italic pt-0.5">
+                                    Obs: {item.description}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Área m² ou Quantidade (Exibindo estritamente a Área e Qtd) */}
-                        <td style={{ width: '14%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2 text-center font-mono align-top">
-                          {item.type === 'dimensao' ? (
-                            <div className="flex flex-col items-center justify-center">
-                              <span className="font-black text-slate-900 text-xs">{item.areaM2 || 0} m²</span>
-                              <span className="text-[10px] text-slate-500 font-sans font-medium">
-                                {item.quantity} {item.quantity > 1 ? 'peças' : 'peça'}
+                          {/* Quantidade e Medidas */}
+                          <td style={{ width: '15%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2 text-center align-top">
+                            {item.type === 'dimensao' ? (
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="font-bold text-slate-900 text-xs">
+                                  {item.quantity} {item.quantity > 1 ? 'peças' : 'peça'}
+                                </span>
+                                <span className="text-[10.5px] text-slate-500 font-mono mt-0.5">
+                                  {item.widthMm || 0} x {item.lengthMm || 0} mm
+                                </span>
+                                <span className="text-[9.5px] text-slate-400 font-medium">
+                                  ({(item.areaM2 || 0).toFixed(2)} m²)
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-bold text-slate-900 text-xs">{item.quantity} un</span>
+                            )}
+                          </td>
+
+                          {/* Valor Unitário ao Cliente */}
+                          <td style={{ width: '15%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2.5 text-right align-top">
+                            <div className="flex flex-col items-end">
+                              <span className="font-mono font-bold text-slate-900 text-xs">
+                                R$ {clientUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-[9px] text-slate-400 font-sans">
+                                / {item.type === 'dimensao' ? 'peça' : (item.category === 'servico' ? 'serviço' : 'un')}
                               </span>
                             </div>
-                          ) : (
-                            <span className="font-bold text-slate-900 text-xs">{item.quantity} un</span>
-                          )}
-                        </td>
+                          </td>
 
-                        {/* Total do Item */}
-                        <td style={{ width: '14%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 text-right font-mono font-black text-slate-900 align-top text-xs">
-                          R$ {item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
+                          {/* Total do Item */}
+                          <td style={{ width: '15%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 text-right font-mono font-black text-slate-950 align-top text-xs">
+                            R$ {item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

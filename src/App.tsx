@@ -33,6 +33,7 @@ import { SystemTourModal } from './components/SystemTourModal';
 import { SmartIAChatDrawer } from './components/SmartIAChatDrawer';
 import { HelpSupportModal } from './components/HelpSupportModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
+import { ResetDatabaseModal } from './components/ResetDatabaseModal';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { Bot, HelpCircle, Sparkles, Smartphone, Download } from 'lucide-react';
 import {
@@ -133,10 +134,11 @@ export default function App() {
   // Toast Notificação
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Estados para Tour, Smart IA e Central de Dúvidas
+  // Estados para Tour, Smart IA, Central de Dúvidas e Zerar Banco
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isSmartIAOpen, setIsSmartIAOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isResetDatabaseModalOpen, setIsResetDatabaseModalOpen] = useState(false);
 
   // Modo Catálogo Público / Vitrine Virtual para Clientes
   const [isPublicCatalogView, setIsPublicCatalogView] = useState<boolean>(() => {
@@ -867,6 +869,7 @@ export default function App() {
               companyInfo={companyInfo}
               onSave={handleSaveCompany}
               onOpenSupabaseSyncModal={() => setIsSupabaseSyncModalOpen(true)}
+              onOpenResetDatabaseModal={() => setIsResetDatabaseModalOpen(true)}
             />
           )}
 
@@ -1036,6 +1039,16 @@ export default function App() {
           companyInfo={companyInfo}
           onStartTour={() => setIsTourOpen(true)}
           onOpenSmartIA={() => setIsSmartIAOpen(true)}
+        />
+
+        {/* MODAL DE ZERAR BANCO DE DADOS */}
+        <ResetDatabaseModal
+          isOpen={isResetDatabaseModalOpen}
+          onClose={() => setIsResetDatabaseModalOpen(false)}
+          onSuccess={(msg) => {
+            refreshData();
+            showToast(msg);
+          }}
         />
 
         {/* BOTÃO FLUTUANTE DE DÚVIDAS & SMART IA (Canto Inferior Direito) */}

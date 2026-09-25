@@ -38,11 +38,15 @@ export function getNextReceiptCode(): string {
 
 export function getReceipts(): Receipt[] {
   const data = storageAdapter.getItem<Receipt[]>(RECEIPTS_KEY, null);
-  if (!data) {
+  if (data === null || data === undefined) {
     storageAdapter.setItem(RECEIPTS_KEY, INITIAL_RECEIPTS);
     if (!storageAdapter.getItem(RECEIPTS_COUNTER_KEY, null)) {
       storageAdapter.setItem(RECEIPTS_COUNTER_KEY, '2');
     }
+    return INITIAL_RECEIPTS;
+  }
+  if (!Array.isArray(data)) {
+    storageAdapter.setItem(RECEIPTS_KEY, INITIAL_RECEIPTS);
     return INITIAL_RECEIPTS;
   }
   return data;
@@ -122,4 +126,13 @@ export function deleteReceipt(id: string): void {
   const receipts = getReceipts().filter((r) => r.id !== id);
   storageAdapter.setItem(RECEIPTS_KEY, receipts);
   autoSyncEntityChange('receipts', 'delete', id);
+}
+
+/**
+ * Zera todos os recibos emitidos e reinicia o contador
+ */
+export function clearAllReceipts(): Receipt[] {
+  storageAdapter.setItem(RECEIPTS_KEY, []);
+  storageAdapter.setItem(RECEIPTS_COUNTER_KEY, '1');
+  return [];
 }

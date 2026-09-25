@@ -43,7 +43,11 @@ export const INITIAL_CLIENTS: Client[] = [
 
 export function getClients(): Client[] {
   const data = storageAdapter.getItem<Client[]>(CLIENTS_KEY, null);
-  if (!data) {
+  if (data === null || data === undefined) {
+    storageAdapter.setItem(CLIENTS_KEY, INITIAL_CLIENTS);
+    return INITIAL_CLIENTS;
+  }
+  if (!Array.isArray(data)) {
     storageAdapter.setItem(CLIENTS_KEY, INITIAL_CLIENTS);
     return INITIAL_CLIENTS;
   }
@@ -146,4 +150,12 @@ export function deleteClient(id: string): Client[] {
   storageAdapter.setItem(CLIENTS_KEY, clients);
   autoSyncEntityChange('clients', 'delete', id);
   return clients;
+}
+
+/**
+ * Zera todos os clientes cadastrados
+ */
+export function clearAllClients(): Client[] {
+  storageAdapter.setItem(CLIENTS_KEY, []);
+  return [];
 }

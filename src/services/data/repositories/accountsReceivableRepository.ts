@@ -218,3 +218,12 @@ export function payReceivableInstallment(
 
   return { receivable: rec, receipt };
 }
+
+/**
+ * Zera todas as contas a receber / fiado
+ */
+export function clearAllReceivables(): Receivable[] {
+  storageAdapter.setItem(RECEIVABLES_KEY, []);
+  storageAdapter.setItem(RECEIVABLES_COUNTER_KEY, '1');
+  return [];
+}

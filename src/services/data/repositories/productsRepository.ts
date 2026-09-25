@@ -191,7 +191,13 @@ export const DEFAULT_CATALOG: CatalogItem[] = [
 
 export function getCatalog(): CatalogItem[] {
   const data = storageAdapter.getItem<CatalogItem[]>(CATALOG_KEY, null);
-  if (!data) {
+  if (data === null || data === undefined) {
+    storageAdapter.setItem(CATALOG_KEY, DEFAULT_CATALOG);
+    return DEFAULT_CATALOG;
+  }
+
+  // Se o usuário limpou o catálogo propositalmente (array vazio), retorna vazio
+  if (!Array.isArray(data)) {
     storageAdapter.setItem(CATALOG_KEY, DEFAULT_CATALOG);
     return DEFAULT_CATALOG;
   }
@@ -217,15 +223,6 @@ export function getCatalog(): CatalogItem[] {
       companyId,
       imageUrl,
     };
-  });
-
-  // Também verificar se faltam itens novos do DEFAULT_CATALOG
-  DEFAULT_CATALOG.forEach((def) => {
-    const exists = processed.some((c) => c.id === def.id || c.name.toLowerCase() === def.name.toLowerCase());
-    if (!exists) {
-      processed.push(def);
-      updated = true;
-    }
   });
 
   if (updated) {
@@ -266,6 +263,20 @@ export function saveCatalogItem(item: Omit<CatalogItem, 'id'> & { id?: string })
         updatedAt: now,
       };
       savedItem = catalog[idx];
+    } else {
+      // Se tinha ID mas não achou no array, inclui
+      const newItem: CatalogItem = {
+        ...item,
+        id: item.id,
+        category,
+        unit,
+        status,
+        companyId,
+        createdAt: now,
+        updatedAt: now,
+      };
+      catalog.unshift(newItem);
+      savedItem = newItem;
     }
   } else {
     const newItem: CatalogItem = {
@@ -308,4 +319,20 @@ export function deleteCatalogItem(id: string): CatalogItem[] {
   storageAdapter.setItem(CATALOG_KEY, catalog);
   autoSyncEntityChange('catalog', 'delete', id);
   return catalog;
+}
+
+/**
+ * Zera todos os produtos e itens do catálogo
+ */
+export function clearAllProducts(): CatalogItem[] {
+  storageAdapter.setItem(CATALOG_KEY, []);
+  return [];
+}
+
+/**
+ * Restaura o catálogo padrão de vidraçaria
+ */
+export function restoreDefaultCatalog(): CatalogItem[] {
+  storageAdapter.setItem(CATALOG_KEY, DEFAULT_CATALOG);
+  return DEFAULT_CATALOG;
 }

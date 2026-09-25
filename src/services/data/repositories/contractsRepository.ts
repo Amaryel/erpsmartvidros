@@ -391,3 +391,12 @@ export function deleteContract(id: string): void {
   storageAdapter.setItem(CONTRACTS_KEY, contracts);
   autoSyncEntityChange('contracts', 'delete', id);
 }
+
+/**
+ * Zera todos os contratos emitidos
+ */
+export function clearAllContracts(): Contract[] {
+  storageAdapter.setItem(CONTRACTS_KEY, []);
+  storageAdapter.setItem(CONTRACTS_COUNTER_KEY, '1');
+  return [];
+}

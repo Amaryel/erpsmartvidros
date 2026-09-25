@@ -383,7 +383,16 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
         description: selected.description || current.description || '',
         pricePerM2: selected.type === 'dimensao' ? selected.defaultPrice : undefined,
         unitPrice: selected.type === 'simples' ? selected.defaultPrice : undefined,
-        technicalCategory: detectTechnicalCategory(selected.name),
+        technicalCategory: selected.technicalCategory || detectTechnicalCategory(selected.name),
+        glassType: selected.glassType || current.glassType || 'Temperado',
+        thickness: selected.thickness || current.thickness || '8mm',
+        glassColor: selected.glassColor || current.glassColor || 'Incolor',
+        hardwareColor: selected.hardwareColor || current.hardwareColor || 'Preto',
+        aluminumColor: selected.aluminumColor || selected.hardwareColor || current.aluminumColor || 'Preto',
+        line: selected.line || current.line || 'Suprema',
+        openingType: selected.openingType || current.openingType || 'De Correr (Slide)',
+        leafCount: selected.leafCount || current.leafCount || '2 Folhas (1F+1M)',
+        finish: selected.finish || current.finish || 'Lapidado Reto',
       };
 
       const { areaM2, totalPrice } = calculateItemTotal(item);
@@ -1229,116 +1238,148 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                               {/* Tipo de Vidro */}
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Vidro</label>
-                                <select
+                                <input
+                                  type="text"
+                                  list="quote-glass-types"
                                   value={item.glassType || 'Temperado'}
                                   onChange={(e) => handleItemChange(index, 'glassType', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
-                                >
+                                  placeholder="Temperado"
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                                />
+                                <datalist id="quote-glass-types">
                                   {GLASS_TYPES.map((t) => (
-                                    <option key={t} value={t}>{t}</option>
+                                    <option key={t} value={t} />
                                   ))}
-                                </select>
+                                </datalist>
                               </div>
 
                               {/* Espessura */}
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Espessura</label>
-                                <select
+                                <input
+                                  type="text"
+                                  list="quote-glass-thicknesses"
                                   value={item.thickness || '8mm'}
                                   onChange={(e) => handleItemChange(index, 'thickness', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-mono"
-                                >
+                                  placeholder="8mm"
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-mono font-medium"
+                                />
+                                <datalist id="quote-glass-thicknesses">
                                   {GLASS_THICKNESSES.map((th) => (
-                                    <option key={th} value={th}>{th}</option>
+                                    <option key={th} value={th} />
                                   ))}
-                                </select>
+                                </datalist>
                               </div>
 
                               {/* Cor do Vidro */}
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Cor do Vidro</label>
-                                <select
+                                <input
+                                  type="text"
+                                  list="quote-glass-colors"
                                   value={item.glassColor || 'Incolor'}
                                   onChange={(e) => handleItemChange(index, 'glassColor', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
-                                >
+                                  placeholder="Incolor"
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                                />
+                                <datalist id="quote-glass-colors">
                                   {GLASS_COLORS.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
+                                    <option key={c} value={c} />
                                   ))}
-                                </select>
+                                </datalist>
                               </div>
 
                               {/* Cor da Ferragem / Alumínio */}
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Cor Ferragem / Alumínio</label>
-                                <select
+                                <input
+                                  type="text"
+                                  list="quote-hardware-colors"
                                   value={item.hardwareColor || 'Preto'}
                                   onChange={(e) => {
                                     handleItemChange(index, 'hardwareColor', e.target.value);
                                     handleItemChange(index, 'aluminumColor', e.target.value);
                                   }}
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
-                                >
+                                  placeholder="Preto"
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                                />
+                                <datalist id="quote-hardware-colors">
                                   {HARDWARE_COLORS.map((hc) => (
-                                    <option key={hc} value={hc}>{hc}</option>
+                                    <option key={hc} value={hc} />
                                   ))}
-                                </select>
+                                </datalist>
                               </div>
 
                               {/* Linha de Alumínio */}
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Linha de Perfil</label>
-                                <select
+                                <input
+                                  type="text"
+                                  list="quote-aluminum-lines"
                                   value={item.line || 'Suprema'}
                                   onChange={(e) => handleItemChange(index, 'line', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
-                                >
+                                  placeholder="Suprema"
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                                />
+                                <datalist id="quote-aluminum-lines">
                                   {ALUMINUM_LINES.map((l) => (
-                                    <option key={l} value={l}>{l}</option>
+                                    <option key={l} value={l} />
                                   ))}
-                                </select>
+                                </datalist>
                               </div>
 
                               {/* Tipo de Abertura */}
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Abertura</label>
-                                <select
+                                <input
+                                  type="text"
+                                  list="quote-opening-types"
                                   value={item.openingType || 'De Correr (Slide)'}
                                   onChange={(e) => handleItemChange(index, 'openingType', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
-                                >
+                                  placeholder="De Correr (Slide)"
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                                />
+                                <datalist id="quote-opening-types">
                                   {OPENING_TYPES.map((ot) => (
-                                    <option key={ot} value={ot}>{ot}</option>
+                                    <option key={ot} value={ot} />
                                   ))}
-                                </select>
+                                </datalist>
                               </div>
 
                               {/* Número de Folhas */}
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Número de Folhas</label>
-                                <select
+                                <input
+                                  type="text"
+                                  list="quote-leaf-counts"
                                   value={item.leafCount || '2 Folhas (1F+1M)'}
                                   onChange={(e) => handleItemChange(index, 'leafCount', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
-                                >
+                                  placeholder="2 Folhas (1F+1M)"
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                                />
+                                <datalist id="quote-leaf-counts">
                                   {LEAF_COUNTS.map((lf) => (
-                                    <option key={lf} value={lf}>{lf}</option>
+                                    <option key={lf} value={lf} />
                                   ))}
-                                </select>
+                                </datalist>
                               </div>
 
                               {/* Acabamento / Lapidação */}
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Acabamento</label>
-                                <select
+                                <input
+                                  type="text"
+                                  list="quote-finish-options"
                                   value={item.finish || 'Lapidado Reto'}
                                   onChange={(e) => handleItemChange(index, 'finish', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500"
-                                >
+                                  placeholder="Lapidado Reto"
+                                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                                />
+                                <datalist id="quote-finish-options">
                                   {FINISH_OPTIONS.map((f) => (
-                                    <option key={f} value={f}>{f}</option>
+                                    <option key={f} value={f} />
                                   ))}
-                                </select>
+                                </datalist>
                               </div>
                             </div>
                           </div>

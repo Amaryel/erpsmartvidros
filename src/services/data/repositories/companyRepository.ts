@@ -53,3 +53,41 @@ export function saveCompanyInfo(info: CompanyInfo): void {
   autoSyncEntityChange('companies', 'upsert', updatedInfo);
 }
 
+export interface ResetOptions {
+  products?: boolean;
+  clients?: boolean;
+  quotes?: boolean;
+  receipts?: boolean;
+  sales?: boolean;
+  receivables?: boolean;
+  contracts?: boolean;
+}
+
+/**
+ * Função central de zerar dados do sistema
+ */
+export function resetSystemDatabase(options: ResetOptions): void {
+  if (options.products) {
+    storageAdapter.setItem('smart_vidros_catalog', []);
+  }
+  if (options.clients) {
+    storageAdapter.setItem('smart_vidros_clients', []);
+  }
+  if (options.quotes) {
+    storageAdapter.setItem('smart_vidros_quotes', []);
+    storageAdapter.setItem('smart_vidros_counter', '1');
+  }
+  if (options.receipts) {
+    storageAdapter.setItem('smart_vidros_receipts', []);
+    storageAdapter.setItem('smart_vidros_receipts_counter', '1');
+  }
+  if (options.sales) {
+    storageAdapter.setItem('smart_vidros_sales', []);
+    storageAdapter.setItem('smart_vidros_sales_counter', '1');
+    storageAdapter.setItem('smart_vidros_receivables', []);
+    storageAdapter.setItem('smart_vidros_receivables_counter', '1');
+    storageAdapter.setItem('smart_vidros_contracts', []);
+    storageAdapter.setItem('smart_vidros_contracts_counter', '1');
+  }
+}
+

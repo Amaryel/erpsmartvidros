@@ -169,4 +169,15 @@ export {
   saveCutCalculation,
   deleteCutCalculation,
   duplicateCutCalculation,
+
+  // Limpeza & Zerar Dados
+  clearAllProducts,
+  clearAllClients,
+  clearAllQuotes,
+  clearAllReceipts,
+  clearAllSales,
+  clearAllReceivables,
+  clearAllContracts,
+  restoreDefaultCatalog,
+  resetSystemDatabase,
 } from './data';

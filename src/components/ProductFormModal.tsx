@@ -1,8 +1,41 @@
 import React, { useState, useRef } from 'react';
-import { X, Package, Check, DollarSign, Camera, Image, Trash2, Sparkles, RefreshCw, Upload } from 'lucide-react';
-import { CatalogItem, ProductType } from '../types';
+import {
+  X,
+  Package,
+  Check,
+  DollarSign,
+  Camera,
+  Image,
+  Trash2,
+  Sparkles,
+  RefreshCw,
+  Upload,
+  Sliders,
+  ChevronDown,
+  ChevronUp,
+  Layers
+} from 'lucide-react';
+import { CatalogItem, ProductType, TechnicalCategory } from '../types';
 import { saveCatalogItem } from '../services/storage';
 import { getSmartProductImage } from '../services/data/repositories/productsRepository';
+
+const GLASS_TYPES = ['Temperado', 'Laminado', 'Comum (Float)', 'Insulado', 'Aramado', 'Serigrafado', 'Outro'];
+const GLASS_THICKNESSES = ['3mm', '4mm', '5mm', '6mm', '8mm', '10mm', '12mm', '15mm', 'Outra'];
+const GLASS_COLORS = ['Incolor', 'Fumê', 'Verde', 'Bronze', 'Astral', 'Antílope', 'Pontilhado', 'Quadrato', 'Jateado', 'Refletivo', 'Outra'];
+const HARDWARE_COLORS = ['Preto', 'Branco', 'Fosco/Natural', 'Bronze', 'Champagne', 'Cromado/Inox', 'Ouro/Dourado', 'Cinza', 'Outra'];
+const ALUMINUM_LINES = ['Suprema', 'Gold', 'Convencional', 'Elegance', 'Slide', 'Versatik', 'Engenharia', 'Outra'];
+const OPENING_TYPES = ['De Correr (Slide)', 'Pivotante', 'Fixo', 'Basculante', 'Maxim-ar', 'De Abrir (Giro)', 'Sanfonada (Articulada)', 'Outro'];
+const LEAF_COUNTS = ['1 Folha', '2 Folhas (1F+1M)', '4 Folhas (2F+2M)', '3 Folhas (2F+1M)', '3 Folhas Móveis', '6 Folhas (4F+2M)', 'Fixo Inteiro'];
+const FINISH_OPTIONS = ['Lapidado Reto', 'Bisotê 25mm', 'Bisotê 15mm', 'Bisotê 10mm', 'Canto Moeda', 'Jateado Total', 'Jateado com Desenho', 'Canto Reto'];
+const TECH_CATEGORIES: { id: TechnicalCategory; label: string }[] = [
+  { id: 'vidro', label: 'Vidro / Painel' },
+  { id: 'box', label: 'Box de Banheiro' },
+  { id: 'porta', label: 'Porta' },
+  { id: 'janela', label: 'Janela' },
+  { id: 'espelho', label: 'Espelho' },
+  { id: 'guarda_corpo', label: 'Guarda-Corpo' },
+  { id: 'outro', label: 'Outro' },
+];
 
 interface ProductFormModalProps {
   initialData?: Partial<CatalogItem> | null;
@@ -26,6 +59,22 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [description, setDescription] = useState(initialData?.description || '');
   const [status, setStatus] = useState<'ativo' | 'inativo'>(initialData?.status || 'ativo');
   const [imageUrl, setImageUrl] = useState<string>(initialData?.imageUrl || '');
+
+  // Características Técnicas Editáveis
+  const [technicalCategory, setTechnicalCategory] = useState<TechnicalCategory>(initialData?.technicalCategory || 'vidro');
+  const [glassType, setGlassType] = useState(initialData?.glassType || 'Temperado');
+  const [thickness, setThickness] = useState(initialData?.thickness || '8mm');
+  const [glassColor, setGlassColor] = useState(initialData?.glassColor || 'Incolor');
+  const [hardwareColor, setHardwareColor] = useState(initialData?.hardwareColor || 'Preto');
+  const [line, setLine] = useState(initialData?.line || 'Suprema');
+  const [openingType, setOpeningType] = useState(initialData?.openingType || 'De Correr (Slide)');
+  const [leafCount, setLeafCount] = useState(initialData?.leafCount || '2 Folhas (1F+1M)');
+  const [finish, setFinish] = useState(initialData?.finish || 'Lapidado Reto');
+  
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(
+    Boolean(initialData?.glassType || initialData?.thickness || initialData?.hardwareColor || initialData?.line || initialData?.type === 'dimensao')
+  );
+
   const [error, setError] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
 
@@ -36,6 +85,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setType(newType);
     if (newType === 'dimensao' && (unit === 'unidade' || !unit)) {
       setUnit('m²');
+      setShowTechnicalDetails(true);
     } else if (newType === 'simples' && unit === 'm²') {
       setUnit('unidade');
     }
@@ -119,9 +169,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       return;
     }
 
-    // Se o usuário não definiu imagem, atribui uma imagem inteligente automática
     const finalImageUrl = imageUrl.trim() || getSmartProductImage(name, description);
-
     const numPrice = typeof defaultPrice === 'number' ? defaultPrice : (defaultPrice ? parseFloat(String(defaultPrice)) : 0);
 
     const updatedCatalog = saveCatalogItem({
@@ -134,19 +182,30 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       description: description.trim() || undefined,
       status,
       imageUrl: finalImageUrl,
+      
+      // Características Técnicas
+      technicalCategory,
+      glassType: glassType.trim() || undefined,
+      thickness: thickness.trim() || undefined,
+      glassColor: glassColor.trim() || undefined,
+      hardwareColor: hardwareColor.trim() || undefined,
+      aluminumColor: hardwareColor.trim() || undefined,
+      line: line.trim() || undefined,
+      openingType: openingType.trim() || undefined,
+      leafCount: leafCount.trim() || undefined,
+      finish: finish.trim() || undefined,
     });
 
-    // Encontrar o item salvo
-    const saved = updatedCatalog.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase()) || updatedCatalog[0];
+    const saved = updatedCatalog.find((c) => c.id === initialData?.id || c.name.trim().toLowerCase() === name.trim().toLowerCase()) || updatedCatalog[0];
     onSave(saved);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-lg w-full border border-slate-200 my-8 space-y-4 animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl max-w-xl w-full border border-slate-200 my-6 space-y-4 animate-in fade-in zoom-in duration-200 text-slate-900 max-h-[92vh] flex flex-col">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
               <Package className="w-5 h-5" />
@@ -154,7 +213,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             <div>
               <h2 className="text-base font-extrabold text-slate-900">{title}</h2>
               <p className="text-xs text-slate-500">
-                {initialData?.id ? 'Atualize as informações e fotos do produto' : 'Cadastre um novo produto com fotos e catálogo'}
+                {initialData?.id ? 'Edite os dados, especificações técnicas e foto do produto' : 'Cadastre um novo produto com especificações técnicas e fotos'}
               </p>
             </div>
           </div>
@@ -167,12 +226,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3 font-semibold">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3 font-semibold shrink-0">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs overflow-y-auto pr-1 flex-1">
           
           {/* Seção de Foto do Produto / Câmera */}
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-3">
@@ -193,7 +252,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               )}
             </div>
 
-            {/* Hidden Inputs para Upload e Câmera */}
             <input
               type="file"
               ref={fileInputRef}
@@ -210,9 +268,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               className="hidden"
             />
 
-            {/* Preview ou Botões de Ação */}
             {imageUrl ? (
-              <div className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white aspect-video max-h-48 flex items-center justify-center">
+              <div className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white aspect-video max-h-40 flex items-center justify-center">
                 <img
                   src={imageUrl}
                   alt={name || 'Produto'}
@@ -226,7 +283,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black text-[11px] shadow-lg flex items-center gap-1"
                   >
                     <Camera className="w-3.5 h-3.5" />
-                    <span>Tirar Nova Foto</span>
+                    <span>Tirar Foto</span>
                   </button>
                   <button
                     type="button"
@@ -240,43 +297,40 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {/* Botão Câmera */}
                 <button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
                   className="flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-100 text-amber-900 transition-all font-bold group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform shadow-sm">
-                    <Camera className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform shadow-sm">
+                    <Camera className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-[11px] font-black">Tirar Foto</span>
-                  <span className="text-[9px] text-amber-700/80">Câmera do celular</span>
+                  <span className="text-[9px] text-amber-700/80">Câmera</span>
                 </button>
 
-                {/* Botão Galeria */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-slate-300 bg-white hover:bg-slate-100 text-slate-800 transition-all font-bold group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                    <Upload className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                    <Upload className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-[11px] font-black">Galeria / Arquivo</span>
-                  <span className="text-[9px] text-slate-500">Escolher foto</span>
+                  <span className="text-[11px] font-black">Galeria</span>
+                  <span className="text-[9px] text-slate-500">Arquivo</span>
                 </button>
 
-                {/* Botão Sugestão Automática */}
                 <button
                   type="button"
                   onClick={handleSuggestImage}
                   className="flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-900 transition-all font-bold group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 group-hover:scale-110 transition-transform shadow-sm">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 group-hover:scale-110 transition-transform shadow-sm">
+                    <Sparkles className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-[11px] font-black">Sugerir Foto</span>
-                  <span className="text-[9px] text-blue-700/80">Baseada no nome</span>
+                  <span className="text-[9px] text-blue-700/80">Automática</span>
                 </button>
               </div>
             )}
@@ -284,7 +338,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             {isCompressing && (
               <div className="text-center text-amber-700 font-bold text-[11px] flex items-center justify-center gap-1.5 py-1">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Otimizando e comprimindo imagem da câmera...</span>
+                <span>Otimizando e comprimindo imagem...</span>
               </div>
             )}
           </div>
@@ -292,7 +346,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {/* Tipo de Cálculo de Preço */}
           <div>
             <label className="block font-bold text-slate-700 uppercase mb-1">
-              Tipo do Produto <span className="text-amber-600">*</span>
+              Tipo de Precificação <span className="text-amber-600">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
               <button
@@ -318,17 +372,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 Produto Simples (Unid)
               </button>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">
-              {type === 'dimensao'
-                ? 'O valor será calculado dinamicamente com base na altura x largura (mm) informadas na venda.'
-                : 'O valor será multiplicado diretamente pela quantidade de unidades solicitadas.'}
-            </p>
           </div>
 
           {/* Nome do Produto */}
           <div>
             <label className="block font-bold text-slate-700 uppercase mb-1">
-              Nome do Produto <span className="text-amber-600">*</span>
+              Nome do Produto / Modelo <span className="text-amber-600">*</span>
             </label>
             <input
               type="text"
@@ -339,7 +388,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 setName(e.target.value);
                 if (error) setError(null);
               }}
-              placeholder={type === 'dimensao' ? 'Ex: Vidro 4mm Incolor' : 'Ex: Espelho Lapidado 60cm'}
+              placeholder={type === 'dimensao' ? 'Ex: Box Frontal 8mm Incolor F1' : 'Ex: Espelho Lapidado 60cm'}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
             />
           </div>
@@ -348,7 +397,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 uppercase mb-1">
-                Unidade de Venda
+                Unidade de Medida
               </label>
               <select
                 value={unit}
@@ -367,7 +416,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
             <div>
               <label className="block font-bold text-slate-700 uppercase mb-1">
-                Preço Padrão ({type === 'dimensao' ? 'R$/m²' : 'R$/un'})
+                Preço Base ({type === 'dimensao' ? 'R$/m²' : 'R$/un'})
               </label>
               <div className="relative">
                 <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -386,16 +435,198 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
+          {/* SEÇÃO EXPANSÍVEL: Características Técnicas Detalhadas */}
+          <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/70">
+            <button
+              type="button"
+              onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+              className="w-full p-3 flex items-center justify-between font-extrabold text-slate-800 hover:bg-slate-100 transition-colors text-left"
+            >
+              <span className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-amber-600" />
+                <span>Características Técnicas & Especificações Padrão</span>
+              </span>
+              {showTechnicalDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+            </button>
+
+            {showTechnicalDetails && (
+              <div className="p-3.5 pt-1 space-y-3 border-t border-slate-200 bg-white">
+                
+                {/* Categoria Técnica */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                    Categoria Técnica do Produto
+                  </label>
+                  <select
+                    value={technicalCategory}
+                    onChange={(e) => setTechnicalCategory(e.target.value as TechnicalCategory)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-900 font-semibold focus:outline-none focus:border-amber-500"
+                  >
+                    {TECH_CATEGORIES.map((tc) => (
+                      <option key={tc.id} value={tc.id}>{tc.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {/* Tipo de Vidro */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Vidro</label>
+                    <input
+                      type="text"
+                      list="glass-types-list"
+                      value={glassType}
+                      onChange={(e) => setGlassType(e.target.value)}
+                      placeholder="Temperado"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                    />
+                    <datalist id="glass-types-list">
+                      {GLASS_TYPES.map((gt) => (
+                        <option key={gt} value={gt} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Espessura */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Espessura</label>
+                    <input
+                      type="text"
+                      list="glass-thicknesses-list"
+                      value={thickness}
+                      onChange={(e) => setThickness(e.target.value)}
+                      placeholder="8mm"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium font-mono"
+                    />
+                    <datalist id="glass-thicknesses-list">
+                      {GLASS_THICKNESSES.map((th) => (
+                        <option key={th} value={th} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Cor do Vidro */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Cor do Vidro</label>
+                    <input
+                      type="text"
+                      list="glass-colors-list"
+                      value={glassColor}
+                      onChange={(e) => setGlassColor(e.target.value)}
+                      placeholder="Incolor"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                    />
+                    <datalist id="glass-colors-list">
+                      {GLASS_COLORS.map((gc) => (
+                        <option key={gc} value={gc} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Cor da Ferragem / Alumínio */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Ferragem / Alumínio</label>
+                    <input
+                      type="text"
+                      list="hardware-colors-list"
+                      value={hardwareColor}
+                      onChange={(e) => setHardwareColor(e.target.value)}
+                      placeholder="Preto"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                    />
+                    <datalist id="hardware-colors-list">
+                      {HARDWARE_COLORS.map((hc) => (
+                        <option key={hc} value={hc} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Linha de Perfil */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Linha do Perfil</label>
+                    <input
+                      type="text"
+                      list="aluminum-lines-list"
+                      value={line}
+                      onChange={(e) => setLine(e.target.value)}
+                      placeholder="Suprema"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                    />
+                    <datalist id="aluminum-lines-list">
+                      {ALUMINUM_LINES.map((al) => (
+                        <option key={al} value={al} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Tipo de Abertura */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Tipo de Abertura</label>
+                    <input
+                      type="text"
+                      list="opening-types-list"
+                      value={openingType}
+                      onChange={(e) => setOpeningType(e.target.value)}
+                      placeholder="De Correr (Slide)"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                    />
+                    <datalist id="opening-types-list">
+                      {OPENING_TYPES.map((ot) => (
+                        <option key={ot} value={ot} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Número de Folhas */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Número de Folhas</label>
+                    <input
+                      type="text"
+                      list="leaf-counts-list"
+                      value={leafCount}
+                      onChange={(e) => setLeafCount(e.target.value)}
+                      placeholder="2 Folhas (1F+1M)"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                    />
+                    <datalist id="leaf-counts-list">
+                      {LEAF_COUNTS.map((lc) => (
+                        <option key={lc} value={lc} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Acabamento / Lapidação */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Lapidação / Acabamento</label>
+                    <input
+                      type="text"
+                      list="finish-options-list"
+                      value={finish}
+                      onChange={(e) => setFinish(e.target.value)}
+                      placeholder="Lapidado Reto"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-amber-500 font-medium"
+                    />
+                    <datalist id="finish-options-list">
+                      {FINISH_OPTIONS.map((fo) => (
+                        <option key={fo} value={fo} />
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Descrição */}
           <div>
             <label className="block font-bold text-slate-700 uppercase mb-1">
-              Descrição (opcional)
+              Observações / Descrição do Produto
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Especificações do material, espessura, acabamento..."
+              placeholder="Especificações adicionais, indicações de instalação..."
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
             />
           </div>

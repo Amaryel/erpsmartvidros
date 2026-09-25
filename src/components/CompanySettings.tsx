@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { Save, CheckCircle2, Database, RefreshCw } from 'lucide-react';
+import { Save, CheckCircle2, Database, RefreshCw, Trash2, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { CompanyInfo } from '../types';
 
 interface CompanySettingsProps {
   companyInfo: CompanyInfo;
   onSave: (info: CompanyInfo) => void;
   onOpenSupabaseSyncModal?: () => void;
+  onOpenResetDatabaseModal?: () => void;
 }
 
 export const CompanySettings: React.FC<CompanySettingsProps> = ({
   companyInfo,
   onSave,
   onOpenSupabaseSyncModal,
+  onOpenResetDatabaseModal,
 }) => {
   const [name, setName] = useState(companyInfo.name || 'Smart Vidros');
   const [ownerName, setOwnerName] = useState(companyInfo.ownerName || 'James Clayton do Nascimento');
@@ -191,6 +193,37 @@ export const CompanySettings: React.FC<CompanySettingsProps> = ({
           >
             <RefreshCw className="w-4 h-4" />
             <span>Gerenciar Sincronização Supabase</span>
+          </button>
+        )}
+      </div>
+
+      {/* Zona de Manutenção & Limpeza de Base de Dados */}
+      <div className="bg-white border-2 border-red-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 border border-red-200 flex items-center justify-center shrink-0">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-black text-slate-900">Zerar Base de Dados do Sistema</h3>
+              <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                Limpeza Geral
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Zere todos os produtos, clientes, orçamentos, recibos e vendas para iniciar uma nova base de dados limpa.
+            </p>
+          </div>
+        </div>
+
+        {onOpenResetDatabaseModal && (
+          <button
+            type="button"
+            onClick={onOpenResetDatabaseModal}
+            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-red-600/20 transition-all shrink-0 active:scale-95"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Zerar Todos os Dados</span>
           </button>
         )}
       </div>

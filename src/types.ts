@@ -157,6 +157,20 @@ export interface CatalogItem {
   defaultPrice: number; // Preço padrão por m² ou por unidade
   status: 'ativo' | 'inativo';
   imageUrl?: string; // Imagem/Foto do produto (URL ou Base64 capturado do aparelho)
+  
+  // Características Técnicas Padrão (Opcionais para orçamentos e PDF)
+  technicalCategory?: TechnicalCategory;
+  glassType?: string;
+  thickness?: string;
+  glassColor?: string;
+  hardwareColor?: string;
+  aluminumColor?: string;
+  line?: string;
+  openingType?: string;
+  leafCount?: string;
+  finish?: string;
+  itemNotes?: string;
+
   createdAt?: string;
   updatedAt?: string;
 }

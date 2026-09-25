@@ -66,11 +66,15 @@ export function getBudgets(): Quote[] {
 
 export function getQuotes(): Quote[] {
   const data = storageAdapter.getItem<Quote[]>(QUOTES_KEY, null);
-  if (!data) {
+  if (data === null || data === undefined) {
     storageAdapter.setItem(QUOTES_KEY, INITIAL_QUOTES);
     if (!storageAdapter.getItem(COUNTER_KEY, null)) {
       storageAdapter.setItem(COUNTER_KEY, '2');
     }
+    return INITIAL_QUOTES;
+  }
+  if (!Array.isArray(data)) {
+    storageAdapter.setItem(QUOTES_KEY, INITIAL_QUOTES);
     return INITIAL_QUOTES;
   }
   return data;
@@ -167,4 +171,13 @@ export function updateQuoteStatus(id: string, newStatus: Quote['status']): Quote
     return quotes[index];
   }
   return null;
+}
+
+/**
+ * Zera todos os orçamentos emitidos e reinicia o contador
+ */
+export function clearAllQuotes(): Quote[] {
+  storageAdapter.setItem(QUOTES_KEY, []);
+  storageAdapter.setItem(COUNTER_KEY, '1');
+  return [];
 }
