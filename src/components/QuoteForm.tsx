@@ -72,7 +72,7 @@ const GLASS_COLORS = ['Incolor', 'Fumê', 'Verde', 'Bronze', 'Astral', 'Antirref
 const HARDWARE_COLORS = ['Preto', 'Branco', 'Fosco / Natural', 'Bronze', 'Cromado / Inox', 'Dourado / Ouro'];
 const ALUMINUM_LINES = ['Suprema', 'Gold', 'Convencional', 'Elegance', 'Slide', 'Versatik', 'Stanley'];
 const OPENING_TYPES = ['De Correr (Slide)', 'Pivotante', 'Fixo', 'Basculante', 'Maxim-ar', 'De Abrir / Giro', 'Camarão / Articulada'];
-const LEAF_COUNTS = ['1 Folha', '2 Folhas (1F+1M)', '2 Folhas Móveis', '3 Folhas', '4 Folhas (2F+2M)', 'Painel Fixo'];
+const LEAF_COUNTS = ['1 Folha', '2 Folhas (1F+1M)', '4 Folhas (2F+2M)', '3 Folhas (2F+1M)', '3 Folhas Móveis', '6 Folhas (4F+2M)', 'Fixo Inteiro'];
 const FINISH_OPTIONS = ['Lapidado Reto', 'Bisotê 25mm', 'Bisotê 30mm', 'Canto Moeda', 'Jateado Total', 'Furos e Recortes'];
 
 export const QuoteForm: React.FC<QuoteFormProps> = ({
