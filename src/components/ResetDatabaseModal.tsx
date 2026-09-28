@@ -62,14 +62,14 @@ export const ResetDatabaseModal: React.FC<ResetDatabaseModalProps> = ({
     setResetSales(nextState);
   };
 
-  const handleExecuteReset = () => {
+  const handleExecuteReset = async () => {
     if (!anySelected) return;
     if (confirmText.trim().toUpperCase() !== 'ZERAR') return;
 
     setIsProcessing(true);
 
     try {
-      resetSystemDatabase({
+      await resetSystemDatabase({
         products: resetProducts,
         clients: resetClients,
         quotes: resetQuotes,
@@ -80,7 +80,7 @@ export const ResetDatabaseModal: React.FC<ResetDatabaseModalProps> = ({
       setActionDone(true);
       setTimeout(() => {
         setIsProcessing(false);
-        onSuccess('Dados selecionados foram zerados com sucesso!');
+        onSuccess('Dados selecionados foram zerados com sucesso na nuvem e no sistema!');
         onClose();
       }, 700);
     } catch (err) {
@@ -129,7 +129,7 @@ export const ResetDatabaseModal: React.FC<ResetDatabaseModalProps> = ({
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
             <div className="leading-relaxed">
-              <strong>Atenção:</strong> Esta ação apagará permanentemente os registros selecionados no seu banco de dados local. Selecione abaixo exatamente o que deseja zerar:
+              <strong>Atenção:</strong> Esta ação apagará permanentemente os registros selecionados na sua base de dados local e na nuvem (Supabase). Selecione abaixo exatamente o que deseja zerar:
             </div>
           </div>
 

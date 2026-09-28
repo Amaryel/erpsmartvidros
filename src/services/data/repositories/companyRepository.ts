@@ -2,6 +2,7 @@ import { CompanyInfo } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
 import { getCurrentCompanyId } from '../auth';
 import { autoSyncEntityChange } from '../supabaseSync';
+import { getSupabaseClient } from '../../../lib/supabase';
 
 const COMPANY_KEY = 'smart_vidros_company';
 
@@ -64,23 +65,62 @@ export interface ResetOptions {
 }
 
 /**
- * Função central de zerar dados do sistema
+ * Função central de zerar dados do sistema (Local + Nuvem Supabase)
  */
-export function resetSystemDatabase(options: ResetOptions): void {
+export async function resetSystemDatabase(options: ResetOptions): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  // 1. Catálogo de Produtos
   if (options.products) {
     storageAdapter.setItem('smart_vidros_catalog', []);
+    if (supabase) {
+      try {
+        await supabase.from('catalog_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (err) {
+        console.warn('[Reset] Erro ao limpar catalog_items no Supabase:', err);
+      }
+    }
   }
+
+  // 2. Clientes
   if (options.clients) {
     storageAdapter.setItem('smart_vidros_clients', []);
+    if (supabase) {
+      try {
+        await supabase.from('clients').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (err) {
+        console.warn('[Reset] Erro ao limpar clients no Supabase:', err);
+      }
+    }
   }
+
+  // 3. Orçamentos
   if (options.quotes) {
     storageAdapter.setItem('smart_vidros_quotes', []);
     storageAdapter.setItem('smart_vidros_counter', '1');
+    if (supabase) {
+      try {
+        await supabase.from('quotes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (err) {
+        console.warn('[Reset] Erro ao limpar quotes no Supabase:', err);
+      }
+    }
   }
+
+  // 4. Recibos
   if (options.receipts) {
     storageAdapter.setItem('smart_vidros_receipts', []);
     storageAdapter.setItem('smart_vidros_receipts_counter', '1');
+    if (supabase) {
+      try {
+        await supabase.from('receipts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (err) {
+        console.warn('[Reset] Erro ao limpar receipts no Supabase:', err);
+      }
+    }
   }
+
+  // 5. Vendas, Contas a Receber e Contratos
   if (options.sales) {
     storageAdapter.setItem('smart_vidros_sales', []);
     storageAdapter.setItem('smart_vidros_sales_counter', '1');
@@ -88,6 +128,17 @@ export function resetSystemDatabase(options: ResetOptions): void {
     storageAdapter.setItem('smart_vidros_receivables_counter', '1');
     storageAdapter.setItem('smart_vidros_contracts', []);
     storageAdapter.setItem('smart_vidros_contracts_counter', '1');
+    if (supabase) {
+      try {
+        await Promise.allSettled([
+          supabase.from('sales').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('accounts_receivable').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('contracts').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        ]);
+      } catch (err) {
+        console.warn('[Reset] Erro ao limpar sales/receivables/contracts no Supabase:', err);
+      }
+    }
   }
 }
 
