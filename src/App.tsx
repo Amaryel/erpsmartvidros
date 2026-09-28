@@ -75,6 +75,7 @@ import {
   deleteContract,
   getContractBySaleId,
   getContractById,
+  pullAllFromSupabase,
 } from './services/storage';
 
 export default function App() {
@@ -180,10 +181,43 @@ export default function App() {
     };
   }, []);
 
-  // Carregar dados iniciais do localStorage & Iniciar Keep-Alive Supabase
+  // Carregar dados iniciais, disparar sincronização com o Supabase e iniciar Keep-Alive
   useEffect(() => {
     initSupabaseKeepAlive();
     refreshData();
+
+    // Sincronização inicial em nuvem para garantir que dispositivos novos baixem todos os dados
+    pullAllFromSupabase()
+      .then((res) => {
+        if (res.success) {
+          refreshData();
+        }
+      })
+      .catch((err) => console.warn('[App] Sincronização inicial com Supabase:', err));
+
+    // Sincronização periódica em segundo plano (a cada 30 segundos)
+    const syncInterval = setInterval(() => {
+      pullAllFromSupabase()
+        .then((res) => {
+          if (res.success) {
+            refreshData();
+          }
+        })
+        .catch(() => {});
+    }, 30000);
+
+    // Sincronizar ao retornar para a aba
+    const handleWindowFocus = () => {
+      pullAllFromSupabase()
+        .then((res) => {
+          if (res.success) {
+            refreshData();
+          }
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
 
     // Tour automático no primeiro acesso neste dispositivo/navegador
     const hasSeenTour = localStorage.getItem('smart_vidros_tour_completed');
@@ -191,8 +225,17 @@ export default function App() {
       const timer = setTimeout(() => {
         setIsTourOpen(true);
       }, 1500);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearInterval(syncInterval);
+        window.removeEventListener('focus', handleWindowFocus);
+      };
     }
+
+    return () => {
+      clearInterval(syncInterval);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, []);
 
   const refreshData = () => {
@@ -212,10 +255,20 @@ export default function App() {
     setPendingUsersCount(allUsers.filter((u) => u.status === 'pendente').length);
   };
 
-  const handleSuccessLogin = (user: AppUser) => {
+  const handleSuccessLogin = async (user: AppUser) => {
     setCurrentUser(user);
     showToast(`Bem-vindo, ${user.name}!`);
     refreshData();
+
+    // Sincronizar dados completos da nuvem imediatamente para a sessão do usuário
+    try {
+      const res = await pullAllFromSupabase();
+      if (res.success) {
+        refreshData();
+      }
+    } catch (err) {
+      console.warn('[Login] Erro ao sincronizar dados pós-login:', err);
+    }
   };
 
   const handleLogout = () => {
@@ -646,7 +699,7 @@ export default function App() {
         />
 
         {/* Área de Conteúdo do Sistema */}
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+        <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 pb-safe">
           
           {/* ABA 1: DASHBOARD / INÍCIO */}
           {activeTab === 'dashboard' && (

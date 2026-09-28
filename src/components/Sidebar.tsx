@@ -256,7 +256,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Container Principal do Menu Lateral (Sidebar) */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-zinc-950 border-r border-amber-500/30 text-white flex flex-col transition-all duration-300 print:hidden shadow-2xl ${
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-zinc-950 border-r border-amber-500/30 text-white flex flex-col transition-all duration-300 print:hidden shadow-2xl pt-safe pb-safe ${
           isCollapsed ? 'w-20' : 'w-64'
         } ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'

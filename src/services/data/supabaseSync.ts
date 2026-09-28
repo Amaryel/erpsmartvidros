@@ -8,6 +8,7 @@ import {
   Receivable,
   Receipt,
   CatalogItem,
+  Contract,
   ManagerTask,
 } from '../../types';
 
@@ -118,182 +119,187 @@ export function initSupabaseKeepAlive(): void {
 // ============================================================
 // MAPER DE ENTIDADES LOCAIS PARA TABELAS DO SUPABASE
 // ============================================================
-function mapEntityToSupabaseRow(table: string, entity: any): Record<string, any> | null {
+function mapEntityToSupabaseRow(table: string, entity: any): { targetTable: string; row: Record<string, any> } | null {
   if (!entity) return null;
 
   switch (table) {
     case 'companies':
       return {
-        id: entity.id || 'comp-smart-vidros-001',
-        name: entity.name || 'Smart Vidros',
-        owner_name: entity.ownerName || '',
-        cnpj: entity.cnpj || '',
-        phone: entity.phone || '',
-        email: entity.email || '',
-        address: entity.address || '',
-        city: entity.city || '',
-        logo_url: entity.logoUrl || null,
-        updated_at: new Date().toISOString(),
+        targetTable: 'companies',
+        row: {
+          id: entity.id || 'comp-smart-vidros-001',
+          name: entity.name || 'Smart Vidros',
+          owner_name: entity.ownerName || '',
+          cnpj: entity.cnpj || '',
+          phone: entity.phone || '',
+          email: entity.email || '',
+          address: entity.address || '',
+          city: entity.city || '',
+          logo_url: entity.logoUrl || null,
+          updated_at: new Date().toISOString(),
+        },
       };
 
     case 'user_accounts':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        name: entity.name,
-        email: entity.email,
-        username: entity.username || entity.email.split('@')[0],
-        password: entity.password || '123456',
-        role: entity.role || 'operador',
-        status: entity.status || 'pendente',
-        approved_at: entity.approvedAt || null,
-        approved_by: entity.approvedBy || null,
-        created_at: entity.createdAt || new Date().toISOString(),
-        updated_at: entity.updatedAt || new Date().toISOString(),
+        targetTable: 'user_accounts',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          name: entity.name,
+          email: entity.email,
+          username: entity.username || (entity.email ? entity.email.split('@')[0] : 'usuario'),
+          password: entity.password || '123456',
+          role: entity.role || 'vendedor',
+          status: entity.status || 'pendente',
+          approved_at: entity.approvedAt || null,
+          approved_by: entity.approvedBy || null,
+          created_at: entity.createdAt || new Date().toISOString(),
+          updated_at: entity.updatedAt || new Date().toISOString(),
+        },
       };
 
     case 'clients':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        name: entity.name,
-        document: entity.cpfCnpj || null,
-        phone: entity.phone || entity.whatsapp || null,
-        email: entity.email || null,
-        address: entity.address || null,
-        city: entity.city || null,
-        notes: entity.notes || null,
-        created_at: entity.createdAt || new Date().toISOString(),
-        updated_at: entity.updatedAt || new Date().toISOString(),
+        targetTable: 'clients',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          name: entity.name,
+          document: entity.cpfCnpj || null,
+          phone: entity.phone || entity.whatsapp || null,
+          email: entity.email || null,
+          address: entity.address || null,
+          city: entity.city || null,
+          notes: entity.notes || null,
+          created_at: entity.createdAt || new Date().toISOString(),
+          updated_at: entity.updatedAt || new Date().toISOString(),
+        },
       };
 
     case 'quotes':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        code: entity.code,
-        client_name: entity.clientName || 'Cliente',
-        client_phone: entity.clientPhone || null,
-        total_amount: entity.total || 0,
-        discount_amount: entity.discountAmount || 0,
-        status: entity.status || 'rascunho',
-        items: entity.items || [],
-        notes: entity.notes || null,
-        created_at: entity.createdAt || new Date().toISOString(),
-        updated_at: entity.updatedAt || new Date().toISOString(),
+        targetTable: 'quotes',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          code: entity.code,
+          client_name: entity.clientName || 'Cliente',
+          client_phone: entity.clientPhone || null,
+          total_amount: entity.total || 0,
+          discount_amount: entity.discountAmount || 0,
+          status: entity.status || 'rascunho',
+          items: entity.items || [],
+          notes: entity.notes || null,
+          created_at: entity.createdAt || new Date().toISOString(),
+          updated_at: entity.updatedAt || new Date().toISOString(),
+        },
       };
 
     case 'sales':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        quote_id: entity.quoteId || null,
-        code: entity.code,
-        client_name: entity.clientName || 'Cliente Balcão',
-        client_phone: entity.clientPhone || null,
-        total_amount: entity.total || 0,
-        payment_method: entity.payments && entity.payments[0] ? entity.payments[0].method : 'PIX',
-        status: entity.status === 'concluida' ? 'concluido' : 'cancelado',
-        items: entity.items || [],
-        notes: entity.notes || null,
-        created_at: entity.createdAt || new Date().toISOString(),
-        finalized_at: entity.updatedAt || new Date().toISOString(),
+        targetTable: 'sales',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          quote_id: entity.quoteId || null,
+          code: entity.code,
+          client_name: entity.clientName || 'Cliente Balcão',
+          client_phone: entity.clientPhone || null,
+          total_amount: entity.total || 0,
+          payment_method: entity.payments && entity.payments[0] ? entity.payments[0].method : 'pix',
+          status: entity.status === 'concluida' ? 'concluido' : 'cancelado',
+          items: entity.items || [],
+          notes: entity.notes || null,
+          created_at: entity.createdAt || new Date().toISOString(),
+          finalized_at: entity.updatedAt || new Date().toISOString(),
+        },
       };
 
     case 'accounts_receivable':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        sale_id: entity.saleId || null,
-        quote_id: entity.quoteId || null,
-        client_name: entity.clientName || 'Cliente',
-        description: entity.notes || `Conta a receber ${entity.saleCode || ''}`,
-        amount: entity.totalAmount || entity.remainingAmount || 0,
-        due_date: entity.installments && entity.installments[0] ? entity.installments[0].dueDate : new Date().toISOString(),
-        status: entity.status || 'pendente',
-        created_at: entity.createdAt || new Date().toISOString(),
+        targetTable: 'accounts_receivable',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          sale_id: entity.saleId || null,
+          quote_id: entity.quoteId || null,
+          client_name: entity.clientName || 'Cliente',
+          description: entity.notes || (entity.saleCode ? `Venda ${entity.saleCode}` : 'Conta a receber'),
+          amount: entity.totalAmount || entity.remainingAmount || 0,
+          due_date: entity.installments && entity.installments[0] ? entity.installments[0].dueDate : new Date().toISOString(),
+          status: entity.status || 'pendente',
+          installment_number: entity.installments && entity.installments[0] ? entity.installments[0].number : 1,
+          total_installments: entity.installments ? entity.installments.length : 1,
+          created_at: entity.createdAt || new Date().toISOString(),
+        },
       };
 
     case 'receipts':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        sale_id: entity.saleId || null,
-        receivable_id: entity.receivableId || null,
-        code: entity.code,
-        client_name: entity.clientName || 'Cliente',
-        amount: entity.amount || 0,
-        payment_method: 'PIX',
-        description: entity.service || null,
-        created_at: entity.createdAt || new Date().toISOString(),
+        targetTable: 'receipts',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          sale_id: entity.saleId || null,
+          receivable_id: entity.receivableId || null,
+          code: entity.code,
+          client_name: entity.clientName || 'Cliente',
+          amount: entity.amount || 0,
+          payment_method: 'PIX',
+          description: entity.service || null,
+          created_at: entity.createdAt || new Date().toISOString(),
+        },
       };
 
     case 'catalog':
+    case 'catalog_items':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        name: entity.name,
-        category: entity.category || 'vidros',
-        unit: entity.unit || 'm2',
-        unit_price: entity.unitPrice || entity.pricePerM2 || 0,
-        description: entity.description || null,
-        created_at: entity.createdAt || new Date().toISOString(),
+        targetTable: 'catalog_items',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          name: entity.name,
+          description: entity.description || null,
+          unit_price: entity.defaultPrice !== undefined ? entity.defaultPrice : (entity.unitPrice || entity.pricePerM2 || 0),
+          type: entity.type || 'dimensao',
+          category: entity.category || 'produto',
+          stock_quantity: 0,
+          unit_of_measure: entity.unit || (entity.type === 'dimensao' ? 'm²' : 'un'),
+          created_at: entity.createdAt || new Date().toISOString(),
+        },
       };
 
     case 'contracts':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        sale_id: entity.saleId || null,
-        quote_id: entity.quoteId || null,
-        code: entity.code,
-        client_name: entity.clientName || 'Cliente',
-        total_amount: entity.totalAmount || 0,
-        status: entity.status || 'ativo',
-        created_at: entity.createdAt || new Date().toISOString(),
-        updated_at: entity.updatedAt || new Date().toISOString(),
+        targetTable: 'contracts',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          sale_id: entity.saleId || null,
+          quote_id: entity.quoteId || null,
+          code: entity.code,
+          client_name: entity.clientName || 'Cliente',
+          total_amount: entity.totalAmount || 0,
+          status: entity.status || 'ativo',
+          created_at: entity.createdAt || new Date().toISOString(),
+          updated_at: entity.updatedAt || new Date().toISOString(),
+        },
       };
 
-    case 'cut_rules':
+    case 'manager_tasks':
       return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        name: entity.name,
-        product_type: entity.productType,
-        pieces_count: entity.piecesCount || 1,
-        width_discount: entity.widthDiscount || 0,
-        height_discount: entity.heightDiscount || 0,
-        lateral_gap: entity.lateralGap || 0,
-        top_gap: entity.topGap || 0,
-        bottom_gap: entity.bottomGap || 0,
-        overlap_addition: entity.overlapAddition || 0,
-        transpass_addition: entity.transpassAddition || 0,
-        notes: entity.notes || null,
-        created_at: entity.createdAt || new Date().toISOString(),
-        updated_at: entity.updatedAt || new Date().toISOString(),
-      };
-
-    case 'cut_calculations':
-      return {
-        id: entity.id,
-        company_id: entity.companyId || 'comp-smart-vidros-001',
-        rule_id: entity.ruleId,
-        rule_name: entity.ruleName,
-        product_type: entity.productType,
-        code: entity.code,
-        client_name: entity.clientName || null,
-        client_phone: entity.clientPhone || null,
-        project_name: entity.projectName || null,
-        span_width_mm: entity.spanWidthMm,
-        span_height_mm: entity.spanHeightMm,
-        span_quantity: entity.spanQuantity || 1,
-        cut_width_mm: entity.cutWidthMm,
-        cut_height_mm: entity.cutHeightMm,
-        total_pieces: entity.totalPieces,
-        total_area_m2: entity.totalAreaM2,
-        notes: entity.notes || null,
-        created_at: entity.createdAt || new Date().toISOString(),
-        updated_at: entity.updatedAt || new Date().toISOString(),
+        targetTable: 'manager_tasks',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          title: entity.title,
+          description: entity.notes || null,
+          priority: entity.priority || 'media',
+          completed: !!entity.completed,
+          due_date: entity.dueDate || null,
+          created_at: entity.createdAt || new Date().toISOString(),
+        },
       };
 
     default:
@@ -305,7 +311,7 @@ function mapEntityToSupabaseRow(table: string, entity: any): Record<string, any>
 // AUTO-SYNC HOOK EM TEMPO REAL
 // ============================================================
 export function autoSyncEntityChange(
-  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'catalog' | 'contracts' | 'cut_rules' | 'cut_calculations',
+  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'catalog' | 'catalog_items' | 'contracts' | 'cut_rules' | 'cut_calculations' | 'manager_tasks',
   action: 'upsert' | 'delete',
   data: any
 ): void {
@@ -315,21 +321,23 @@ export function autoSyncEntityChange(
       const client = getSupabaseClient();
       if (!client) return;
 
+      const mapped = mapEntityToSupabaseRow(table, data);
+      const targetTable = mapped ? mapped.targetTable : (table === 'catalog' ? 'catalog_items' : table);
+
       if (action === 'delete') {
         const id = typeof data === 'string' ? data : data?.id;
         if (id) {
-          await client.from(table).delete().eq('id', id);
+          await client.from(targetTable).delete().eq('id', id);
         }
       } else {
-        const mappedRow = mapEntityToSupabaseRow(table, data);
-        if (mappedRow) {
-          await client.from(table).upsert([mappedRow]);
+        if (mapped) {
+          await client.from(mapped.targetTable).upsert([mapped.row]);
         }
       }
     } catch (err) {
       console.warn(`[AutoSync] Não foi possível persistir no Supabase (${table}):`, err);
     }
-  }, 100);
+  }, 50);
 }
 
 // ============================================================
@@ -374,7 +382,7 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
           company_id: u.companyId || 'comp-smart-vidros-001',
           name: u.name,
           email: u.email,
-          username: u.username || u.email.split('@')[0],
+          username: u.username || (u.email ? u.email.split('@')[0] : 'usuario'),
           password: u.password || '123456',
           role: u.role,
           status: u.status,
@@ -448,7 +456,7 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
           client_name: s.clientName || 'Cliente Balcão',
           client_phone: s.clientPhone || null,
           total_amount: s.total || 0,
-          payment_method: s.payments && s.payments[0] ? s.payments[0].method : 'PIX',
+          payment_method: s.payments && s.payments[0] ? s.payments[0].method : 'pix',
           status: s.status === 'concluida' ? 'concluido' : 'cancelado',
           items: s.items || [],
           notes: s.notes || null,
@@ -460,7 +468,7 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
       }
     }
 
-    // 6. Contas a Receber / Fiados
+    // 6. Contas a Receber
     const recsStr = localStorage.getItem('smart_vidros_receivables');
     if (recsStr) {
       const recs: Receivable[] = JSON.parse(recsStr);
@@ -471,10 +479,12 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
           sale_id: r.saleId || null,
           quote_id: r.quoteId || null,
           client_name: r.clientName || 'Cliente',
-          description: r.notes || `Venda ${r.saleCode}`,
-          amount: r.totalAmount || 0,
+          description: r.notes || (r.saleCode ? `Venda ${r.saleCode}` : 'Conta a receber'),
+          amount: r.totalAmount || r.remainingAmount || 0,
           due_date: r.installments && r.installments[0] ? r.installments[0].dueDate : new Date().toISOString(),
           status: r.status || 'pendente',
+          installment_number: r.installments && r.installments[0] ? r.installments[0].number : 1,
+          total_installments: r.installments ? r.installments.length : 1,
           created_at: r.createdAt || new Date().toISOString(),
         }));
         const { error } = await client.from('accounts_receivable').upsert(rows);
@@ -514,10 +524,11 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
           company_id: ci.companyId || 'comp-smart-vidros-001',
           name: ci.name,
           description: ci.description || null,
-          unit_price: ci.defaultPrice || 0,
-          type: ci.type || 'produto',
+          unit_price: ci.defaultPrice !== undefined ? ci.defaultPrice : 0,
+          type: ci.type || 'dimensao',
           category: ci.category || 'produto',
-          unit_of_measure: ci.unit || 'un',
+          stock_quantity: 0,
+          unit_of_measure: ci.unit || 'm²',
           created_at: ci.createdAt || new Date().toISOString(),
         }));
         const { error } = await client.from('catalog_items').upsert(rows);
@@ -525,7 +536,29 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
       }
     }
 
-    // 9. Tarefas do Gerente
+    // 9. Contratos
+    const contractsStr = localStorage.getItem('smart_vidros_contracts');
+    if (contractsStr) {
+      const contracts: Contract[] = JSON.parse(contractsStr);
+      if (contracts.length > 0) {
+        const rows = contracts.map((c) => ({
+          id: c.id,
+          company_id: c.companyId || 'comp-smart-vidros-001',
+          sale_id: c.saleId || null,
+          quote_id: c.quoteId || null,
+          code: c.code,
+          client_name: c.clientName,
+          total_amount: c.totalAmount || 0,
+          status: c.status || 'ativo',
+          created_at: c.createdAt || new Date().toISOString(),
+          updated_at: c.updatedAt || new Date().toISOString(),
+        }));
+        const { error } = await client.from('contracts').upsert(rows);
+        if (!error) totalPushed += contracts.length;
+      }
+    }
+
+    // 10. Tarefas do Gerente
     const tasksStr = localStorage.getItem('smart_vidros_manager_tasks');
     if (tasksStr) {
       const tasks: ManagerTask[] = JSON.parse(tasksStr);
@@ -534,6 +567,7 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
           id: t.id,
           company_id: t.companyId || 'comp-smart-vidros-001',
           title: t.title,
+          description: t.notes || null,
           priority: t.priority || 'media',
           completed: !!t.completed,
           due_date: t.dueDate || null,
@@ -573,33 +607,33 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
     let pulledTotal = 0;
 
     // 1. Empresa
-    const { data: companies } = await client.from('companies').select('*');
-    if (companies && companies.length > 0) {
+    const { data: companies, error: compErr } = await client.from('companies').select('*');
+    if (!compErr && companies && companies.length > 0) {
       const c = companies[0];
       const companyModel: CompanyInfo = {
         id: c.id,
-        name: c.name,
-        ownerName: c.owner_name,
-        cnpj: c.cnpj,
-        phone: c.phone,
-        email: c.email,
-        address: c.address,
-        city: c.city,
-        logoUrl: c.logo_url,
+        name: c.name || 'Smart Vidros',
+        ownerName: c.owner_name || '',
+        cnpj: c.cnpj || '',
+        phone: c.phone || '',
+        email: c.email || '',
+        address: c.address || '',
+        city: c.city || '',
+        logoUrl: c.logo_url || '',
       };
       localStorage.setItem('smart_vidros_company', JSON.stringify(companyModel));
       pulledTotal++;
     }
 
     // 2. Usuários
-    const { data: users } = await client.from('user_accounts').select('*');
-    if (users && users.length > 0) {
+    const { data: users, error: uErr } = await client.from('user_accounts').select('*');
+    if (!uErr && users && users.length > 0) {
       const userModels: UserAccount[] = users.map((u) => ({
         id: u.id,
         companyId: u.company_id || 'comp-smart-vidros-001',
         name: u.name,
         email: u.email,
-        username: u.username,
+        username: u.username || (u.email ? u.email.split('@')[0] : 'usuario'),
         password: u.password,
         role: u.role || 'vendedor',
         status: u.status || 'aprovado',
@@ -613,8 +647,8 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
     }
 
     // 3. Clientes
-    const { data: clients } = await client.from('clients').select('*');
-    if (clients && clients.length > 0) {
+    const { data: clients, error: clErr } = await client.from('clients').select('*');
+    if (!clErr && clients && clients.length > 0) {
       const clientModels: Client[] = clients.map((c) => ({
         id: c.id,
         companyId: c.company_id,
@@ -634,8 +668,8 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
     }
 
     // 4. Orçamentos
-    const { data: quotes } = await client.from('quotes').select('*');
-    if (quotes && quotes.length > 0) {
+    const { data: quotes, error: qErr } = await client.from('quotes').select('*');
+    if (!qErr && quotes && quotes.length > 0) {
       const quoteModels: Quote[] = quotes.map((q) => ({
         id: q.id,
         companyId: q.company_id,
@@ -646,12 +680,12 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
         createdAt: q.created_at,
         updatedAt: q.updated_at,
         status: q.status || 'rascunho',
-        items: q.items || [],
+        items: Array.isArray(q.items) ? q.items : [],
         discountType: 'fixed',
-        discountValue: q.discount_amount || 0,
-        subtotal: (q.total_amount || 0) + (q.discount_amount || 0),
-        discountAmount: q.discount_amount || 0,
-        total: q.total_amount || 0,
+        discountValue: Number(q.discount_amount) || 0,
+        subtotal: (Number(q.total_amount) || 0) + (Number(q.discount_amount) || 0),
+        discountAmount: Number(q.discount_amount) || 0,
+        total: Number(q.total_amount) || 0,
         notes: q.notes,
       }));
       localStorage.setItem('smart_vidros_quotes', JSON.stringify(quoteModels));
@@ -659,8 +693,8 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
     }
 
     // 5. Vendas
-    const { data: sales } = await client.from('sales').select('*');
-    if (sales && sales.length > 0) {
+    const { data: sales, error: sErr } = await client.from('sales').select('*');
+    if (!sErr && sales && sales.length > 0) {
       const saleModels: Sale[] = sales.map((s) => ({
         id: s.id,
         companyId: s.company_id,
@@ -671,20 +705,129 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
         date: s.created_at ? s.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
         createdAt: s.created_at,
         updatedAt: s.finalized_at || s.created_at,
-        items: s.items || [],
-        subtotal: s.total_amount || 0,
+        items: Array.isArray(s.items) ? s.items : [],
+        subtotal: Number(s.total_amount) || 0,
         discountType: 'fixed',
         discountValue: 0,
         discountAmount: 0,
-        total: s.total_amount || 0,
-        payments: [{ id: 'p1', method: s.payment_method || 'pix', amount: s.total_amount || 0 }],
-        totalPaid: s.total_amount || 0,
+        total: Number(s.total_amount) || 0,
+        payments: [{ id: `pay-${s.id}`, method: s.payment_method || 'pix', amount: Number(s.total_amount) || 0 }],
+        totalPaid: Number(s.total_amount) || 0,
         totalFiado: 0,
         status: s.status === 'concluido' ? 'concluida' : 'cancelada',
         notes: s.notes,
       }));
       localStorage.setItem('smart_vidros_sales', JSON.stringify(saleModels));
       pulledTotal += sales.length;
+    }
+
+    // 6. Catálogo de Produtos
+    const { data: catalogItems, error: catErr } = await client.from('catalog_items').select('*');
+    if (!catErr && catalogItems && catalogItems.length > 0) {
+      const catalogModels: CatalogItem[] = catalogItems.map((ci) => ({
+        id: ci.id,
+        companyId: ci.company_id || 'comp-smart-vidros-001',
+        name: ci.name,
+        description: ci.description || '',
+        type: ci.type || 'dimensao',
+        category: ci.category || 'produto',
+        defaultPrice: Number(ci.unit_price) || 0,
+        status: 'ativo',
+        unit: ci.unit_of_measure || (ci.type === 'dimensao' ? 'm²' : 'un'),
+        createdAt: ci.created_at || new Date().toISOString(),
+        updatedAt: ci.created_at || new Date().toISOString(),
+      }));
+      localStorage.setItem('smart_vidros_catalog', JSON.stringify(catalogModels));
+      pulledTotal += catalogItems.length;
+    }
+
+    // 7. Contratos
+    const { data: contracts, error: conErr } = await client.from('contracts').select('*');
+    if (!conErr && contracts && contracts.length > 0) {
+      const contractModels: Contract[] = contracts.map((c) => ({
+        id: c.id,
+        companyId: c.company_id || 'comp-smart-vidros-001',
+        code: c.code || 'Contrato Nº 000001',
+        saleId: c.sale_id || undefined,
+        quoteId: c.quote_id || undefined,
+        clientName: c.client_name || 'Cliente',
+        contractorName: 'Smart Vidros',
+        contractorDocument: '51.840.669/0001-22',
+        contractorAddress: 'Rua Projetada – Sussuapara-PI',
+        title: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE VIDRAÇARIA',
+        objectClauseText: 'Fornecimento e instalação de vidros e esquadrias.',
+        totalAmount: Number(c.total_amount) || 0,
+        totalAmountInWords: '',
+        paymentClauseText: 'Conforme condições acordadas.',
+        executionDeadlineText: 'Conforme cronograma da obra.',
+        obligationsContractorText: 'Executar os serviços com qualidade.',
+        obligationsClientText: 'Liberar o local de instalação.',
+        rescissionText: 'Nos termos da lei.',
+        jurisdictionText: 'Picos - PI',
+        defaultClauseText: 'Multa de 2% e juros de 1% ao mês.',
+        cancellationClauseText: 'Em caso de cancelamento após corte, será cobrado o custo dos materiais.',
+        cityDate: 'Picos - PI',
+        date: c.created_at ? c.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        status: c.status || 'ativo',
+        createdAt: c.created_at || new Date().toISOString(),
+        updatedAt: c.updated_at || c.created_at || new Date().toISOString(),
+      }));
+      localStorage.setItem('smart_vidros_contracts', JSON.stringify(contractModels));
+      pulledTotal += contracts.length;
+    }
+
+    // 8. Contas a Receber
+    const { data: recs, error: recErr } = await client.from('accounts_receivable').select('*');
+    if (!recErr && recs && recs.length > 0) {
+      const recModels: Receivable[] = recs.map((r) => ({
+        id: r.id,
+        companyId: r.company_id || 'comp-smart-vidros-001',
+        code: `CR-${r.id.slice(0, 6).toUpperCase()}`,
+        saleId: r.sale_id || '',
+        saleCode: r.description || `VENDA`,
+        quoteId: r.quote_id || undefined,
+        clientName: r.client_name || 'Cliente',
+        saleDate: r.created_at ? r.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        totalAmount: Number(r.amount) || 0,
+        paidAmount: r.status === 'pago' ? Number(r.amount) || 0 : 0,
+        remainingAmount: r.status === 'pago' ? 0 : Number(r.amount) || 0,
+        status: r.status || 'pendente',
+        installments: [
+          {
+            id: `inst-${r.id}-1`,
+            number: r.installment_number || 1,
+            amount: Number(r.amount) || 0,
+            paidAmount: r.status === 'pago' ? Number(r.amount) || 0 : 0,
+            dueDate: r.due_date ? r.due_date.split('T')[0] : new Date().toISOString().split('T')[0],
+            status: r.status || 'pendente',
+          },
+        ],
+        notes: r.description || '',
+        createdAt: r.created_at || new Date().toISOString(),
+        updatedAt: r.created_at || new Date().toISOString(),
+      }));
+      localStorage.setItem('smart_vidros_receivables', JSON.stringify(recModels));
+      pulledTotal += recs.length;
+    }
+
+    // 9. Recibos
+    const { data: receipts, error: rcErr } = await client.from('receipts').select('*');
+    if (!rcErr && receipts && receipts.length > 0) {
+      const receiptModels: Receipt[] = receipts.map((rc) => ({
+        id: rc.id,
+        companyId: rc.company_id || 'comp-smart-vidros-001',
+        code: rc.code || 'REC-001',
+        saleId: rc.sale_id || undefined,
+        receivableId: rc.receivable_id || undefined,
+        clientName: rc.client_name || 'Cliente',
+        amount: Number(rc.amount) || 0,
+        service: rc.description || 'Serviços de Vidraçaria',
+        date: rc.created_at ? rc.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        createdAt: rc.created_at || new Date().toISOString(),
+        updatedAt: rc.created_at || new Date().toISOString(),
+      }));
+      localStorage.setItem('smart_vidros_receipts', JSON.stringify(receiptModels));
+      pulledTotal += receipts.length;
     }
 
     const now = new Date().toISOString();

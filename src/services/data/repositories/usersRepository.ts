@@ -3,6 +3,7 @@ import { storageAdapter } from '../storageAdapter';
 import { generateUUID } from '../uuid';
 import { autoSyncEntityChange } from '../supabaseSync';
 import { getDefaultPermissions } from '../../../utils/permissions';
+import { getSupabaseClient } from '../../../lib/supabase';
 
 export const USERS_KEY = 'smart_vidros_users';
 export const SUPERADMIN_EMAIL = 'amaryelcc@gmail.com';
@@ -272,6 +273,37 @@ export function registerUser(userData: {
   storageAdapter.setItem(USERS_KEY, users);
   autoSyncEntityChange('user_accounts', 'upsert', newUser);
 
+  // Sincronização direta e imediata com o Supabase
+  try {
+    const client = getSupabaseClient();
+    if (client) {
+      client
+        .from('user_accounts')
+        .upsert([
+          {
+            id: newUser.id,
+            company_id: newUser.companyId || 'comp-smart-vidros-001',
+            name: newUser.name,
+            email: newUser.email,
+            username: newUser.username || newUser.email.split('@')[0],
+            password: newUser.password || '123456',
+            role: newUser.role,
+            status: newUser.status,
+            approved_at: newUser.approvedAt || null,
+            approved_by: newUser.approvedBy || null,
+            created_at: newUser.createdAt,
+            updated_at: newUser.updatedAt,
+          },
+        ])
+        .then(({ error }: any) => {
+          if (error) console.warn('[Supabase] Erro ao cadastrar usuário na nuvem:', error);
+          else console.log('[Supabase] Novo usuário salvo na nuvem com sucesso:', newUser.email);
+        });
+    }
+  } catch (err) {
+    console.warn('[Supabase] Exceção ao persistir usuário:', err);
+  }
+
   return {
     success: true,
     message: isSuper
@@ -356,6 +388,39 @@ export function updateUser(
 
   storageAdapter.setItem(USERS_KEY, users);
   autoSyncEntityChange('user_accounts', 'upsert', users[idx]);
+
+  // Sincronização direta e imediata com o Supabase (para troca de senha e perfil em tempo real)
+  try {
+    const client = getSupabaseClient();
+    if (client) {
+      const u = users[idx];
+      client
+        .from('user_accounts')
+        .upsert([
+          {
+            id: u.id,
+            company_id: u.companyId || 'comp-smart-vidros-001',
+            name: u.name,
+            email: u.email,
+            username: u.username || u.email.split('@')[0],
+            password: u.password || '123456',
+            role: u.role || 'vendedor',
+            status: u.status || 'aprovado',
+            approved_at: u.approvedAt || null,
+            approved_by: u.approvedBy || null,
+            created_at: u.createdAt || new Date().toISOString(),
+            updated_at: u.updatedAt || new Date().toISOString(),
+          },
+        ])
+        .then(({ error }: any) => {
+          if (error) console.warn('[Supabase] Erro ao sincronizar atualização de usuário:', error);
+          else console.log('[Supabase] Perfil/Senha atualizados na nuvem com sucesso:', u.email);
+        });
+    }
+  } catch (err) {
+    console.warn('[Supabase] Exceção ao persistir atualização de usuário:', err);
+  }
+
   return users[idx];
 }
 
@@ -363,6 +428,20 @@ export function deleteUser(id: string): UserAccount[] {
   const users = getUsers().filter((u) => u.id !== id);
   storageAdapter.setItem(USERS_KEY, users);
   autoSyncEntityChange('user_accounts', 'delete', id);
+
+  try {
+    const client = getSupabaseClient();
+    if (client) {
+      client
+        .from('user_accounts')
+        .delete()
+        .eq('id', id)
+        .then(({ error }: any) => {
+          if (error) console.warn('[Supabase] Erro ao excluir usuário na nuvem:', error);
+        });
+    }
+  } catch {}
+
   return users;
 }
 

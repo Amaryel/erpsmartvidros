@@ -130,23 +130,24 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   return (
-    <header className="bg-zinc-950 text-white border-b border-amber-500/20 sticky top-0 z-30 shadow-xl print:hidden w-full select-none">
-      <div className="w-full px-3 sm:px-5 lg:px-6">
-        <div className="flex items-center justify-between h-16 sm:h-18 gap-2 sm:gap-4">
+    <header className="bg-zinc-950 text-white border-b border-amber-500/20 sticky top-0 z-30 shadow-xl print:hidden w-full select-none pt-safe">
+      <div className="w-full px-2.5 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-14 sm:h-16 lg:h-18 gap-2">
           
           {/* LADO ESQUERDO: Botão Mobile + Identificador do Módulo / Página Atual */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             {/* Botão Menu Lateral Mobile/Tablet */}
             <button
               onClick={onToggleSidebarMobile}
               className="p-2 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors lg:hidden active:scale-95 shrink-0 border border-zinc-800"
               title="Abrir Menu Lateral"
+              aria-label="Abrir Menu Lateral"
             >
               <Menu className="w-5 h-5 text-amber-400" />
             </button>
 
             {/* Logo no Mobile */}
-            <div className="lg:hidden shrink-0">
+            <div className="lg:hidden shrink-0 flex items-center">
               <SmartVidrosLogo
                 companyInfo={companyInfo}
                 size="sm"
@@ -179,13 +180,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* LADO DIREITO: Ações Rápidas, IA, Dúvidas, PDV e Perfil */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
-            {/* 📱 BOTÃO INSTALAR APLICATIVO (PWA) */}
+            {/* 📱 BOTÃO INSTALAR APLICATIVO (PWA) - Visível a partir de md */}
             {onOpenPwaInstall && (
               <button
                 onClick={onOpenPwaInstall}
-                className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95 group"
+                className="hidden md:flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95 group"
                 title="Instalar Aplicativo (PWA) no Celular/Tablet"
               >
                 <Download className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
@@ -194,11 +195,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* 🤖 BOTÃO DESTAQUE: SMART IA */}
+            {/* 🤖 BOTÃO DESTAQUE: SMART IA - Visível a partir de sm (no mobile fica no menu lateral) */}
             {onOpenSmartIA && (
               <button
                 onClick={onOpenSmartIA}
-                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 text-amber-300 border border-amber-500/40 font-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95 group"
+                className="hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 text-amber-300 border border-amber-500/40 font-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95 group"
                 title="Abrir Assistente Smart IA (Grátis)"
               >
                 <div className="w-4 h-4 rounded-md bg-amber-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -211,15 +212,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* ❓ MENU DE DÚVIDAS & TOUR */}
-            <div className="relative" ref={helpDropdownRef}>
+            {/* ❓ MENU DE DÚVIDAS & TOUR - Visível a partir de md */}
+            <div className="relative hidden md:block" ref={helpDropdownRef}>
               <button
                 onClick={() => setIsHelpDropdownOpen(!isHelpDropdownOpen)}
                 className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all active:scale-95"
                 title="Dúvidas do Sistema & Tour"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="hidden md:inline">Dúvidas</span>
+                <span className="hidden lg:inline">Dúvidas</span>
                 <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isHelpDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -280,7 +281,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Botão Novo Orçamento */}
+            {/* Botão Novo Orçamento - Visível em telas lg+ */}
             {hasAccess('quotes') && (
               <button
                 onClick={onNewQuoteClick}
@@ -296,7 +297,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {isSuper && onOpenSupabaseSyncModal && (
               <button
                 onClick={onOpenSupabaseSyncModal}
-                className="hidden sm:flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 py-1.5 sm:py-2 rounded-xl text-xs transition-all whitespace-nowrap active:scale-95"
+                className="hidden sm:flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all whitespace-nowrap active:scale-95"
                 title="Sincronizar Banco Supabase"
               >
                 <Database className="w-3.5 h-3.5 text-emerald-400" />
@@ -318,10 +319,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Perfil & Logout */}
             {currentUser ? (
-              <div className="flex items-center gap-1 sm:gap-1.5 pl-1.5 sm:pl-2 border-l border-zinc-800 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 pl-1 sm:pl-2 border-l border-zinc-800 shrink-0">
                 <button
                   onClick={onOpenProfileModal || onOpenAuthModal}
-                  className="flex items-center gap-2 text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 px-2 sm:px-2.5 py-1.5 rounded-xl transition-all group max-w-[140px] sm:max-w-[180px] shrink-0"
+                  className="flex items-center gap-1.5 sm:gap-2 text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 p-1 sm:px-2.5 sm:py-1.5 rounded-xl transition-all group max-w-[120px] sm:max-w-[180px] shrink-0"
                   title="Configurar Meu Perfil"
                 >
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-xs group-hover:bg-amber-500 group-hover:text-zinc-950 transition-colors shrink-0">
