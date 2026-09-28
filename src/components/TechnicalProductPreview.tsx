@@ -32,12 +32,12 @@ export function detectTechnicalCategory(name: string = '', explicitCategory?: Te
 
 // Analisador inteligente de configuração de folhas e tipo de abertura
 export function parseLeafConfiguration(leafCountStr: string = '', name: string = '', openingTypeStr: string = '') {
-  const lc = (leafCountStr || '').toLowerCase();
-  const nm = (name || '').toLowerCase();
-  const ot = (openingTypeStr || '').toLowerCase();
+  const lc = (leafCountStr || '').toLowerCase().trim();
+  const nm = (name || '').toLowerCase().trim();
+  const ot = (openingTypeStr || '').toLowerCase().trim();
 
-  // 1. PRIORIDADE TOTAL: Se o usuário selecionou ou informou o número de folhas em leafCountStr
-  // Avaliação em ordem decrescente (6 -> 4 -> 3 -> 2 -> 1) para evitar qualquer sobreposição de substrings
+  // 1. PRIORIDADE MÁXIMA: Se o usuário selecionou ou informou o campo de Folhas
+  // Avaliação rigorosa em ordem decrescente (6 -> 4 -> 3 -> 2 -> 1)
   if (lc.includes('6') || lc.includes('seis')) {
     return { count: 6, type: 'correr_6f', label: '6 Folhas (4F+2M)' };
   }
@@ -45,32 +45,46 @@ export function parseLeafConfiguration(leafCountStr: string = '', name: string =
     return { count: 4, type: 'correr_4f', label: '4 Folhas (2F+2M)' };
   }
   if (lc.includes('3') || lc.includes('tres') || lc.includes('três')) {
-    return { count: 3, type: 'correr_3f', label: '3 Folhas (2F+1M)' };
+    const is3Moveis = lc.includes('móve') || lc.includes('move') || ot.includes('móve') || ot.includes('move');
+    return {
+      count: 3,
+      type: is3Moveis ? 'correr_3f_moveis' : 'correr_3f',
+      label: is3Moveis ? '3 Folhas Móveis (3M)' : '3 Folhas (2F+1M)',
+    };
   }
   if (lc.includes('2') || lc.includes('duas') || lc.includes('dois')) {
     return { count: 2, type: 'correr_2f', label: '2 Folhas (1F+1M)' };
   }
   if (lc.includes('1') || lc.includes('uma') || lc.includes('um') || lc.includes('fixo inteiro') || lc.includes('folha fixa')) {
     if (ot.includes('maxim') || nm.includes('maxim') || nm.includes('max-ar')) return { count: 1, type: 'maxim_ar', label: '1F Maxim-ar' };
-    if (ot.includes('basculante') || nm.includes('basculante')) return { count: 1, type: 'basculante', label: '1F Basculante' };
+    if (ot.includes('basculante') || nm.includes('basculante') || nm.includes('bascula')) return { count: 1, type: 'basculante', label: '1F Basculante' };
     if (ot.includes('pivotante') || nm.includes('pivotante') || nm.includes('pivô') || nm.includes('pivo')) return { count: 1, type: 'pivotante', label: '1F Pivotante' };
     if (ot.includes('abrir') || ot.includes('giro') || nm.includes('porta de abrir')) return { count: 1, type: 'giro_1f', label: '1 Folha de Abrir' };
-    return { count: 1, type: 'fixo_1f', label: '1 Folha' };
+    return { count: 1, type: 'fixo_1f', label: '1 Folha Fixo' };
   }
 
   // 2. Se o campo de Folhas não foi preenchido, detectar a partir do Nome do produto e do Tipo de Abertura
   const combined = `${nm} ${ot}`;
 
-  if (combined.includes('6 folha') || combined.includes('6f') || combined.includes('4f+2m')) {
+  // Detecção de 6 Folhas
+  if (/\b6\s*f\b|6\s*folha|seis\s*folha|4f\s*\+\s*2m|2f\s*\+\s*4m/.test(combined)) {
     return { count: 6, type: 'correr_6f', label: '6 Folhas (4F+2M)' };
   }
-  if (combined.includes('4 folha') || combined.includes('4f') || combined.includes('2f+2m') || combined.includes('canto') || combined.includes('box l')) {
+  // Detecção de 4 Folhas
+  if (/\b4\s*f\b|4\s*folha|quatro\s*folha|2f\s*\+\s*2m|canto|box\s*l\b|box\s*de\s*canto/.test(combined)) {
     return { count: 4, type: 'correr_4f', label: '4 Folhas (2F+2M)' };
   }
-  if (combined.includes('3 folha') || combined.includes('3f') || combined.includes('2f+1m') || combined.includes('versatik')) {
-    return { count: 3, type: 'correr_3f', label: '3 Folhas (2F+1M)' };
+  // Detecção de 3 Folhas
+  if (/\b3\s*f\b|3\s*folha|tres\s*folha|três\s*folha|2f\s*\+\s*1m|1f\s*\+\s*2m|versatik/.test(combined)) {
+    const is3Moveis = combined.includes('móve') || combined.includes('move');
+    return {
+      count: 3,
+      type: is3Moveis ? 'correr_3f_moveis' : 'correr_3f',
+      label: is3Moveis ? '3 Folhas Móveis (3M)' : '3 Folhas (2F+1M)',
+    };
   }
-  if (combined.includes('2 folha') || combined.includes('2f') || combined.includes('1f+1m') || combined.includes('f1') || combined.includes('box f1') || combined.includes('slide')) {
+  // Detecção de 2 Folhas
+  if (/\b2\s*f\b|2\s*folha|duas\s*folha|dois\s*folha|1f\s*\+\s*1m|box\s*f1|box\s*slide|porta\s*de\s*correr|janela\s*de\s*correr/.test(combined)) {
     return { count: 2, type: 'correr_2f', label: '2 Folhas (1F+1M)' };
   }
 
@@ -84,7 +98,7 @@ export function parseLeafConfiguration(leafCountStr: string = '', name: string =
   if (ot.includes('pivotante') || nm.includes('pivotante') || nm.includes('pivô') || nm.includes('pivo')) {
     return { count: 1, type: 'pivotante', label: '1F Pivotante' };
   }
-  if (ot.includes('abrir') || ot.includes('giro') || nm.includes('porta de abrir')) {
+  if (ot.includes('abrir') || ot.includes('giro') || nm.includes('porta de abrir') || nm.includes('abrir')) {
     return { count: 1, type: 'giro_1f', label: '1 Folha de Abrir' };
   }
   if (nm.includes('fixo') || nm.includes('painel fixo')) {
@@ -204,9 +218,11 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
   const midX = boxX + boxW / 2;
   const midY = boxY + boxH / 2;
 
+  const uniqueId = React.useId().replace(/:/g, '');
+
   return (
     <div
-      className={`relative inline-flex flex-col items-center justify-center bg-slate-950 text-slate-100 rounded-xl border border-slate-800 p-1.5 sm:p-2 select-none notranslate overflow-hidden ${className}`}
+      className={`relative inline-flex flex-col items-center justify-center bg-slate-950 text-slate-100 rounded-xl border border-slate-800 p-1.5 sm:p-2 select-none notranslate overflow-hidden max-w-full ${className}`}
       translate="no"
     >
       <svg
@@ -215,9 +231,9 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          {/* Marcador de seta */}
+          {/* Marcadores de seta */}
           <marker
-            id={`cad-arrow-${category}`}
+            id={`cad-arrow-${uniqueId}`}
             viewBox="0 0 10 10"
             refX="6"
             refY="5"
@@ -229,7 +245,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           </marker>
 
           <marker
-            id={`cad-arrow-left-${category}`}
+            id={`cad-arrow-left-${uniqueId}`}
             viewBox="0 0 10 10"
             refX="2"
             refY="5"
@@ -241,17 +257,11 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           </marker>
 
           {/* Gradiente de reflexo e brilho do vidro */}
-          <linearGradient id="glassGloss" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={`glassGloss-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.32" />
             <stop offset="30%" stopColor="#ffffff" stopOpacity="0.06" />
             <stop offset="65%" stopColor="#38bdf8" stopOpacity="0.08" />
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0.22" />
-          </linearGradient>
-
-          {/* Sombra sutil de transpasse */}
-          <linearGradient id="overlapShadow" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#000000" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
@@ -267,8 +277,8 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
               y2={boxY - 12}
               stroke="#f59e0b"
               strokeWidth="1.2"
-              markerStart={`url(#cad-arrow-left-${category})`}
-              markerEnd={`url(#cad-arrow-${category})`}
+              markerStart={`url(#cad-arrow-left-${uniqueId})`}
+              markerEnd={`url(#cad-arrow-${uniqueId})`}
             />
             <rect
               x={midX - 32}
@@ -302,8 +312,8 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
               y2={boxY + boxH}
               stroke="#f59e0b"
               strokeWidth="1.2"
-              markerStart={`url(#cad-arrow-left-${category})`}
-              markerEnd={`url(#cad-arrow-${category})`}
+              markerStart={`url(#cad-arrow-left-${uniqueId})`}
+              markerEnd={`url(#cad-arrow-${uniqueId})`}
             />
             <g transform={`translate(${boxX + boxW + 12}, ${midY}) rotate(90)`}>
               <rect
@@ -395,7 +405,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
               strokeWidth="1.5"
               rx="3"
             />
-            <rect x={boxX} y={boxY + 6} width={boxW} height={boxH - 16} fill="url(#glassGloss)" rx="3" />
+            <rect x={boxX} y={boxY + 6} width={boxW} height={boxH - 16} fill={`url(#glassGloss-${uniqueId})`} rx="3" />
 
             {/* Corrimão Tubular / Perfil Superior */}
             <rect x={boxX - 2} y={boxY} width={boxW + 4} height="6" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1.5" />
@@ -416,118 +426,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           </g>
         )}
 
-        {/* 4 FOLHAS (2 FIXAS + 2 MÓVEIS - Abertura Central) */}
-        {config.count === 4 && category !== 'espelho' && category !== 'guarda_corpo' && (
-          <g>
-            {/* Trilho Superior */}
-            <rect x={boxX - 2} y={boxY - 4} width={boxW + 4} height="6" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
-            {/* Trilho Inferior */}
-            <rect x={boxX - 2} y={boxY + boxH - 2} width={boxW + 4} height="5" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
-
-            {/* Perfis Laterais */}
-            <rect x={boxX - 2} y={boxY} width="4" height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" />
-            <rect x={boxX + boxW - 2} y={boxY} width="4" height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" />
-
-            {(() => {
-              const leafW = boxW / 4;
-              const x1 = boxX;
-              const x2 = boxX + leafW;
-              const x3 = boxX + leafW * 2;
-              const x4 = boxX + leafW * 3;
-
-              return (
-                <>
-                  {/* Folha 1 (Esquerda - FIXA) */}
-                  <rect x={x1 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.2" rx="1" />
-                  <rect x={x1 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill="url(#glassGloss)" rx="1" />
-
-                  {/* Folha 2 (Centro-Esquerda - MÓVEL) */}
-                  <rect x={x2 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-                  <rect x={x2 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill="url(#glassGloss)" rx="1" />
-
-                  {/* Folha 3 (Centro-Direita - MÓVEL) */}
-                  <rect x={x3 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-                  <rect x={x3 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill="url(#glassGloss)" rx="1" />
-
-                  {/* Folha 4 (Direita - FIXA) */}
-                  <rect x={x4 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.2" rx="1" />
-                  <rect x={x4 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill="url(#glassGloss)" rx="1" />
-
-                  {/* Divisores Verticais */}
-                  <line x1={x2} y1={boxY} x2={x2} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2" />
-                  <line x1={midX} y1={boxY} x2={midX} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2.5" />
-                  <line x1={x4} y1={boxY} x2={x4} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2" />
-
-                  {/* Roldanas */}
-                  <circle cx={x2 + leafW * 0.4} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
-                  <circle cx={x2 + leafW * 0.8} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
-                  <circle cx={x3 + leafW * 0.2} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
-                  <circle cx={x3 + leafW * 0.6} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
-
-                  {/* Fecho Central */}
-                  <rect x={midX - 2.5} y={midY - 12} width="5" height="24" rx="1.5" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.8" />
-                  
-                  {/* Setas para fora */}
-                  <path
-                    d={`M ${midX - 6} ${boxY + boxH * 0.8} L ${x2 + 4} ${boxY + boxH * 0.8}`}
-                    stroke="#fbbf24"
-                    strokeWidth="1.2"
-                    markerEnd={`url(#cad-arrow-${category})`}
-                  />
-                  <path
-                    d={`M ${midX + 6} ${boxY + boxH * 0.8} L ${x3 + leafW - 4} ${boxY + boxH * 0.8}`}
-                    stroke="#fbbf24"
-                    strokeWidth="1.2"
-                    markerEnd={`url(#cad-arrow-${category})`}
-                  />
-
-                  {/* Badges F e M */}
-                  <text x={x1 + leafW / 2} y={boxY + 12} fill="#94a3b8" fontSize="7" fontWeight="bold" textAnchor="middle">F</text>
-                  <text x={x2 + leafW / 2} y={boxY + 12} fill="#38bdf8" fontSize="7" fontWeight="bold" textAnchor="middle">M</text>
-                  <text x={x3 + leafW / 2} y={boxY + 12} fill="#38bdf8" fontSize="7" fontWeight="bold" textAnchor="middle">M</text>
-                  <text x={x4 + leafW / 2} y={boxY + 12} fill="#94a3b8" fontSize="7" fontWeight="bold" textAnchor="middle">F</text>
-                </>
-              );
-            })()}
-          </g>
-        )}
-
-        {/* 3 FOLHAS (2F+1M ou Versatik 3 Folhas) */}
-        {config.count === 3 && category !== 'espelho' && category !== 'guarda_corpo' && (
-          <g>
-            <rect x={boxX - 2} y={boxY - 4} width={boxW + 4} height="6" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
-            <rect x={boxX - 2} y={boxY + boxH - 2} width={boxW + 4} height="5" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
-
-            {(() => {
-              const leafW = boxW / 3;
-              return (
-                <>
-                  <rect x={boxX + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.2" rx="1" />
-                  <rect x={boxX + leafW + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-                  <rect x={boxX + leafW * 2 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.2" rx="1" />
-                  <rect x={boxX} y={boxY} width={boxW} height={boxH} fill="url(#glassGloss)" />
-
-                  <line x1={boxX + leafW} y1={boxY} x2={boxX + leafW} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2" />
-                  <line x1={boxX + leafW * 2} y1={boxY} x2={boxX + leafW * 2} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2" />
-
-                  <rect x={boxX + leafW + 4} y={midY - 10} width="3" height="20" rx="1" fill={hwStyle.accent} />
-                  <path
-                    d={`M ${boxX + leafW * 1.5} ${boxY + boxH * 0.8} L ${boxX + leafW * 0.4} ${boxY + boxH * 0.8}`}
-                    stroke="#fbbf24"
-                    strokeWidth="1.2"
-                    markerEnd={`url(#cad-arrow-${category})`}
-                  />
-
-                  <text x={boxX + leafW / 2} y={boxY + 12} fill="#94a3b8" fontSize="7" fontWeight="bold" textAnchor="middle">F</text>
-                  <text x={boxX + leafW * 1.5} y={boxY + 12} fill="#38bdf8" fontSize="7" fontWeight="bold" textAnchor="middle">M</text>
-                  <text x={boxX + leafW * 2.5} y={boxY + 12} fill="#94a3b8" fontSize="7" fontWeight="bold" textAnchor="middle">F</text>
-                </>
-              );
-            })()}
-          </g>
-        )}
-
-        {/* 6 FOLHAS (4F + 2M ou 6 Folhas de Correr) */}
+        {/* 6 FOLHAS (4F + 2M - ABERTURA CENTRAL) */}
         {config.count === 6 && category !== 'espelho' && category !== 'guarda_corpo' && (
           <g>
             {/* Trilho Superior */}
@@ -551,7 +450,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
 
                     return (
                       <React.Fragment key={i}>
-                        {/* Painel de Vidro da Folha */}
+                        {/* Painel Individual de Vidro */}
                         <rect
                           x={lx + 1}
                           y={boxY + 2}
@@ -567,11 +466,22 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                           y={boxY + 2}
                           width={leafW - 2}
                           height={boxH - 4}
-                          fill="url(#glassGloss)"
+                          fill={`url(#glassGloss-${uniqueId})`}
                           rx="1"
                         />
 
-                        {/* Divisórias Verticais entre Folhas */}
+                        {/* Brilho da folha */}
+                        <line
+                          x1={lx + 3}
+                          y1={boxY + 5}
+                          x2={lx + leafW * 0.75}
+                          y2={boxY + boxH * 0.7}
+                          stroke="#ffffff"
+                          strokeWidth="1.2"
+                          strokeOpacity={isMobile ? '0.55' : '0.35'}
+                        />
+
+                        {/* Perfis Verticais de Divisão entre Folhas */}
                         {i > 0 && (
                           <line
                             x1={lx}
@@ -579,62 +489,242 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                             x2={lx}
                             y2={boxY + boxH}
                             stroke={hwStyle.stroke}
-                            strokeWidth={i === 3 ? '2.5' : '1.8'}
+                            strokeWidth={i === 3 ? '2.8' : '1.8'}
                           />
                         )}
 
-                        {/* Roldanas nas Folhas Móveis (3ª e 4ª Folhas) */}
+                        {/* Roldanas nas Folhas Móveis (Folhas 3 e 4) */}
                         {isMobile && (
                           <circle
                             cx={lx + leafW / 2}
                             cy={boxY - 1}
-                            r="2"
+                            r="2.2"
                             fill={hwStyle.accent}
                             stroke="#0f172a"
                             strokeWidth="0.5"
                           />
                         )}
 
-                        {/* Badge de Identificação da Folha (F ou M) */}
-                        <text
-                          x={lx + leafW / 2}
-                          y={boxY + 12}
-                          fill={isMobile ? '#38bdf8' : '#94a3b8'}
-                          fontSize="6.5"
-                          fontWeight="bold"
-                          textAnchor="middle"
-                        >
-                          {leafTypes[i]}
-                        </text>
+                        {/* Badge de Identificação da Folha */}
+                        <g>
+                          <rect
+                            x={lx + leafW / 2 - 8}
+                            y={boxY + 5}
+                            width="16"
+                            height="10"
+                            rx="2"
+                            fill={isMobile ? '#0284c7' : '#334155'}
+                            fillOpacity="0.9"
+                          />
+                          <text
+                            x={lx + leafW / 2}
+                            y={boxY + 11.5}
+                            fill="#ffffff"
+                            fontSize="6"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                          >
+                            {leafTypes[i]}
+                          </text>
+                        </g>
                       </React.Fragment>
                     );
                   })}
 
-                  {/* Fecho Central entre as Folhas Móveis Centrais */}
+                  {/* Fecho Central e Puxadores no Centro */}
                   <rect
-                    x={midX - 2}
-                    y={midY - 10}
-                    width="4"
-                    height="20"
-                    rx="1"
+                    x={midX - 2.5}
+                    y={midY - 12}
+                    width="5"
+                    height="24"
+                    rx="1.5"
                     fill={hwStyle.accent}
                     stroke="#0f172a"
-                    strokeWidth="0.6"
+                    strokeWidth="0.8"
                   />
 
-                  {/* Setas de Abertura Deslizante Bilaterais */}
+                  {/* Setas de Abertura Deslizante Bilaterais saindo do centro */}
                   <path
-                    d={`M ${midX - 5} ${boxY + boxH * 0.82} L ${boxX + leafW * 1.5} ${boxY + boxH * 0.82}`}
+                    d={`M ${midX - 5} ${boxY + boxH * 0.82} L ${boxX + leafW * 2 + 3} ${boxY + boxH * 0.82}`}
                     stroke="#fbbf24"
-                    strokeWidth="1.2"
-                    markerEnd={`url(#cad-arrow-${category})`}
+                    strokeWidth="1.3"
+                    markerEnd={`url(#cad-arrow-${uniqueId})`}
                   />
                   <path
-                    d={`M ${midX + 5} ${boxY + boxH * 0.82} L ${boxX + leafW * 4.5} ${boxY + boxH * 0.82}`}
+                    d={`M ${midX + 5} ${boxY + boxH * 0.82} L ${boxX + leafW * 4 - 3} ${boxY + boxH * 0.82}`}
                     stroke="#fbbf24"
-                    strokeWidth="1.2"
-                    markerEnd={`url(#cad-arrow-${category})`}
+                    strokeWidth="1.3"
+                    markerEnd={`url(#cad-arrow-${uniqueId})`}
                   />
+                </>
+              );
+            })()}
+          </g>
+        )}
+
+        {/* 4 FOLHAS (2F + 2M - ABERTURA CENTRAL) */}
+        {config.count === 4 && category !== 'espelho' && category !== 'guarda_corpo' && (
+          <g>
+            {/* Trilho Superior */}
+            <rect x={boxX - 2} y={boxY - 4} width={boxW + 4} height="6" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
+            {/* Trilho Inferior */}
+            <rect x={boxX - 2} y={boxY + boxH - 2} width={boxW + 4} height="5" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
+
+            {/* Perfis Laterais */}
+            <rect x={boxX - 2} y={boxY} width="4" height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" />
+            <rect x={boxX + boxW - 2} y={boxY} width="4" height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" />
+
+            {(() => {
+              const leafW = boxW / 4;
+              const x1 = boxX;
+              const x2 = boxX + leafW;
+              const x3 = boxX + leafW * 2;
+              const x4 = boxX + leafW * 3;
+
+              return (
+                <>
+                  {/* Folha 1 (Esquerda - FIXA) */}
+                  <rect x={x1 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.2" rx="1" />
+                  <rect x={x1 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                  <line x1={x1 + 4} y1={boxY + 5} x2={x1 + leafW * 0.8} y2={boxY + boxH * 0.75} stroke="#ffffff" strokeWidth="1.2" strokeOpacity="0.4" />
+
+                  {/* Folha 2 (Centro-Esquerda - MÓVEL) */}
+                  <rect x={x2 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
+                  <rect x={x2 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                  <line x1={x2 + 4} y1={boxY + 5} x2={x2 + leafW * 0.8} y2={boxY + boxH * 0.75} stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.55" />
+
+                  {/* Folha 3 (Centro-Direita - MÓVEL) */}
+                  <rect x={x3 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
+                  <rect x={x3 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                  <line x1={x3 + 4} y1={boxY + 5} x2={x3 + leafW * 0.8} y2={boxY + boxH * 0.75} stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.55" />
+
+                  {/* Folha 4 (Direita - FIXA) */}
+                  <rect x={x4 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.2" rx="1" />
+                  <rect x={x4 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                  <line x1={x4 + 4} y1={boxY + 5} x2={x4 + leafW * 0.8} y2={boxY + boxH * 0.75} stroke="#ffffff" strokeWidth="1.2" strokeOpacity="0.4" />
+
+                  {/* Divisores Verticais / Transpasse */}
+                  <line x1={x2} y1={boxY} x2={x2} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2" />
+                  <line x1={midX} y1={boxY} x2={midX} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2.8" />
+                  <line x1={x4} y1={boxY} x2={x4} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2" />
+
+                  {/* Roldanas nas Folhas Móveis */}
+                  <circle cx={x2 + leafW * 0.35} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
+                  <circle cx={x2 + leafW * 0.75} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
+                  <circle cx={x3 + leafW * 0.25} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
+                  <circle cx={x3 + leafW * 0.65} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
+
+                  {/* Fecho Central e Puxador Duplo no Meio */}
+                  <rect x={midX - 2.5} y={midY - 14} width="5" height="28" rx="1.5" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.8" />
+                  <circle cx={midX} cy={midY - 8} r="1.2" fill="#ffffff" />
+                  <circle cx={midX} cy={midY + 8} r="1.2" fill="#ffffff" />
+                  
+                  {/* Setas de Deslizamento para Fora */}
+                  <path
+                    d={`M ${midX - 6} ${boxY + boxH * 0.82} L ${x2 + 4} ${boxY + boxH * 0.82}`}
+                    stroke="#fbbf24"
+                    strokeWidth="1.3"
+                    markerEnd={`url(#cad-arrow-${uniqueId})`}
+                  />
+                  <path
+                    d={`M ${midX + 6} ${boxY + boxH * 0.82} L ${x3 + leafW - 4} ${boxY + boxH * 0.82}`}
+                    stroke="#fbbf24"
+                    strokeWidth="1.3"
+                    markerEnd={`url(#cad-arrow-${uniqueId})`}
+                  />
+
+                  {/* Badges F e M */}
+                  <g>
+                    <rect x={x1 + leafW / 2 - 10} y={boxY + 5} width="20" height="11" rx="2" fill="#334155" fillOpacity="0.9" />
+                    <text x={x1 + leafW / 2} y={boxY + 12} fill="#e2e8f0" fontSize="6.5" fontWeight="bold" textAnchor="middle">FIXO</text>
+                  </g>
+                  <g>
+                    <rect x={x2 + leafW / 2 - 12} y={boxY + 5} width="24" height="11" rx="2" fill="#0284c7" fillOpacity="0.9" />
+                    <text x={x2 + leafW / 2} y={boxY + 12} fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">MÓVEL</text>
+                  </g>
+                  <g>
+                    <rect x={x3 + leafW / 2 - 12} y={boxY + 5} width="24" height="11" rx="2" fill="#0284c7" fillOpacity="0.9" />
+                    <text x={x3 + leafW / 2} y={boxY + 12} fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">MÓVEL</text>
+                  </g>
+                  <g>
+                    <rect x={x4 + leafW / 2 - 10} y={boxY + 5} width="20" height="11" rx="2" fill="#334155" fillOpacity="0.9" />
+                    <text x={x4 + leafW / 2} y={boxY + 12} fill="#e2e8f0" fontSize="6.5" fontWeight="bold" textAnchor="middle">FIXO</text>
+                  </g>
+                </>
+              );
+            })()}
+          </g>
+        )}
+
+        {/* 3 FOLHAS (2F + 1M OU 3 FOLHAS MÓVEIS / VERSATIK) */}
+        {config.count === 3 && category !== 'espelho' && category !== 'guarda_corpo' && (
+          <g>
+            {/* Trilho Superior */}
+            <rect x={boxX - 2} y={boxY - 4} width={boxW + 4} height="6" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
+            {/* Trilho Inferior */}
+            <rect x={boxX - 2} y={boxY + boxH - 2} width={boxW + 4} height="5" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
+
+            {/* Perfis Laterais */}
+            <rect x={boxX - 2} y={boxY} width="4" height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" />
+            <rect x={boxX + boxW - 2} y={boxY} width="4" height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" />
+
+            {(() => {
+              const leafW = boxW / 3;
+              const is3Moveis = config.type === 'correr_3f_moveis';
+
+              return (
+                <>
+                  {/* Folha 1 (Esquerda) */}
+                  <rect x={boxX + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.2" rx="1" />
+                  <rect x={boxX + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                  <line x1={boxX + 4} y1={boxY + 5} x2={boxX + leafW * 0.8} y2={boxY + boxH * 0.75} stroke="#ffffff" strokeWidth="1.2" strokeOpacity="0.4" />
+
+                  {/* Folha 2 (Centro - MÓVEL) */}
+                  <rect x={boxX + leafW + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
+                  <rect x={boxX + leafW + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                  <line x1={boxX + leafW + 4} y1={boxY + 5} x2={boxX + leafW * 1.8} y2={boxY + boxH * 0.75} stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.55" />
+
+                  {/* Folha 3 (Direita) */}
+                  <rect x={boxX + leafW * 2 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth={is3Moveis ? '1.5' : '1.2'} rx="1" />
+                  <rect x={boxX + leafW * 2 + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                  <line x1={boxX + leafW * 2 + 4} y1={boxY + 5} x2={boxX + leafW * 2.8} y2={boxY + boxH * 0.75} stroke="#ffffff" strokeWidth="1.2" strokeOpacity="0.4" />
+
+                  {/* Divisórias Verticais Nítidas */}
+                  <line x1={boxX + leafW} y1={boxY} x2={boxX + leafW} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2.2" />
+                  <line x1={boxX + leafW * 2} y1={boxY} x2={boxX + leafW * 2} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2.2" />
+
+                  {/* Roldanas na Folha Móvel Central */}
+                  <circle cx={boxX + leafW * 1.3} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
+                  <circle cx={boxX + leafW * 1.7} cy={boxY - 1} r="2.2" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
+
+                  {/* Puxador na Folha Central */}
+                  <rect x={boxX + leafW + 4} y={midY - 12} width="3.5" height="24" rx="1.5" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.8" />
+                  
+                  {/* Seta indicativa de correr */}
+                  <path
+                    d={`M ${boxX + leafW * 1.65} ${boxY + boxH * 0.82} L ${boxX + leafW * 0.35} ${boxY + boxH * 0.82}`}
+                    stroke="#fbbf24"
+                    strokeWidth="1.3"
+                    markerEnd={`url(#cad-arrow-${uniqueId})`}
+                  />
+
+                  {/* Badges das 3 Folhas */}
+                  <g>
+                    <rect x={boxX + leafW / 2 - 10} y={boxY + 5} width="20" height="11" rx="2" fill={is3Moveis ? '#0284c7' : '#334155'} fillOpacity="0.9" />
+                    <text x={boxX + leafW / 2} y={boxY + 12} fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">
+                      {is3Moveis ? 'M' : 'FIXO'}
+                    </text>
+                  </g>
+                  <g>
+                    <rect x={boxX + leafW * 1.5 - 12} y={boxY + 5} width="24" height="11" rx="2" fill="#0284c7" fillOpacity="0.9" />
+                    <text x={boxX + leafW * 1.5} y={boxY + 12} fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">MÓVEL</text>
+                  </g>
+                  <g>
+                    <rect x={boxX + leafW * 2.5 - 10} y={boxY + 5} width="20" height="11" rx="2" fill={is3Moveis ? '#0284c7' : '#334155'} fillOpacity="0.9" />
+                    <text x={boxX + leafW * 2.5} y={boxY + 12} fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">
+                      {is3Moveis ? 'M' : 'FIXO'}
+                    </text>
+                  </g>
                 </>
               );
             })()}
@@ -646,7 +736,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           <g>
             <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="2.5" rx="2" />
             <rect x={boxX + 4} y={boxY + 4} width={boxW - 8} height={boxH - 8} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-            <rect x={boxX + 4} y={boxY + 4} width={boxW - 8} height={boxH - 8} fill="url(#glassGloss)" />
+            <rect x={boxX + 4} y={boxY + 4} width={boxW - 8} height={boxH - 8} fill={`url(#glassGloss-${uniqueId})`} />
 
             <polyline
               points={`${boxX + 4},${boxY + 4} ${midX},${boxY + boxH - 6} ${boxX + boxW - 4},${boxY + 4}`}
@@ -668,7 +758,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         {(config.type === 'pivotante' || config.type === 'giro_1f') && (
           <g>
             <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="2" rx="2" />
-            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill="url(#glassGloss)" />
+            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={`url(#glassGloss-${uniqueId})`} />
 
             {config.type === 'pivotante' ? (
               <>
@@ -706,7 +796,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         {config.type === 'fixo_1f' && (
           <g>
             <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.8" rx="1" />
-            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill="url(#glassGloss)" />
+            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={`url(#glassGloss-${uniqueId})`} />
             
             <rect x={boxX} y={boxY} width={boxW} height="4" fill={hwStyle.fill} />
             <rect x={boxX} y={boxY + boxH - 4} width={boxW} height="4" fill={hwStyle.fill} />
@@ -717,7 +807,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           </g>
         )}
 
-        {/* ================= 2 FOLHAS PADRÃO (COM DIVISÃO CLARA NO MEIO) ================= */}
+        {/* ================= 2 FOLHAS PADRÃO (COM DIVISÃO NÍTIDA NO MEIO) ================= */}
         {(config.count === 2 || (!config.type && config.count !== 1 && config.count !== 3 && config.count !== 4 && config.count !== 6)) &&
           category !== 'espelho' &&
           category !== 'guarda_corpo' && (
@@ -765,7 +855,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                 y={boxY + 2}
                 width={boxW / 2 - 2}
                 height={boxH - 4}
-                fill="url(#glassGloss)"
+                fill={`url(#glassGloss-${uniqueId})`}
                 rx="1"
               />
               {/* Brilho da Folha 1 */}
@@ -787,7 +877,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                 y={boxY + 2}
                 width={boxW / 2 - 3}
                 height={boxH - 4}
-                fill="url(#glassGloss)"
+                fill={`url(#glassGloss-${uniqueId})`}
                 rx="1"
               />
               {/* Brilho da Folha 2 */}
@@ -833,7 +923,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                 d={`M ${boxX + boxW * 0.32} ${boxY + boxH * 0.82} L ${boxX + boxW * 0.12} ${boxY + boxH * 0.82}`}
                 stroke="#fbbf24"
                 strokeWidth="1.3"
-                markerEnd={`url(#cad-arrow-${category})`}
+                markerEnd={`url(#cad-arrow-${uniqueId})`}
               />
 
               {/* Identificação das 2 Folhas (MÓVEL e FIXO) */}

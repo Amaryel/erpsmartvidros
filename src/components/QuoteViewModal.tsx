@@ -109,51 +109,51 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       
       {/* Container Principal do Documento */}
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl my-auto overflow-hidden text-slate-900 flex flex-col max-h-[94vh]">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl my-auto overflow-hidden text-slate-900 flex flex-col max-h-[96dvh] sm:max-h-[94vh]">
         
         {/* Barra Superior do Modal (Oculta na Impressão) */}
-        <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between border-b border-amber-500/30 print:hidden shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-md">
+        <div className="bg-slate-900 text-white px-3.5 sm:px-5 py-3 flex items-center justify-between border-b border-amber-500/30 print:hidden shrink-0 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span className="bg-amber-500 text-slate-950 font-black text-xs px-2 py-1 rounded-md shrink-0">
               {quote.code}
             </span>
-            <span className="text-xs text-slate-300 font-medium hidden sm:inline">
+            <span className="text-xs text-slate-300 font-medium hidden sm:inline truncate">
               Visualização de Orçamento A4 Comercial & Técnico
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={handleCopyWhatsApp}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg transition-colors"
               title="Copiar texto formatado para enviar no WhatsApp"
             >
               {copiedText === 'whatsapp' ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span className="hidden md:inline">Copiar WhatsApp</span>
+              <span className="hidden sm:inline">WhatsApp</span>
             </button>
 
             <button
               onClick={handleDownloadPdf}
               disabled={isGeneratingPdf}
-              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-700 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-lg transition-all shadow-md active:scale-95"
+              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-700 text-slate-950 font-black text-xs px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all shadow-md active:scale-95"
               title="Baixar arquivo PDF A4 diretamente no dispositivo"
             >
               {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin text-amber-950" /> : <Download className="w-4 h-4" />}
-              <span>{isGeneratingPdf ? 'Gerando...' : 'Baixar PDF'}</span>
+              <span>{isGeneratingPdf ? 'Gerando...' : 'PDF'}</span>
             </button>
 
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg transition-all active:scale-95"
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg transition-all active:scale-95 hidden xs:flex"
               title="Abrir diálogo de impressão do navegador"
             >
               <Printer className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Imprimir</span>
+              <span className="hidden md:inline">Imprimir</span>
             </button>
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors ml-1"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors ml-0.5"
             >
               <X className="w-5 h-5" />
             </button>
@@ -161,7 +161,7 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
         </div>
 
         {/* ÁREA IMPRESSA (A4 FORMAT) */}
-        <div className="p-5 sm:p-8 bg-white overflow-y-auto flex-1 text-slate-900 font-sans print:p-2 notranslate" translate="no" id="printable-quote-area">
+        <div className="p-3 sm:p-6 md:p-8 bg-white overflow-y-auto flex-1 text-slate-900 font-sans print:p-2 notranslate" translate="no" id="printable-quote-area">
           
           {/* Cabeçalho Visual Identidade Smart Vidros */}
           <div className="bg-slate-950 text-white rounded-xl p-4 sm:p-5 border-b-4 border-amber-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 notranslate" translate="no">
@@ -249,158 +249,160 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                 </div>
 
                 {/* Tabela do Ambiente com Colunas Perfeitamente Alinhadas e Imagem Técnica */}
-                <table className="w-full text-left text-xs table-fixed border-collapse" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
-                  <colgroup>
-                    <col style={{ width: '4%' }} />
-                    <col style={{ width: '51%' }} />
-                    <col style={{ width: '15%' }} />
-                    <col style={{ width: '15%' }} />
-                    <col style={{ width: '15%' }} />
-                  </colgroup>
-                  <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
-                    <tr>
-                      <th style={{ width: '4%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-1 text-center">#</th>
-                      <th style={{ width: '51%', textAlign: 'left', boxSizing: 'border-box' }} className="py-2.5 px-3">Item / Especificações Técnicas</th>
-                      <th style={{ width: '15%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Área (m²) / Qtd</th>
-                      <th style={{ width: '15%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-2.5 text-right">Valor Unit. (R$)</th>
-                      <th style={{ width: '15%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Total (R$)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white">
-                    {envItems.map((item, idx) => {
-                      const clientUnitPrice = item.quantity > 0 ? (item.totalPrice / item.quantity) : item.totalPrice;
+                <div className="overflow-x-auto custom-scrollbar w-full">
+                  <table className="w-full text-left text-xs table-fixed border-collapse min-w-[560px] sm:min-w-full" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+                    <colgroup>
+                      <col style={{ width: '4%' }} />
+                      <col style={{ width: '51%' }} />
+                      <col style={{ width: '15%' }} />
+                      <col style={{ width: '15%' }} />
+                      <col style={{ width: '15%' }} />
+                    </colgroup>
+                    <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                      <tr>
+                        <th style={{ width: '4%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-1 text-center">#</th>
+                        <th style={{ width: '51%', textAlign: 'left', boxSizing: 'border-box' }} className="py-2.5 px-3">Item / Especificações Técnicas</th>
+                        <th style={{ width: '15%', textAlign: 'center', boxSizing: 'border-box' }} className="py-2.5 px-2 text-center">Área (m²) / Qtd</th>
+                        <th style={{ width: '15%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-2.5 text-right">Valor Unit. (R$)</th>
+                        <th style={{ width: '15%', textAlign: 'right', boxSizing: 'border-box' }} className="py-2.5 px-3 text-right">Total (R$)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {envItems.map((item, idx) => {
+                        const clientUnitPrice = item.quantity > 0 ? (item.totalPrice / item.quantity) : item.totalPrice;
 
-                      const glassSpecs = [item.glassType, item.thickness, item.glassColor]
-                        .filter((s) => s && s.trim() && s.toLowerCase() !== 'vazio' && s.toLowerCase() !== 'nenhum')
-                        .join(' ');
+                        const glassSpecs = [item.glassType, item.thickness, item.glassColor]
+                          .filter((s) => s && s.trim() && s.toLowerCase() !== 'vazio' && s.toLowerCase() !== 'nenhum')
+                          .join(' ');
 
-                      const hasHardware = item.hardwareColor && item.hardwareColor.trim() && item.hardwareColor.toLowerCase() !== 'vazio' && item.hardwareColor.toLowerCase() !== 'nenhum';
-                      const hasLine = item.line && item.line.trim() && item.line.toLowerCase() !== 'vazio' && item.line.toLowerCase() !== 'nenhum';
-                      const hasOpening = item.openingType && item.openingType.trim() && item.openingType.toLowerCase() !== 'vazio' && item.openingType.toLowerCase() !== 'nenhum';
-                      const hasLeafCount = item.leafCount && item.leafCount.trim() && item.leafCount.toLowerCase() !== 'vazio' && item.leafCount.toLowerCase() !== 'nenhum';
-                      const hasFinish = item.finish && item.finish.trim() && item.finish.toLowerCase() !== 'vazio' && item.finish.toLowerCase() !== 'nenhum';
+                        const hasHardware = item.hardwareColor && item.hardwareColor.trim() && item.hardwareColor.toLowerCase() !== 'vazio' && item.hardwareColor.toLowerCase() !== 'nenhum';
+                        const hasLine = item.line && item.line.trim() && item.line.toLowerCase() !== 'vazio' && item.line.toLowerCase() !== 'nenhum';
+                        const hasOpening = item.openingType && item.openingType.trim() && item.openingType.toLowerCase() !== 'vazio' && item.openingType.toLowerCase() !== 'nenhum';
+                        const hasLeafCount = item.leafCount && item.leafCount.trim() && item.leafCount.toLowerCase() !== 'vazio' && item.leafCount.toLowerCase() !== 'nenhum';
+                        const hasFinish = item.finish && item.finish.trim() && item.finish.toLowerCase() !== 'vazio' && item.finish.toLowerCase() !== 'nenhum';
 
-                      return (
-                        <tr key={item.id} className="hover:bg-slate-50/50 break-inside-avoid">
-                          <td style={{ width: '4%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-1 font-mono font-bold text-slate-400 align-top text-center text-xs">
-                            {idx + 1}
-                          </td>
+                        return (
+                          <tr key={item.id} className="hover:bg-slate-50/50 break-inside-avoid">
+                            <td style={{ width: '4%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-1 font-mono font-bold text-slate-400 align-top text-center text-xs">
+                              {idx + 1}
+                            </td>
 
-                          <td style={{ width: '51%', textAlign: 'left', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 align-top">
-                            <div className="flex flex-row items-start gap-3">
-                              {/* Ilustração Técnica do Produto */}
-                              {item.type === 'dimensao' && (
-                                <div
-                                  className="shrink-0"
-                                  style={{
-                                    width: '85px',
-                                    minWidth: '85px',
-                                    maxWidth: '85px',
-                                  }}
-                                >
-                                  <TechnicalProductPreview
-                                    item={item}
-                                    widthMm={item.widthMm}
-                                    heightMm={item.lengthMm}
-                                    name={item.name}
-                                    compact={true}
-                                    showDimensions={false}
-                                    className="w-full shadow-xs"
-                                  />
-                                </div>
-                              )}
-
-                              <div className="space-y-1 min-w-0 flex-1">
-                                <div className="font-bold text-slate-900 text-sm">{item.name}</div>
-                                
-                                {/* Subitens em Lista Limpa e Vertical */}
+                            <td style={{ width: '51%', textAlign: 'left', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 align-top">
+                              <div className="flex flex-row items-start gap-3">
+                                {/* Ilustração Técnica do Produto */}
                                 {item.type === 'dimensao' && (
-                                  <div className="text-xs text-slate-600 space-y-0.5 pt-0.5">
-                                    {glassSpecs && (
-                                      <div>
-                                        <span className="text-slate-400 mr-1.5">•</span>
-                                        <span className="font-semibold text-slate-700">Vidro:</span> {glassSpecs}
-                                      </div>
-                                    )}
-                                    {hasHardware && (
-                                      <div>
-                                        <span className="text-slate-400 mr-1.5">•</span>
-                                        <span className="font-semibold text-slate-700">Ferragens:</span> {item.hardwareColor}
-                                      </div>
-                                    )}
-                                    {hasLine && (
-                                      <div>
-                                        <span className="text-slate-400 mr-1.5">•</span>
-                                        <span className="font-semibold text-slate-700">Linha:</span> {item.line}
-                                      </div>
-                                    )}
-                                    {hasOpening && (
-                                      <div>
-                                        <span className="text-slate-400 mr-1.5">•</span>
-                                        <span className="font-semibold text-slate-700">Abertura:</span> {item.openingType}
-                                      </div>
-                                    )}
-                                    {hasLeafCount && (
-                                      <div>
-                                        <span className="text-slate-400 mr-1.5">•</span>
-                                        <span className="font-semibold text-slate-700">Folhas:</span> {item.leafCount}
-                                      </div>
-                                    )}
-                                    {hasFinish && (
-                                      <div>
-                                        <span className="text-slate-400 mr-1.5">•</span>
-                                        <span className="font-semibold text-slate-700">Acabamento:</span> {item.finish}
-                                      </div>
-                                    )}
+                                  <div
+                                    className="shrink-0"
+                                    style={{
+                                      width: '85px',
+                                      minWidth: '85px',
+                                      maxWidth: '85px',
+                                    }}
+                                  >
+                                    <TechnicalProductPreview
+                                      item={item}
+                                      widthMm={item.widthMm}
+                                      heightMm={item.lengthMm}
+                                      name={item.name}
+                                      compact={true}
+                                      showDimensions={false}
+                                      className="w-full shadow-xs"
+                                    />
                                   </div>
                                 )}
 
-                                {item.description && (
-                                  <div className="text-[11px] text-slate-500 italic pt-0.5">
-                                    Obs: {item.description}
-                                  </div>
-                                )}
+                                <div className="space-y-1 min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 text-sm">{item.name}</div>
+                                  
+                                  {/* Subitens em Lista Limpa e Vertical */}
+                                  {item.type === 'dimensao' && (
+                                    <div className="text-xs text-slate-600 space-y-0.5 pt-0.5">
+                                      {glassSpecs && (
+                                        <div>
+                                          <span className="text-slate-400 mr-1.5">•</span>
+                                          <span className="font-semibold text-slate-700">Vidro:</span> {glassSpecs}
+                                        </div>
+                                      )}
+                                      {hasHardware && (
+                                        <div>
+                                          <span className="text-slate-400 mr-1.5">•</span>
+                                          <span className="font-semibold text-slate-700">Ferragens:</span> {item.hardwareColor}
+                                        </div>
+                                      )}
+                                      {hasLine && (
+                                        <div>
+                                          <span className="text-slate-400 mr-1.5">•</span>
+                                          <span className="font-semibold text-slate-700">Linha:</span> {item.line}
+                                        </div>
+                                      )}
+                                      {hasOpening && (
+                                        <div>
+                                          <span className="text-slate-400 mr-1.5">•</span>
+                                          <span className="font-semibold text-slate-700">Abertura:</span> {item.openingType}
+                                        </div>
+                                      )}
+                                      {hasLeafCount && (
+                                        <div>
+                                          <span className="text-slate-400 mr-1.5">•</span>
+                                          <span className="font-semibold text-slate-700">Folhas:</span> {item.leafCount}
+                                        </div>
+                                      )}
+                                      {hasFinish && (
+                                        <div>
+                                          <span className="text-slate-400 mr-1.5">•</span>
+                                          <span className="font-semibold text-slate-700">Acabamento:</span> {item.finish}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {item.description && (
+                                    <div className="text-[11px] text-slate-500 italic pt-0.5">
+                                      Obs: {item.description}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* Quantidade e Área (Sem exibir dimensões de mm) */}
-                          <td style={{ width: '15%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2 text-center align-top">
-                            {item.type === 'dimensao' ? (
-                              <div className="flex flex-col items-center justify-center">
-                                <span className="font-bold text-slate-900 text-xs">
-                                  {item.quantity} {item.quantity > 1 ? 'peças' : 'peça'}
+                            {/* Quantidade e Área (Sem exibir dimensões de mm) */}
+                            <td style={{ width: '15%', textAlign: 'center', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2 text-center align-top">
+                              {item.type === 'dimensao' ? (
+                                <div className="flex flex-col items-center justify-center">
+                                  <span className="font-bold text-slate-900 text-xs">
+                                    {item.quantity} {item.quantity > 1 ? 'peças' : 'peça'}
+                                  </span>
+                                  <span className="text-[11px] font-bold text-amber-800 bg-amber-50/90 border border-amber-200/80 px-2 py-0.5 rounded-md mt-1 font-mono">
+                                    {(item.areaM2 || 0).toFixed(2)} m²
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="font-bold text-slate-900 text-xs">{item.quantity} un</span>
+                              )}
+                            </td>
+
+                            {/* Valor Unitário ao Cliente */}
+                            <td style={{ width: '15%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2.5 text-right align-top">
+                              <div className="flex flex-col items-end">
+                                <span className="font-mono font-bold text-slate-900 text-xs">
+                                  R$ {clientUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
-                                <span className="text-[11px] font-bold text-amber-800 bg-amber-50/90 border border-amber-200/80 px-2 py-0.5 rounded-md mt-1 font-mono">
-                                  {(item.areaM2 || 0).toFixed(2)} m²
+                                <span className="text-[9px] text-slate-400 font-sans">
+                                  / {item.type === 'dimensao' ? 'peça' : (item.category === 'servico' ? 'serviço' : 'un')}
                                 </span>
                               </div>
-                            ) : (
-                              <span className="font-bold text-slate-900 text-xs">{item.quantity} un</span>
-                            )}
-                          </td>
+                            </td>
 
-                          {/* Valor Unitário ao Cliente */}
-                          <td style={{ width: '15%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-2.5 text-right align-top">
-                            <div className="flex flex-col items-end">
-                              <span className="font-mono font-bold text-slate-900 text-xs">
-                                R$ {clientUnitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                              <span className="text-[9px] text-slate-400 font-sans">
-                                / {item.type === 'dimensao' ? 'peça' : (item.category === 'servico' ? 'serviço' : 'un')}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Total do Item */}
-                          <td style={{ width: '15%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 text-right font-mono font-black text-slate-950 align-top text-xs">
-                            R$ {item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            {/* Total do Item */}
+                            <td style={{ width: '15%', textAlign: 'right', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 text-right font-mono font-black text-slate-950 align-top text-xs">
+                              R$ {item.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ))}
           </div>

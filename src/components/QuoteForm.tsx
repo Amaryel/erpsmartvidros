@@ -929,18 +929,18 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                   }`}
                 >
                   {/* Top Bar do Item: Numeração, Tipo, Ambiente e Ações */}
-                  <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200/80 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-black bg-slate-950 text-amber-400 px-2.5 py-1 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 mb-3 border-b border-slate-200/80">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="text-xs font-black bg-slate-950 text-amber-400 px-2.5 py-1 rounded-lg shrink-0">
                         #{index + 1}
                       </span>
 
                       {/* Seletor de Tipo: Dimensão vs Simples */}
-                      <div className="flex items-center bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
+                      <div className="flex items-center bg-white p-0.5 rounded-lg border border-slate-200 text-xs shrink-0">
                         <button
                           type="button"
                           onClick={() => handleTypeChange(index, 'dimensao')}
-                          className={`px-2.5 py-1 rounded-md font-bold transition-colors ${
+                          className={`px-2.5 py-1 rounded-md font-bold transition-colors text-xs ${
                             item.type === 'dimensao'
                               ? 'bg-amber-500 text-slate-950'
                               : 'text-slate-500 hover:text-slate-800'
@@ -952,18 +952,18 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                         <button
                           type="button"
                           onClick={() => handleTypeChange(index, 'simples')}
-                          className={`px-2.5 py-1 rounded-md font-bold transition-colors ${
+                          className={`px-2.5 py-1 rounded-md font-bold transition-colors text-xs ${
                             item.type === 'simples'
                               ? 'bg-amber-500 text-slate-950'
                               : 'text-slate-500 hover:text-slate-800'
                           }`}
                         >
-                          Simples / Serviço (un)
+                          Simples (un)
                         </button>
                       </div>
 
                       {/* Catálogo Import */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 min-w-0 flex-1 sm:flex-none">
                         <select
                           onChange={(e) => {
                             if (e.target.value === '__NEW_PRODUCT__') {
@@ -974,11 +974,11 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                               e.target.value = '';
                             }
                           }}
-                          className="bg-white border border-slate-200 text-xs text-slate-700 rounded-lg px-2.5 py-1 focus:outline-none"
+                          className="bg-white border border-slate-200 text-xs text-slate-700 rounded-lg px-2 py-1 focus:outline-none max-w-[170px] sm:max-w-[210px] truncate"
                         >
                           <option value="">Importar do Catálogo...</option>
                           <option value="__NEW_PRODUCT__" className="font-bold text-amber-700 bg-amber-50">
-                            ✨ + Criar Novo Produto no Catálogo...
+                            ✨ + Criar Novo no Catálogo...
                           </option>
                           {catalog.map((cat) => (
                             <option key={cat.id} value={cat.id}>
@@ -999,7 +999,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                     </div>
 
                     {/* Botões de Ação do Item: Duplicar, Expandir/Recolher, Excluir */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-auto">
                       <button
                         type="button"
                         onClick={() => handleDuplicateItem(index)}
@@ -1013,11 +1013,11 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                         <button
                           type="button"
                           onClick={() => toggleExpandItem(item.id)}
-                          className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
                           title="Características Técnicas"
                         >
                           <Sliders className="w-3.5 h-3.5 text-amber-600" />
-                          <span className="hidden sm:inline">Características</span>
+                          <span>Características</span>
                           {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                         </button>
                       )}
