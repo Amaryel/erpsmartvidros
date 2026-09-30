@@ -59,6 +59,7 @@ export interface ResetOptions {
   clients?: boolean;
   quotes?: boolean;
   receipts?: boolean;
+  payslips?: boolean;
   sales?: boolean;
   receivables?: boolean;
   contracts?: boolean;
@@ -107,15 +108,29 @@ export async function resetSystemDatabase(options: ResetOptions): Promise<void> 
     }
   }
 
-  // 4. Recibos
-  if (options.receipts) {
-    storageAdapter.setItem('smart_vidros_receipts', []);
-    storageAdapter.setItem('smart_vidros_receipts_counter', '1');
-    if (supabase) {
-      try {
-        await supabase.from('receipts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      } catch (err) {
-        console.warn('[Reset] Erro ao limpar receipts no Supabase:', err);
+  // 4. Recibos e Contracheques
+  if (options.receipts || options.payslips) {
+    if (options.receipts) {
+      storageAdapter.setItem('smart_vidros_receipts', []);
+      storageAdapter.setItem('smart_vidros_receipts_counter', '1');
+      if (supabase) {
+        try {
+          await supabase.from('receipts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (err) {
+          console.warn('[Reset] Erro ao limpar receipts no Supabase:', err);
+        }
+      }
+    }
+
+    if (options.payslips) {
+      storageAdapter.setItem('smart_vidros_payslips', []);
+      storageAdapter.setItem('smart_vidros_payslips_counter', '1');
+      if (supabase) {
+        try {
+          await supabase.from('payslips').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (err) {
+          console.warn('[Reset] Erro ao limpar payslips no Supabase:', err);
+        }
       }
     }
   }

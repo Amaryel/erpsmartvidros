@@ -75,6 +75,17 @@ export {
   getNextReceiptCode,
   INITIAL_RECEIPTS,
 
+  // Contracheques / Holerites
+  getPayslips,
+  getPayslipById,
+  savePayslip,
+  createPayslip,
+  updatePayslip,
+  deletePayslip,
+  getNextPayslipCode,
+  clearAllPayslips,
+  INITIAL_PAYSLIPS,
+
   // Contas a Receber & Parcelamento
   getReceivables,
   getAccountsReceivable,

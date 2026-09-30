@@ -24,7 +24,8 @@ import {
   HelpCircle,
   Sparkles,
   Scissors,
-  Download
+  Download,
+  BadgeDollarSign,
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
@@ -42,6 +43,8 @@ export type ActiveTab =
   | 'receivables'
   | 'receipts'
   | 'new_receipt'
+  | 'payslips'
+  | 'new_payslip'
   | 'clients'
   | 'products'
   | 'services'
@@ -54,7 +57,7 @@ interface MenuItem {
   id: ActiveTab;
   label: string;
   icon: React.ElementType;
-  badge?: number | null;
+  badge?: number | string | null;
   badgeColor?: string;
 }
 
@@ -75,6 +78,7 @@ interface SidebarProps {
   contractsCount?: number;
   receivablesCount: number;
   receiptsCount: number;
+  payslipsCount?: number;
   pendingUsersCount?: number;
   currentUser?: AppUser | null;
   companyInfo: CompanyInfo;
@@ -98,6 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   contractsCount = 0,
   receivablesCount,
   receiptsCount,
+  payslipsCount = 0,
   pendingUsersCount = 0,
   currentUser,
   companyInfo,
@@ -190,6 +195,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           icon: ReceiptText,
           badge: receiptsCount > 0 ? receiptsCount : null,
           badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        },
+        {
+          id: 'payslips',
+          label: 'Contracheques',
+          icon: BadgeDollarSign,
+          badge: payslipsCount > 0 ? payslipsCount : 'NOVO',
+          badgeColor:
+            payslipsCount > 0
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+              : 'bg-amber-400 text-slate-950 font-black text-[9px] px-1.5 border-amber-300 shadow-sm animate-pulse',
         },
       ],
     },
@@ -344,6 +359,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     activeTab === item.id ||
                     (item.id === 'quotes' && activeTab === 'new_quote') ||
                     (item.id === 'receipts' && activeTab === 'new_receipt') ||
+                    (item.id === 'payslips' && activeTab === 'new_payslip') ||
                     (item.id === 'products' && activeTab === 'catalog') ||
                     (item.id === 'services' && activeTab === 'catalog');
 

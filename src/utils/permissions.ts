@@ -94,6 +94,14 @@ export const ALL_SYSTEM_MODULES: ModuleDefinition[] = [
     iconName: 'ReceiptText',
   },
   {
+    id: 'payslips',
+    label: 'Contracheques / Holerites',
+    shortLabel: 'Contracheques',
+    category: 'Financeiro',
+    description: 'Emissão e controle de contracheques de funcionários, prestadores e diárias com PDF e recibo',
+    iconName: 'BadgeDollarSign',
+  },
+  {
     id: 'reports',
     label: 'Relatórios de Vendas & Faturamento',
     shortLabel: 'Relatórios',
@@ -144,6 +152,7 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
           'contracts',
           'receivables',
           'receipts',
+          'payslips',
           'reports',
           'clients',
           'products',
@@ -171,6 +180,7 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
           'contracts',
           'receivables',
           'receipts',
+          'payslips',
           'reports',
           'clients',
           'products',
@@ -251,13 +261,22 @@ export function getUserPermissions(user?: AppUser | UserAccount | null): UserPer
     return defaultPerms;
   }
 
+  // Garante inclusão de módulos essenciais adicionados recentemente para roles autorizadas
+  let activeModules = user.permissions.allowedModules && user.permissions.allowedModules.length > 0
+    ? [...user.permissions.allowedModules]
+    : defaultPerms.allowedModules;
+
+  // Se o usuário for admin ou tiver permissão de recibos/caixa/relatórios, garante o novo módulo de contracheques
+  if (role === 'admin' || role === 'superadmin' || activeModules.includes('receipts') || activeModules.includes('cash')) {
+    if (!activeModules.includes('payslips')) {
+      activeModules.push('payslips');
+    }
+  }
+
   return {
     ...defaultPerms,
     ...user.permissions,
-    allowedModules:
-      user.permissions.allowedModules && user.permissions.allowedModules.length > 0
-        ? user.permissions.allowedModules
-        : defaultPerms.allowedModules,
+    allowedModules: activeModules,
     maxDiscountPercent:
       typeof user.permissions.maxDiscountPercent === 'number'
         ? user.permissions.maxDiscountPercent
@@ -272,10 +291,10 @@ export function hasModuleAccess(
   user: AppUser | UserAccount | null | undefined,
   moduleId: SystemModuleId | string
 ): boolean {
-  // Se não estiver logado, não tem acesso (ou se for dashboard permite visão básica)
+  // Se não estiver logado, permite visão básica
   if (!user) return true;
 
-  // Super Admin por e-mail ou role tem acesso irrestrito
+  // Super Admin ou Admin tem acesso completo a todos os módulos operacionais e de gestão
   if (user.role === 'superadmin' || (user.email && user.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase())) {
     return true;
   }
@@ -285,10 +304,16 @@ export function hasModuleAccess(
     return user.role === 'admin' || user.permissions?.canManageUsers === true;
   }
 
+  // Admins possuem acesso padrão a todos os módulos do sistema
+  if (user.role === 'admin') {
+    return true;
+  }
+
   // Mapeamentos de abas secundárias
   let effectiveModule = moduleId;
   if (moduleId === 'new_quote') effectiveModule = 'quotes';
   if (moduleId === 'new_receipt') effectiveModule = 'receipts';
+  if (moduleId === 'new_payslip') effectiveModule = 'payslips';
   if (moduleId === 'catalog') effectiveModule = 'products';
 
   const perms = getUserPermissions(user);

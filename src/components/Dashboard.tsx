@@ -22,7 +22,8 @@ import {
   BarChart3,
   Filter,
   Calendar,
-  Scissors
+  Scissors,
+  BadgeDollarSign
 } from 'lucide-react';
 import { Quote, Sale, Receivable, Receipt, CompanyInfo, UserAccount, AppUser } from '../types';
 import { calculateCashSummary } from '../services/data/repositories/cashRepository';
@@ -33,6 +34,7 @@ interface DashboardProps {
   sales: Sale[];
   receivables: Receivable[];
   receipts: Receipt[];
+  payslipsCount?: number;
   companyInfo: CompanyInfo;
   users?: UserAccount[];
   currentUser?: AppUser | null;
@@ -52,6 +54,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   sales,
   receivables,
   receipts,
+  payslipsCount = 0,
   companyInfo,
   users = [],
   currentUser,
@@ -242,6 +245,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => onNavigate('payslips')}
+              className="flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-amber-400/20 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-400/30 text-amber-300 border border-amber-500/50 font-black text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
+              title="Emissão e Gestão de Contracheques / Holerites"
+            >
+              <BadgeDollarSign className="w-4 h-4 text-amber-400" />
+              <span>Contracheques</span>
+              <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded uppercase animate-pulse">
+                Novo
+              </span>
+            </button>
+
             <button
               onClick={() => onNavigate('cut_calculator')}
               className="flex items-center gap-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
@@ -825,6 +840,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <span className="font-extrabold text-xs text-slate-900">Recibos</span>
             <span className="text-[10px] text-slate-500">{receipts.length} emitidos</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('payslips')}
+            className="flex flex-col items-center p-3.5 rounded-xl border-2 border-amber-400 bg-amber-50/90 hover:bg-amber-100 hover:border-amber-500 transition-all text-center group relative shadow-sm"
+          >
+            <span className="absolute -top-2.5 right-2 bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md animate-pulse">
+              NOVO
+            </span>
+            <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 group-hover:scale-110 transition-transform mb-1.5 shadow-sm">
+              <BadgeDollarSign className="w-4 h-4" />
+            </div>
+            <span className="font-extrabold text-xs text-slate-950">Contracheques</span>
+            <span className="text-[10px] text-amber-900 font-bold">
+              {payslipsCount > 0 ? `${payslipsCount} emitidos` : 'Folha & Holerite'}
+            </span>
           </button>
 
           <button

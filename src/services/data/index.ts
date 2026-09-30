@@ -26,6 +26,7 @@ export * from './repositories/companyRepository';
 export * from './repositories/managerTasksRepository';
 export * from './repositories/usersRepository';
 export * from './repositories/contractsRepository';
+export * from './repositories/payslipsRepository';
 export * from './repositories/cashRepository';
 export * from './repositories/cutCalculatorRepository';
 export * from './supabaseSync';

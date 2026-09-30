@@ -323,6 +323,47 @@ export interface Receipt {
   installmentsSummary?: string; // ex: "3x de R$ 50,00"
 }
 
+// Estruturas de Contracheques / Holerites / Pagamento de Funcionários
+export type PaymentTypePayslip =
+  | 'salario'
+  | 'adiantamento'
+  | 'comissao'
+  | 'diaria'
+  | 'servico'
+  | 'decimo_terceiro'
+  | 'ferias'
+  | 'outro';
+
+export interface PayslipItem {
+  id: string;
+  description: string;
+  amount: number;
+}
+
+export interface Payslip {
+  id: string;
+  companyId?: string;
+  userId?: string;
+  code: string; // ex: HOL-2026-000001 ou CC-2026-001
+  employeeName: string; // Nome do colaborador / funcionário
+  employeeRole: string; // Cargo / Função (ex: Vidraceiro, Instalador, Cortador, Ajudante, Vendedor)
+  employeeCpf?: string;
+  employeePix?: string; // Chave PIX ou Conta para Comprovante
+  referenceMonth: string; // ex: "Setembro / 2026" ou "09/2026"
+  paymentType: PaymentTypePayslip;
+  paymentDate: string; // YYYY-MM-DD
+  baseSalary: number; // Salário base / diárias
+  earnings: PayslipItem[]; // Proventos adicionais (comissões, horas extras, bonificações)
+  deductions: PayslipItem[]; // Descontos (vales, adiantamentos, faltas)
+  totalEarnings: number; // Total Bruto / Proventos
+  totalDeductions: number; // Total Descontos
+  netAmount: number; // Valor Líquido Pago
+  paymentMethod: PaymentMethod;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Estruturas de Usuários, Autenticação e Controle de Acesso
 export type UserRole = 'superadmin' | 'admin' | 'vendedor' | 'funcionario' | 'operador';
 export type UserStatus = 'pendente' | 'aprovado' | 'rejeitado';
@@ -337,6 +378,7 @@ export type SystemModuleId =
   | 'contracts'
   | 'receivables'
   | 'receipts'
+  | 'payslips'
   | 'reports'
   | 'clients'
   | 'products'

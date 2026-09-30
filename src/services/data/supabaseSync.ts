@@ -302,6 +302,33 @@ function mapEntityToSupabaseRow(table: string, entity: any): { targetTable: stri
         },
       };
 
+    case 'payslips':
+      return {
+        targetTable: 'payslips',
+        row: {
+          id: entity.id,
+          company_id: entity.companyId || 'comp-smart-vidros-001',
+          code: entity.code,
+          employee_name: entity.employeeName,
+          employee_role: entity.employeeRole,
+          employee_cpf: entity.employeeCpf || null,
+          employee_pix: entity.employeePix || null,
+          reference_month: entity.referenceMonth,
+          payment_type: entity.paymentType,
+          payment_date: entity.paymentDate,
+          base_salary: entity.baseSalary || 0,
+          earnings: Array.isArray(entity.earnings) ? entity.earnings : [],
+          deductions: Array.isArray(entity.deductions) ? entity.deductions : [],
+          total_earnings: entity.totalEarnings || 0,
+          total_deductions: entity.totalDeductions || 0,
+          net_amount: entity.netAmount || 0,
+          payment_method: entity.paymentMethod || 'pix',
+          notes: entity.notes || null,
+          created_at: entity.createdAt || new Date().toISOString(),
+          updated_at: entity.updatedAt || new Date().toISOString(),
+        },
+      };
+
     default:
       return null;
   }
@@ -311,7 +338,7 @@ function mapEntityToSupabaseRow(table: string, entity: any): { targetTable: stri
 // AUTO-SYNC HOOK EM TEMPO REAL
 // ============================================================
 export function autoSyncEntityChange(
-  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'catalog' | 'catalog_items' | 'contracts' | 'cut_rules' | 'cut_calculations' | 'manager_tasks',
+  table: 'companies' | 'user_accounts' | 'clients' | 'quotes' | 'sales' | 'accounts_receivable' | 'receipts' | 'payslips' | 'catalog' | 'catalog_items' | 'contracts' | 'cut_rules' | 'cut_calculations' | 'manager_tasks',
   action: 'upsert' | 'delete',
   data: any
 ): void {
@@ -578,6 +605,42 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
       }
     }
 
+    // 11. Contracheques / Holerites
+    const payslipsStr = localStorage.getItem('smart_vidros_payslips');
+    if (payslipsStr) {
+      try {
+        const payslips = JSON.parse(payslipsStr);
+        if (Array.isArray(payslips) && payslips.length > 0) {
+          const rows = payslips.map((p: any) => ({
+            id: p.id,
+            company_id: p.companyId || 'comp-smart-vidros-001',
+            code: p.code,
+            employee_name: p.employeeName,
+            employee_role: p.employeeRole,
+            employee_cpf: p.employeeCpf || null,
+            employee_pix: p.employeePix || null,
+            reference_month: p.referenceMonth,
+            payment_type: p.paymentType,
+            payment_date: p.paymentDate,
+            base_salary: p.baseSalary || 0,
+            earnings: Array.isArray(p.earnings) ? p.earnings : [],
+            deductions: Array.isArray(p.deductions) ? p.deductions : [],
+            total_earnings: p.totalEarnings || 0,
+            total_deductions: p.totalDeductions || 0,
+            net_amount: p.netAmount || 0,
+            payment_method: p.paymentMethod || 'pix',
+            notes: p.notes || null,
+            created_at: p.createdAt || new Date().toISOString(),
+            updated_at: p.updatedAt || new Date().toISOString(),
+          }));
+          const { error } = await client.from('payslips').upsert(rows);
+          if (!error) totalPushed += payslips.length;
+        }
+      } catch (err) {
+        console.warn('[Sync] Sincronização de contracheques na nuvem:', err);
+      }
+    }
+
     const now = new Date().toISOString();
     localStorage.setItem(SYNC_TIMESTAMP_KEY, now);
 
@@ -828,6 +891,39 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
       }));
       localStorage.setItem('smart_vidros_receipts', JSON.stringify(receiptModels));
       pulledTotal += receipts.length;
+    }
+
+    // 10. Contracheques / Holerites
+    try {
+      const { data: payslips, error: psErr } = await client.from('payslips').select('*');
+      if (!psErr && payslips && payslips.length > 0) {
+        const payslipModels = payslips.map((p: any) => ({
+          id: p.id,
+          companyId: p.company_id || 'comp-smart-vidros-001',
+          code: p.code || 'HOL-2026-000001',
+          employeeName: p.employee_name || 'Funcionário',
+          employeeRole: p.employee_role || 'Vidraceiro / Instalador',
+          employeeCpf: p.employee_cpf || undefined,
+          employeePix: p.employee_pix || undefined,
+          referenceMonth: p.reference_month || 'Mês Atual',
+          paymentType: p.payment_type || 'salario',
+          paymentDate: p.payment_date || (p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+          baseSalary: Number(p.base_salary) || 0,
+          earnings: Array.isArray(p.earnings) ? p.earnings : [],
+          deductions: Array.isArray(p.deductions) ? p.deductions : [],
+          totalEarnings: Number(p.total_earnings) || 0,
+          totalDeductions: Number(p.total_deductions) || 0,
+          netAmount: Number(p.net_amount) || 0,
+          paymentMethod: p.payment_method || 'pix',
+          notes: p.notes || undefined,
+          createdAt: p.created_at || new Date().toISOString(),
+          updatedAt: p.updated_at || p.created_at || new Date().toISOString(),
+        }));
+        localStorage.setItem('smart_vidros_payslips', JSON.stringify(payslipModels));
+        pulledTotal += payslips.length;
+      }
+    } catch (err) {
+      console.warn('[Sync] Leitura de contracheques no Supabase:', err);
     }
 
     const now = new Date().toISOString();

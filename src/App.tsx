@@ -14,6 +14,9 @@ import { CompanySettings } from './components/CompanySettings';
 import { ReceiptList } from './components/ReceiptList';
 import { ReceiptForm } from './components/ReceiptForm';
 import { ReceiptViewModal } from './components/ReceiptViewModal';
+import { PayslipList } from './components/PayslipList';
+import { PayslipForm } from './components/PayslipForm';
+import { PayslipViewModal } from './components/PayslipViewModal';
 import { ClientList } from './components/ClientList';
 import { ProductList } from './components/ProductList';
 import { ServiceList } from './components/ServiceList';
@@ -42,6 +45,7 @@ import {
   CatalogItem,
   QuoteStatus,
   Receipt,
+  Payslip,
   Sale,
   Receivable,
   AppUser,
@@ -61,6 +65,9 @@ import {
   deleteCatalogItem,
   getReceipts,
   deleteReceipt,
+  getPayslips,
+  savePayslip,
+  deletePayslip,
   getSales,
   deleteSale,
   getReceivables,
@@ -84,6 +91,7 @@ export default function App() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [companyInfo, setCompanyInfoState] = useState<CompanyInfo>({
     name: 'Smart Vidros',
@@ -131,6 +139,10 @@ export default function App() {
   // Estados para Recibos
   const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null);
   const [viewingReceipt, setViewingReceipt] = useState<Receipt | null>(null);
+
+  // Estados para Contracheques / Holerites
+  const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
+  const [viewingPayslip, setViewingPayslip] = useState<Payslip | null>(null);
 
   // Toast Notificação
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -244,6 +256,7 @@ export default function App() {
     setContracts(getContracts());
     setReceivables(getReceivables());
     setReceipts(getReceipts());
+    setPayslips(getPayslips());
     setCatalog(getCatalog());
     setCompanyInfoState(getCompanyInfo());
     
@@ -436,6 +449,29 @@ export default function App() {
     deleteReceipt(id);
     refreshData();
     showToast('Recibo excluído com sucesso.');
+  };
+
+  // --- MÓDULO DE CONTRACHEQUES / HOLERITES ---
+  const handlePayslipSaveSuccess = (
+    payslipData: Omit<Payslip, 'id' | 'code' | 'createdAt' | 'updatedAt'> & { id?: string; code?: string },
+    shouldOpenView: boolean = false
+  ) => {
+    const saved = savePayslip(payslipData);
+    refreshData();
+    setEditingPayslip(null);
+    if (shouldOpenView) {
+      setViewingPayslip(saved);
+      setActiveTab('payslips');
+    } else {
+      setActiveTab('payslips');
+      showToast(`Contracheque ${saved.code} de ${saved.employeeName} salvo com sucesso!`);
+    }
+  };
+
+  const handleDeletePayslip = (id: string) => {
+    deletePayslip(id);
+    refreshData();
+    showToast('Contracheque excluído com sucesso.');
   };
 
   // --- CATÁLOGO BASE ---
@@ -643,6 +679,7 @@ export default function App() {
         contractsCount={contracts.length}
         receivablesCount={receivables.length}
         receiptsCount={receipts.length}
+        payslipsCount={payslips.length}
         pendingUsersCount={pendingUsersCount}
         currentUser={currentUser}
         companyInfo={companyInfo}
@@ -708,6 +745,7 @@ export default function App() {
               sales={sales}
               receivables={receivables}
               receipts={receipts}
+              payslipsCount={payslips.length}
               companyInfo={companyInfo}
               users={usersList}
               currentUser={currentUser}
@@ -880,6 +918,35 @@ export default function App() {
                 setEditingReceipt(null);
                 setClientPreFill(null);
                 setActiveTab('receipts');
+              }}
+            />
+          )}
+
+          {/* ABA: CONTRACHEQUES & HOLERITES */}
+          {activeTab === 'payslips' && (
+            <PayslipList
+              payslips={payslips}
+              onNewPayslip={() => {
+                setEditingPayslip(null);
+                setActiveTab('new_payslip');
+              }}
+              onEditPayslip={(p) => {
+                setEditingPayslip(p);
+                setActiveTab('new_payslip');
+              }}
+              onViewPayslip={(p) => setViewingPayslip(p)}
+              onDeletePayslip={handleDeletePayslip}
+            />
+          )}
+
+          {/* ABA: NOVO/EDITAR CONTRACHEQUE */}
+          {activeTab === 'new_payslip' && (
+            <PayslipForm
+              payslip={editingPayslip}
+              onSave={handlePayslipSaveSuccess}
+              onCancel={() => {
+                setEditingPayslip(null);
+                setActiveTab('payslips');
               }}
             />
           )}
@@ -1063,6 +1130,20 @@ export default function App() {
             onOpenSale={handleOpenSaleFromId}
             onOpenReceivable={handleOpenReceivableFromId}
             onOpenQuote={handleOpenQuoteFromId}
+          />
+        )}
+
+        {/* MODAL DE VISUALIZAÇÃO & PDF DO CONTRACHEQUE */}
+        {viewingPayslip && (
+          <PayslipViewModal
+            payslip={viewingPayslip}
+            companyInfo={companyInfo}
+            onClose={() => setViewingPayslip(null)}
+            onEdit={(p) => {
+              setViewingPayslip(null);
+              setEditingPayslip(p);
+              setActiveTab('new_payslip');
+            }}
           />
         )}
 

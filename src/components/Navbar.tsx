@@ -26,7 +26,8 @@ import {
   Play,
   Share2,
   Scissors,
-  Download
+  Download,
+  BadgeDollarSign,
 } from 'lucide-react';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
@@ -44,7 +45,7 @@ interface NavbarProps {
   currentUser?: AppUser | null;
   companyInfo: CompanyInfo;
   onNewQuoteClick: () => void;
-  onNewReceiptClick: () => void;
+  onNewReceiptClick?: () => void;
   onOpenPdvClick: () => void;
   onToggleSidebarMobile: () => void;
   onOpenAuthModal: () => void;
@@ -70,6 +71,8 @@ const TAB_TITLES: Record<ActiveTab, { title: string; subtitle: string; icon: Rea
   receivables: { title: 'Contas a Receber', subtitle: 'Gestão de Recebimentos', icon: ShieldCheck },
   receipts: { title: 'Recibos de Pagamento', subtitle: 'Comprovantes Oficiais A4', icon: ReceiptText },
   new_receipt: { title: 'Novo Recibo', subtitle: 'Emissão de Pagamento', icon: ReceiptText },
+  payslips: { title: 'Contracheques', subtitle: 'Folha de Pagamento & Holerites', icon: BadgeDollarSign },
+  new_payslip: { title: 'Novo Contracheque', subtitle: 'Emissão de Pagamento a Funcionário', icon: BadgeDollarSign },
   clients: { title: 'Clientes', subtitle: 'Base de Contatos & Obras', icon: Users },
   products: { title: 'Produtos & Vidros', subtitle: 'Catálogo de Itens', icon: Package },
   services: { title: 'Serviços & Mão de Obra', subtitle: 'Tabela de Serviços', icon: Wrench },
