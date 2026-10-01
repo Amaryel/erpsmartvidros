@@ -30,14 +30,6 @@ export const ALL_SYSTEM_MODULES: ModuleDefinition[] = [
     iconName: 'Briefcase',
   },
   {
-    id: 'cut_calculator',
-    label: 'Cálculo de Medidas de Corte',
-    shortLabel: 'Medidas de Corte',
-    category: 'Produção',
-    description: 'Calculadora de corte de vidros e esquadrias com folgas, descontos, memória de cálculo e PDF',
-    iconName: 'Scissors',
-  },
-  {
     id: 'quotes',
     label: 'Orçamentos',
     shortLabel: 'Orçamentos',
@@ -145,7 +137,6 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
         allowedModules: [
           'dashboard',
           'operations',
-          'cut_calculator',
           'quotes',
           'sales',
           'cash',
@@ -173,7 +164,6 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
         allowedModules: [
           'dashboard',
           'operations',
-          'cut_calculator',
           'quotes',
           'sales',
           'cash',
@@ -200,7 +190,6 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
       return {
         allowedModules: [
           'dashboard',
-          'cut_calculator',
           'quotes',
           'sales',
           'contracts',
@@ -226,7 +215,6 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
         allowedModules: [
           'dashboard',
           'operations',
-          'cut_calculator',
           'products',
           'services',
           'clients',

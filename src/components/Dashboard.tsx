@@ -258,15 +258,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
 
             <button
-              onClick={() => onNavigate('cut_calculator')}
-              className="flex items-center gap-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
-              title="Calculadora Técnica de Medidas de Corte"
-            >
-              <Scissors className="w-4 h-4 text-amber-400" />
-              <span>Medidas de Corte</span>
-            </button>
-
-            <button
               onClick={() => onNavigate('reports')}
               className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
               title="Acessar Relatórios Detalhados"
