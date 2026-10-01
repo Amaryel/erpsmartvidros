@@ -277,30 +277,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Topo do Menu: Logo Smart Vidros */}
-        <div className="h-20 px-4 flex items-center justify-between border-b border-zinc-800/80 shrink-0">
+        {/* Topo do Menu: Logo Smart Vidros Centralizada */}
+        <div className="h-20 px-4 flex items-center justify-center border-b border-zinc-800/80 shrink-0 relative">
           {!isCollapsed ? (
-            <SmartVidrosLogo
-              companyInfo={companyInfo}
-              size="md"
-              variant="dark"
-              showSubtitle={false}
-              onClick={() => handleSelectTab('dashboard')}
-            />
+            <div className="w-full flex items-center justify-center">
+              <SmartVidrosLogo
+                companyInfo={companyInfo}
+                size="md"
+                variant="dark"
+                showSubtitle={false}
+                onClick={() => handleSelectTab('dashboard')}
+                className="justify-center mx-auto"
+              />
+            </div>
           ) : (
             <div
               onClick={() => handleSelectTab('dashboard')}
-              className="mx-auto cursor-pointer p-1 bg-zinc-900 border border-amber-400/50 rounded-xl hover:border-amber-400 transition-colors"
+              className="mx-auto cursor-pointer p-1 bg-zinc-900 border border-amber-400/50 rounded-xl hover:border-amber-400 transition-colors flex items-center justify-center"
               title="Smart Vidros — Início"
             >
-              <SmartVidrosLogo companyInfo={companyInfo} size="sm" showSubtitle={false} />
+              <SmartVidrosLogo companyInfo={companyInfo} size="sm" showSubtitle={false} className="justify-center" />
             </div>
           )}
 
-          {/* Botão de Fechar no Mobile */}
+          {/* Botão de Fechar no Mobile (posicionado de forma absoluta para não desalinhá-la) */}
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl lg:hidden transition-colors"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl lg:hidden transition-colors"
             title="Fechar menu"
           >
             <X className="w-5 h-5" />
