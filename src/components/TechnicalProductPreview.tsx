@@ -134,54 +134,54 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
 
   const config = parseLeafConfiguration(leafCount, name, openingType);
 
-  // Paleta de Vidros Realistas
+  // Paleta de Vidros Realistas e de Alto Contraste Arquitetônico
   const getGlassStyle = () => {
     const gc = (glassColor || '').toLowerCase();
     if (gc.includes('fumê') || gc.includes('fume') || gc.includes('cinza') || gc.includes('grafite')) {
-      return { fill: 'rgba(51, 65, 85, 0.48)', stroke: '#475569', label: 'Fumê' };
+      return { fill: '#334155', fillOpacity: '0.70', stroke: '#94a3b8', label: 'Fumê' };
     }
     if (gc.includes('verde')) {
-      return { fill: 'rgba(16, 185, 129, 0.35)', stroke: '#059669', label: 'Verde' };
+      return { fill: '#065f46', fillOpacity: '0.65', stroke: '#34d399', label: 'Verde' };
     }
     if (gc.includes('bronze') || gc.includes('marrom') || gc.includes('champagne')) {
-      return { fill: 'rgba(180, 83, 9, 0.38)', stroke: '#b45309', label: 'Bronze' };
+      return { fill: '#78350f', fillOpacity: '0.65', stroke: '#fbbf24', label: 'Bronze' };
     }
     if (gc.includes('astral') || gc.includes('azul') || gc.includes('reflecta') || gc.includes('refletivo')) {
-      return { fill: 'rgba(2, 132, 199, 0.38)', stroke: '#0284c7', label: 'Azul/Refletivo' };
+      return { fill: '#0369a1', fillOpacity: '0.65', stroke: '#38bdf8', label: 'Azul/Refletivo' };
     }
     if (gc.includes('jateado') || gc.includes('leitoso') || gc.includes('acidato') || gc.includes('fosco') || gc.includes('pontilhado') || gc.includes('quadrato')) {
-      return { fill: 'rgba(241, 245, 249, 0.75)', stroke: '#cbd5e1', label: 'Jateado' };
+      return { fill: '#e2e8f0', fillOpacity: '0.85', stroke: '#ffffff', label: 'Jateado' };
     }
-    // Incolor límpido translúcido
-    return { fill: 'rgba(224, 242, 254, 0.45)', stroke: '#38bdf8', label: 'Incolor' };
+    // Incolor límpido azulado arquitetônico
+    return { fill: '#0284c7', fillOpacity: '0.38', stroke: '#38bdf8', label: 'Incolor' };
   };
 
-  // Cores dos Perfis de Alumínio e Ferragens
+  // Cores dos Perfis de Alumínio e Ferragens com Alto Contraste e Definição
   const getHardwareStyle = () => {
     const hc = (hardwareColor || '').toLowerCase();
     if (hc === '' || hc === 'vazio' || hc === 'nenhum') {
-      return { stroke: '#475569', fill: '#334155', accent: '#94a3b8', isNone: true };
+      return { stroke: '#94a3b8', fill: '#334155', accent: '#38bdf8', isNone: true };
     }
     if (hc.includes('branco')) {
-      return { stroke: '#f8fafc', fill: '#e2e8f0', accent: '#38bdf8', isNone: false };
+      return { stroke: '#ffffff', fill: '#f8fafc', accent: '#38bdf8', isNone: false };
     }
     if (hc.includes('fosco') || hc.includes('natural') || hc.includes('anodizado')) {
-      return { stroke: '#cbd5e1', fill: '#94a3b8', accent: '#38bdf8', isNone: false };
+      return { stroke: '#f8fafc', fill: '#94a3b8', accent: '#38bdf8', isNone: false };
     }
     if (hc.includes('bronze') || hc.includes('marrom')) {
-      return { stroke: '#92400e', fill: '#78350f', accent: '#fbbf24', isNone: false };
+      return { stroke: '#fbbf24', fill: '#78350f', accent: '#fde047', isNone: false };
     }
     if (hc.includes('ouro') || hc.includes('dourad') || hc.includes('gold')) {
-      return { stroke: '#f59e0b', fill: '#d97706', accent: '#fef08a', isNone: false };
+      return { stroke: '#fde047', fill: '#d97706', accent: '#fef08a', isNone: false };
     }
     if (hc.includes('cromad') || hc.includes('inox') || hc.includes('prata')) {
-      return { stroke: '#e2e8f0', fill: '#64748b', accent: '#38bdf8', isNone: false };
+      return { stroke: '#ffffff', fill: '#64748b', accent: '#38bdf8', isNone: false };
     }
     if (hc.includes('champagne')) {
-      return { stroke: '#d4b996', fill: '#a88b64', accent: '#fef3c7', isNone: false };
+      return { stroke: '#fde68a', fill: '#a88b64', accent: '#fef3c7', isNone: false };
     }
-    // Preto Fosco padrão
-    return { stroke: '#1e293b', fill: '#0f172a', accent: '#f59e0b', isNone: false };
+    // Preto Fosco de Alta Definição (perfil grafite com bordas claras e roldanas douradas)
+    return { stroke: '#94a3b8', fill: '#1e293b', accent: '#fbbf24', isNone: false };
   };
 
   const glassStyle = getGlassStyle();
@@ -222,14 +222,30 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
 
   return (
     <div
-      className={`relative inline-flex flex-col items-center justify-center bg-slate-950 text-slate-100 rounded-xl border border-slate-800 p-1.5 sm:p-2 select-none notranslate overflow-hidden max-w-full ${className}`}
+      className={`relative inline-flex flex-col items-center justify-center bg-slate-900 text-slate-100 rounded-xl border border-slate-700/80 p-1 sm:p-1.5 select-none notranslate overflow-hidden max-w-full shadow-sm ${className}`}
       translate="no"
     >
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
-        className="w-full h-auto max-h-48 drop-shadow-sm font-sans"
+        width={svgW}
+        height={svgH}
+        style={{ width: '100%', height: 'auto', display: 'block', maxWidth: '100%' }}
+        className="w-full h-auto max-h-48 font-sans"
         xmlns="http://www.w3.org/2000/svg"
       >
+        {/* Fundo Blueprint Técnico com Borda */}
+        <rect width={svgW} height={svgH} fill="#090f1d" stroke="#1e293b" strokeWidth="1" rx="8" />
+
+        {/* Grade técnica arquitetônica de fundo */}
+        <g stroke="#16223d" strokeWidth="0.5" strokeDasharray="3,3">
+          <line x1="0" y1={svgH * 0.25} x2={svgW} y2={svgH * 0.25} />
+          <line x1="0" y1={svgH * 0.5} x2={svgW} y2={svgH * 0.5} />
+          <line x1="0" y1={svgH * 0.75} x2={svgW} y2={svgH * 0.75} />
+          <line x1={svgW * 0.25} y1="0" x2={svgW * 0.25} y2={svgH} />
+          <line x1={svgW * 0.5} y1="0" x2={svgW * 0.5} y2={svgH} />
+          <line x1={svgW * 0.75} y1="0" x2={svgW * 0.75} y2={svgH} />
+        </g>
+
         <defs>
           {/* Marcadores de seta */}
           <marker

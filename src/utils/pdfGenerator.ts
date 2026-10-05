@@ -700,6 +700,60 @@ function sanitizeElementStyles(el: HTMLElement) {
 }
 
 /**
+ * Converte elementos <svg> (como o desenho técnico de produtos e esquadrias) em imagens <img> base64
+ * antes da renderização do html2canvas. Isso elimina 100% dos problemas com caixas pretas ou SVGs vazios.
+ */
+async function convertSvgElementsToImages(container: HTMLElement, doc: Document): Promise<void> {
+  const svgs = Array.from(container.querySelectorAll('svg'));
+  for (const svg of svgs) {
+    try {
+      if (!svg.getAttribute('xmlns')) {
+        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      }
+
+      const viewBox = svg.getAttribute('viewBox');
+      let vbW = 220;
+      let vbH = 160;
+      if (viewBox) {
+        const parts = viewBox.split(/\s+|,/).map(Number);
+        if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+          vbW = parts[2];
+          vbH = parts[3];
+        }
+      }
+
+      svg.setAttribute('width', `${vbW}`);
+      svg.setAttribute('height', `${vbH}`);
+
+      const svgString = new XMLSerializer().serializeToString(svg);
+      const svgBase64 = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+
+      const img = doc.createElement('img');
+      img.src = svgBase64;
+      img.style.width = '100%';
+      img.style.height = 'auto';
+      img.style.display = 'block';
+      img.style.maxWidth = '100%';
+      img.style.objectFit = 'contain';
+      img.className = svg.getAttribute('class') || '';
+
+      await new Promise((resolve) => {
+        if (img.complete && img.naturalHeight !== 0) return resolve(null);
+        img.onload = () => resolve(null);
+        img.onerror = () => resolve(null);
+        setTimeout(resolve, 250);
+      });
+
+      if (svg.parentNode) {
+        svg.parentNode.replaceChild(img, svg);
+      }
+    } catch (err) {
+      console.warn('Erro ao rasterizar SVG para o PDF:', err);
+    }
+  }
+}
+
+/**
  * OBRIGA a geração do arquivo PDF com corte inteligente de páginas e download direto.
  * 100% à prova de falhas e sem textos cortados ao meio!
  */
@@ -710,9 +764,9 @@ export const downloadPdfElement = async (elementId: string, filename: string): P
     return false;
   }
 
-  // 1. Criar um iframe invisível isolado do Tailwind v4 principal
+  // 1. Criar um iframe isolado do Tailwind v4 principal
   const iframe = document.createElement('iframe');
-  iframe.setAttribute('style', 'position: fixed; left: -9999px; top: -9999px; width: 800px; height: 1120px; border: none; visibility: hidden; z-index: -99999;');
+  iframe.setAttribute('style', 'position: fixed; left: -9999px; top: 0; width: 800px; height: 1120px; border: none; opacity: 0; pointer-events: none; z-index: -99999;');
   document.body.appendChild(iframe);
 
   try {
@@ -741,6 +795,13 @@ export const downloadPdfElement = async (elementId: string, filename: string): P
     `);
     iframeDoc.close();
 
+    // 2.1 Rasterizar todos os SVGs técnicos para imagens perfeitas
+    const rootEl = iframeDoc.getElementById('pdf-root');
+    if (rootEl) {
+      await convertSvgElementsToImages(rootEl, iframeDoc);
+      sanitizeElementStyles(rootEl);
+    }
+
     // Pausa para montagem e estabilização do layout + garantia de carregamento de imagens
     const images = Array.from(iframeDoc.querySelectorAll('img'));
     await Promise.all([
@@ -754,11 +815,6 @@ export const downloadPdfElement = async (elementId: string, filename: string): P
         });
       }),
     ]);
-
-    const rootEl = iframeDoc.getElementById('pdf-root');
-    if (rootEl) {
-      sanitizeElementStyles(rootEl);
-    }
 
 
     // 3. Renderizar Canvas do documento inteiro
@@ -815,6 +871,25 @@ export const downloadPdfElement = async (elementId: string, filename: string): P
           styles.forEach((s) => {
             if (s.textContent && (s.textContent.includes('oklch') || s.textContent.includes('oklab'))) {
               s.textContent = convertAllUnsupportedColors(s.textContent);
+            }
+          });
+
+          // Conversão de SVGs em base64 no fallback
+          const svgs = Array.from(clonedDoc.querySelectorAll('svg'));
+          svgs.forEach((svg) => {
+            try {
+              if (!svg.getAttribute('xmlns')) svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+              const svgString = new XMLSerializer().serializeToString(svg);
+              const svgBase64 = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+              const img = clonedDoc.createElement('img');
+              img.src = svgBase64;
+              img.style.width = '100%';
+              img.style.height = 'auto';
+              img.style.display = 'block';
+              img.style.maxWidth = '100%';
+              if (svg.parentNode) svg.parentNode.replaceChild(img, svg);
+            } catch {
+              // ignore
             }
           });
         },

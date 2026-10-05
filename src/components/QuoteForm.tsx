@@ -1330,9 +1330,13 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                         </div>
                         <TechnicalProductPreview
                           item={item}
-                          widthMm={item.widthMm}
-                          heightMm={item.lengthMm}
+                          widthMm={item.widthMm || 1500}
+                          heightMm={item.lengthMm || 2100}
                           name={item.name || 'Produto'}
+                          glassColor={item.glassColor}
+                          hardwareColor={item.hardwareColor}
+                          openingType={item.openingType}
+                          leafCount={item.leafCount}
                           compact={true}
                           className="w-full"
                         />

@@ -294,16 +294,20 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                                   <div
                                     className="shrink-0"
                                     style={{
-                                      width: '85px',
-                                      minWidth: '85px',
-                                      maxWidth: '85px',
+                                      width: '90px',
+                                      minWidth: '90px',
+                                      maxWidth: '90px',
                                     }}
                                   >
                                     <TechnicalProductPreview
                                       item={item}
-                                      widthMm={item.widthMm}
-                                      heightMm={item.lengthMm}
+                                      widthMm={item.widthMm || (item as any).width || 1500}
+                                      heightMm={item.lengthMm || (item as any).heightMm || (item as any).height || 2100}
                                       name={item.name}
+                                      glassColor={item.glassColor}
+                                      hardwareColor={item.hardwareColor}
+                                      openingType={item.openingType}
+                                      leafCount={item.leafCount}
                                       compact={true}
                                       showDimensions={false}
                                       className="w-full shadow-xs"
