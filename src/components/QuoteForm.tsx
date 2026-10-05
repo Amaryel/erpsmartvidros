@@ -42,7 +42,7 @@ import { ClientFormModal } from './ClientFormModal';
 import { ProductFormModal } from './ProductFormModal';
 import { ImportCutCalculationModal } from './CutCalculator/ImportCutCalculationModal';
 import { ClientSelect } from './ClientSelect';
-import { TechnicalProductPreview, detectTechnicalCategory } from './TechnicalProductPreview';
+import { TechnicalProductPreview, detectTechnicalCategory, TECHNICAL_MODELS } from './TechnicalProductPreview';
 import { TechnicalFieldSelect } from './TechnicalFieldSelect';
 import { PackagePlus } from 'lucide-react';
 
@@ -1323,23 +1323,126 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                         )}
                       </div>
 
-                      {/* LADO DIREITO: Ilustração Técnica Vetorial 2D Automática */}
-                      <div className="lg:col-span-4 flex flex-col items-center justify-center p-2 bg-slate-950 rounded-xl border border-slate-800">
-                        <div className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-1.5">
-                          Ilustração Técnica 2D
+                      {/* LADO DIREITO: Ilustração Técnica Vetorial 2D e Seletor de Modelo */}
+                      <div className="lg:col-span-4 flex flex-col items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                        <div className="w-full flex items-center justify-between text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                          <span>Desenho Técnico 2D</span>
+                          <span className="text-slate-400 font-normal lowercase">(auto / editável)</span>
                         </div>
                         <TechnicalProductPreview
                           item={item}
                           widthMm={item.widthMm || 1500}
                           heightMm={item.lengthMm || 2100}
                           name={item.name || 'Produto'}
+                          category={item.technicalCategory}
+                          technicalModel={item.technicalModel}
                           glassColor={item.glassColor}
                           hardwareColor={item.hardwareColor}
                           openingType={item.openingType}
                           leafCount={item.leafCount}
+                          finish={item.finish}
                           compact={true}
                           className="w-full"
                         />
+
+                        {/* Seletor Rápido de Modelo de Desenho Técnico */}
+                        <div className="w-full pt-1">
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-1">
+                            Modelo do Desenho Técnico:
+                          </label>
+                          <select
+                            value={item.technicalModel || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleItemChange(index, 'technicalModel', val || undefined);
+                              if (val) {
+                                const selectedModel = TECHNICAL_MODELS.find((m) => m.id === val);
+                                if (selectedModel) {
+                                  handleItemChange(index, 'technicalCategory', selectedModel.category);
+                                  if (!item.openingType && selectedModel.defaultOpening) {
+                                    handleItemChange(index, 'openingType', selectedModel.defaultOpening);
+                                  }
+                                  if (!item.leafCount && selectedModel.defaultLeaves) {
+                                    handleItemChange(index, 'leafCount', selectedModel.defaultLeaves);
+                                  }
+                                }
+                              }
+                            }}
+                            className="w-full bg-slate-900 border border-slate-700 text-amber-300 text-xs font-semibold rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-400"
+                          >
+                            <option value="">✨ Auto (Identificar pelo Nome/Tipo)</option>
+                            <optgroup label="🚿 Box de Banheiro">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'box').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🚪 Portas de Vidro & Alumínio">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'porta').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🪟 Janelas">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'janela').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🪞 Espelhos">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'espelho').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🛡️ Guarda-Corpos & Sacadas">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'guarda_corpo').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🏠 Coberturas & Claraboias">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'cobertura').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🏢 Divisórias & Fachadas">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'divisoria' || m.category === 'fachada').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🍳 Fechamento de Pia / Balcão">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'fechamento_pia').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🪑 Tampos de Mesa & Prateleiras">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'tampo' || m.category === 'prateleira').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🔲 Painel Fixo / Vidro Avulso">
+                              {TECHNICAL_MODELS.filter((m) => m.category === 'vidro').map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                          </select>
+                        </div>
                       </div>
 
                     </div>

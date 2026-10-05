@@ -20,7 +20,7 @@ import { CatalogItem, ProductType, TechnicalCategory } from '../types';
 import { saveCatalogItem } from '../services/storage';
 import { getSmartProductImage } from '../services/data/repositories/productsRepository';
 import { TechnicalFieldSelect } from './TechnicalFieldSelect';
-import { TechnicalProductPreview, detectTechnicalCategory } from './TechnicalProductPreview';
+import { TechnicalProductPreview, detectTechnicalCategory, TECHNICAL_MODELS } from './TechnicalProductPreview';
 
 const GLASS_TYPES = ['Temperado', 'Laminado', 'Comum (Float)', 'Insulado', 'Aramado', 'Serigrafado'];
 const GLASS_THICKNESSES = ['3mm', '4mm', '5mm', '6mm', '8mm', '10mm', '12mm', '15mm', '19mm'];
@@ -68,6 +68,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [technicalCategory, setTechnicalCategory] = useState<TechnicalCategory>(
     initialData?.technicalCategory || detectTechnicalCategory(initialData?.name || '')
   );
+  const [technicalModel, setTechnicalModel] = useState<string>(initialData?.technicalModel || '');
   const [glassType, setGlassType] = useState(initialData?.glassType ?? 'Temperado');
   const [thickness, setThickness] = useState(initialData?.thickness ?? '8mm');
   const [glassColor, setGlassColor] = useState(initialData?.glassColor ?? 'Incolor');
@@ -191,6 +192,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       
       // Características Técnicas
       technicalCategory,
+      technicalModel: technicalModel.trim() ? technicalModel.trim() : undefined,
       glassType: glassType.trim() ? glassType.trim() : undefined,
       thickness: thickness.trim() ? thickness.trim() : undefined,
       glassColor: glassColor.trim() ? glassColor.trim() : undefined,
@@ -457,39 +459,73 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     <TechnicalProductPreview
                       name={name || 'Produto'}
                       category={technicalCategory}
+                      technicalModel={technicalModel}
                       glassColor={glassColor}
                       hardwareColor={hardwareColor}
                       openingType={openingType}
                       leafCount={leafCount}
+                      finish={finish}
                       compact={true}
                       showDimensions={false}
                     />
                   </div>
-                  <div className="text-slate-300 text-xs space-y-1">
+                  <div className="text-slate-300 text-xs space-y-1 flex-1">
                     <div className="font-bold text-amber-400 flex items-center gap-1">
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Desenho Técnico Gerado Automaticamente</span>
+                      <span>Desenho Técnico Arquitetônico</span>
                     </div>
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                      O sistema reconhece automaticamente a quantidade de folhas (<strong className="text-white">{leafCount || '2 Folhas'}</strong>), as cores do vidro (<strong className="text-white">{glassColor || 'Incolor'}</strong>) e ferragens (<strong className="text-white">{hardwareColor || 'Vazio'}</strong>) para desenhar com precisão nos orçamentos e PDFs.
+                      O sistema identifica automaticamente o tipo de esquadria ou vidro pelo nome, ou você pode fixar um modelo técnico específico abaixo.
                     </p>
                   </div>
                 </div>
 
-                {/* Categoria Técnica */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
-                    Categoria Técnica do Produto
-                  </label>
-                  <select
-                    value={technicalCategory}
-                    onChange={(e) => setTechnicalCategory(e.target.value as TechnicalCategory)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-900 font-semibold focus:outline-none focus:border-amber-500 text-xs"
-                  >
-                    {TECH_CATEGORIES.map((tc) => (
-                      <option key={tc.id} value={tc.id}>{tc.label}</option>
-                    ))}
-                  </select>
+                {/* Seleção do Modelo de Desenho Técnico */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                      Modelo do Desenho Técnico
+                    </label>
+                    <select
+                      value={technicalModel}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTechnicalModel(val);
+                        if (val) {
+                          const m = TECHNICAL_MODELS.find((x) => x.id === val);
+                          if (m) {
+                            setTechnicalCategory(m.category);
+                            if (m.defaultOpening) setOpeningType(m.defaultOpening);
+                            if (m.defaultLeaves) setLeafCount(m.defaultLeaves);
+                          }
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-900 font-semibold focus:outline-none focus:border-amber-500 text-xs"
+                    >
+                      <option value="">✨ Auto (Identificar pelo Nome/Tipo)</option>
+                      {TECHNICAL_MODELS.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Categoria Geral */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                      Categoria Geral
+                    </label>
+                    <select
+                      value={technicalCategory}
+                      onChange={(e) => setTechnicalCategory(e.target.value as TechnicalCategory)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-900 font-semibold focus:outline-none focus:border-amber-500 text-xs"
+                    >
+                      {TECH_CATEGORIES.map((tc) => (
+                        <option key={tc.id} value={tc.id}>{tc.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Grid de Características Técnicas com Seleção Inteligente, Opção Vazio e Cadastro de Novo */}

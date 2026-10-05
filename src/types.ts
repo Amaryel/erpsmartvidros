@@ -6,7 +6,20 @@ export type CatalogCategory = 'produto' | 'servico';
 
 export type GlassType = 'temperado' | 'laminado' | 'comum' | 'insulado' | 'serigrafado' | 'outro';
 
-export type TechnicalCategory = 'porta' | 'janela' | 'box' | 'espelho' | 'vidro' | 'guarda_corpo' | 'outro';
+export type TechnicalCategory =
+  | 'porta'
+  | 'janela'
+  | 'box'
+  | 'espelho'
+  | 'vidro'
+  | 'guarda_corpo'
+  | 'cobertura'
+  | 'divisoria'
+  | 'fachada'
+  | 'fechamento_pia'
+  | 'tampo'
+  | 'prateleira'
+  | 'outro';
 
 export interface Client {
   id: string;
@@ -70,6 +83,7 @@ export interface QuoteItem {
 
   // Categoria Técnica p/ Ilustração Vetorial 2D Automática
   technicalCategory?: TechnicalCategory;
+  technicalModel?: string; // Modelo específico do desenho técnico (ex: box_canto_l, porta_pivotante, etc.)
 
   // Características Técnicas Detalhadas do Item (exibidas no orçamento e PDF)
   glassType?: string; // Temperado, Laminado, Comum, Insulado...
@@ -160,6 +174,7 @@ export interface CatalogItem {
   
   // Características Técnicas Padrão (Opcionais para orçamentos e PDF)
   technicalCategory?: TechnicalCategory;
+  technicalModel?: string;
   glassType?: string;
   thickness?: string;
   glassColor?: string;
