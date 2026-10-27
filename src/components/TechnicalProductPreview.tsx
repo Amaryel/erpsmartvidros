@@ -716,17 +716,109 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
   const midY = boxY + boxH / 2;
 
   const uniqueId = React.useId().replace(/:/g, '');
+  const svgRef = React.useRef<SVGSVGElement | null>(null);
+  const [rasterPngUrl, setRasterPngUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+
+    let isMounted = true;
+
+    const generateRaster = () => {
+      try {
+        const clone = svgEl.cloneNode(true) as SVGSVGElement;
+        clone.removeAttribute('style');
+        clone.style.display = 'block';
+        if (!clone.getAttribute('xmlns')) {
+          clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        }
+        if (!clone.getAttribute('xmlns:xlink')) {
+          clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+        }
+        clone.setAttribute('width', `${svgW}`);
+        clone.setAttribute('height', `${svgH}`);
+
+        const svgXml = new XMLSerializer().serializeToString(clone);
+        const svgBase64 = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgXml)));
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        img.onload = () => {
+          if (!isMounted) return;
+          try {
+            const canvas = document.createElement('canvas');
+            const scale = 2; // Qualidade 2x Retina para impressão nítida
+            canvas.width = svgW * scale;
+            canvas.height = svgH * scale;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.fillStyle = '#090f1d';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              const pngDataUrl = canvas.toDataURL('image/png');
+              if (isMounted) {
+                setRasterPngUrl(pngDataUrl);
+              }
+            }
+          } catch (e) {
+            console.warn('Canvas rasterization notice:', e);
+          }
+        };
+
+        img.src = svgBase64;
+      } catch (err) {
+        console.warn('SVG serialization notice:', err);
+      }
+    };
+
+    generateRaster();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    svgW,
+    svgH,
+    name,
+    model.id,
+    category,
+    width,
+    height,
+    glassColor,
+    hardwareColor,
+    openingType,
+    leafCount,
+    finish,
+    showDimensions,
+    compact,
+  ]);
 
   return (
     <div
-      className={`relative inline-flex flex-col items-center justify-center bg-slate-900 text-slate-100 rounded-xl border border-slate-700/80 p-1 sm:p-1.5 select-none notranslate overflow-hidden max-w-full shadow-sm ${className}`}
+      className={`relative inline-flex flex-col items-center justify-center bg-slate-900 text-slate-100 rounded-xl border border-slate-700/80 p-1 sm:p-1.5 select-none notranslate overflow-hidden max-w-full shadow-sm technical-product-preview ${className}`}
+      data-technical-preview="true"
       translate="no"
+      style={{
+        boxSizing: 'border-box',
+        width: '100%',
+        height: '100%',
+        minHeight: compact ? '60px' : 'auto',
+      }}
     >
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${svgW} ${svgH}`}
         width={svgW}
         height={svgH}
-        style={{ width: '100%', height: 'auto', display: 'block', maxWidth: '100%' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: rasterPngUrl ? 'none' : 'block',
+          maxWidth: '100%',
+          objectFit: 'contain',
+        }}
         className="w-full h-auto max-h-48 font-sans"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -1562,6 +1654,28 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           {!compact && ` • ${model.label}`}
         </text>
       </svg>
+
+      {/* Imagem PNG rasterizada: 100% suportada pelo html2canvas no PDF sem qualquer perda ou corte */}
+      {rasterPngUrl && (
+        <img
+          src={rasterPngUrl}
+          alt={name}
+          width={svgW}
+          height={svgH}
+          data-technical-image="true"
+          className="technical-preview-img w-full h-full object-contain"
+          style={{
+            width: '100%',
+            height: '100%',
+            maxWidth: '100%',
+            maxHeight: compact ? '65px' : '192px',
+            objectFit: 'contain',
+            display: 'block',
+            borderRadius: '6px',
+            backgroundColor: '#090f1d',
+          }}
+        />
+      )}
     </div>
   );
 };

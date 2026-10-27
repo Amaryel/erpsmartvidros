@@ -167,6 +167,36 @@ const ISOLATED_IFRAME_CSS = `
     object-fit: contain !important;
     display: inline-block !important;
   }
+  
+  /* Proteção estrita para ilustrações e desenhos técnicos no PDF */
+  .technical-preview-wrapper,
+  [data-technical-wrapper] {
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+    height: 65px !important;
+    min-height: 65px !important;
+    max-height: 65px !important;
+    display: block !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  .technical-preview-wrapper img,
+  [data-technical-wrapper] img,
+  .technical-preview-img,
+  img[data-technical-image] {
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+    height: 65px !important;
+    min-height: 65px !important;
+    max-height: 65px !important;
+    object-fit: contain !important;
+    display: block !important;
+    background-color: #090f1d !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+  }
   img.h-15, .h-15 { height: 60px !important; max-height: 60px !important; }
   img.h-14, .h-14 { height: 56px !important; max-height: 56px !important; }
   img.h-13, .h-13 { height: 52px !important; max-height: 52px !important; }
@@ -657,7 +687,15 @@ function sanitizeElementStyles(el: HTMLElement) {
     imgEl.style.maxWidth = '100%';
     imgEl.style.objectFit = 'contain';
     const classStr = el.className || '';
-    if (classStr.includes('h-14')) {
+    if (imgEl.getAttribute('data-technical-image') === 'true' || classStr.includes('technical-preview-img')) {
+      imgEl.style.width = '90px';
+      imgEl.style.height = '65px';
+      imgEl.style.minHeight = '65px';
+      imgEl.style.maxHeight = '65px';
+      imgEl.style.display = 'block';
+      imgEl.style.backgroundColor = '#090f1d';
+      imgEl.style.borderRadius = '6px';
+    } else if (classStr.includes('h-14')) {
       imgEl.style.height = '56px';
       imgEl.style.maxHeight = '56px';
     } else if (classStr.includes('h-12')) {
@@ -700,15 +738,34 @@ function sanitizeElementStyles(el: HTMLElement) {
 }
 
 /**
- * Converte elementos <svg> (como o desenho técnico de produtos e esquadrias) em imagens <img> base64
+ * Converte elementos <svg> (como o desenho técnico de produtos e esquadrias) em imagens <img> PNG base64
  * antes da renderização do html2canvas. Isso elimina 100% dos problemas com caixas pretas ou SVGs vazios.
  */
 async function convertSvgElementsToImages(container: HTMLElement, doc: Document): Promise<void> {
   const svgs = Array.from(container.querySelectorAll('svg'));
   for (const svg of svgs) {
     try {
+      // 1. Se o container já possuir a imagem rasterizada (PNG) de TechnicalProductPreview, remove o SVG
+      const parent = svg.parentElement;
+      const existingImg = parent?.querySelector('img[data-technical-image]') as HTMLImageElement | null;
+      if (existingImg && existingImg.getAttribute('src')?.startsWith('data:image/')) {
+        existingImg.style.display = 'block';
+        existingImg.style.width = '90px';
+        existingImg.style.height = '65px';
+        existingImg.style.minHeight = '65px';
+        existingImg.style.maxHeight = '65px';
+        existingImg.style.objectFit = 'contain';
+        existingImg.style.backgroundColor = '#090f1d';
+        existingImg.style.borderRadius = '6px';
+        svg.remove();
+        continue;
+      }
+
       if (!svg.getAttribute('xmlns')) {
         svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      }
+      if (!svg.getAttribute('xmlns:xlink')) {
+        svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
       }
 
       const viewBox = svg.getAttribute('viewBox');
@@ -728,21 +785,53 @@ async function convertSvgElementsToImages(container: HTMLElement, doc: Document)
       const svgString = new XMLSerializer().serializeToString(svg);
       const svgBase64 = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgString)));
 
-      const img = doc.createElement('img');
-      img.src = svgBase64;
-      img.style.width = '100%';
-      img.style.height = 'auto';
-      img.style.display = 'block';
-      img.style.maxWidth = '100%';
-      img.style.objectFit = 'contain';
-      img.className = svg.getAttribute('class') || '';
-
-      await new Promise((resolve) => {
-        if (img.complete && img.naturalHeight !== 0) return resolve(null);
-        img.onload = () => resolve(null);
-        img.onerror = () => resolve(null);
-        setTimeout(resolve, 250);
+      // Renderiza para um canvas real para obter data:image/png (100% compatível com html2canvas)
+      const pngDataUrl = await new Promise<string | null>((resolve) => {
+        const tempImg = new Image();
+        tempImg.crossOrigin = 'anonymous';
+        const timer = setTimeout(() => resolve(null), 300);
+        tempImg.onload = () => {
+          clearTimeout(timer);
+          try {
+            const canvas = document.createElement('canvas');
+            const scale = 2;
+            canvas.width = (vbW || 220) * scale;
+            canvas.height = (vbH || 160) * scale;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.fillStyle = '#090f1d';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/png'));
+              return;
+            }
+          } catch {
+            // ignore
+          }
+          resolve(null);
+        };
+        tempImg.onerror = () => {
+          clearTimeout(timer);
+          resolve(null);
+        };
+        tempImg.src = svgBase64;
       });
+
+      const finalSrc = pngDataUrl || svgBase64;
+      const img = doc.createElement('img');
+      img.src = finalSrc;
+      img.width = 90;
+      img.height = 65;
+      img.setAttribute('data-technical-image', 'true');
+      img.style.width = '90px';
+      img.style.height = '65px';
+      img.style.minHeight = '65px';
+      img.style.maxHeight = '65px';
+      img.style.display = 'block';
+      img.style.objectFit = 'contain';
+      img.style.backgroundColor = '#090f1d';
+      img.style.borderRadius = '6px';
+      img.className = 'technical-preview-img';
 
       if (svg.parentNode) {
         svg.parentNode.replaceChild(img, svg);
@@ -757,10 +846,10 @@ async function convertSvgElementsToImages(container: HTMLElement, doc: Document)
  * OBRIGA a geração do arquivo PDF com corte inteligente de páginas e download direto.
  * 100% à prova de falhas e sem textos cortados ao meio!
  */
-export const downloadPdfElement = async (elementId: string, filename: string): Promise<boolean> => {
-  const targetElement = document.getElementById(elementId);
+export const downloadPdfElement = async (elementOrId: string | HTMLElement, filename: string): Promise<boolean> => {
+  const targetElement = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
   if (!targetElement) {
-    console.error(`Elemento com ID #${elementId} não foi encontrado para gerar PDF.`);
+    console.error(`Elemento para gerar PDF não foi encontrado:`, elementOrId);
     return false;
   }
 
@@ -874,19 +963,28 @@ export const downloadPdfElement = async (elementId: string, filename: string): P
             }
           });
 
-          // Conversão de SVGs em base64 no fallback
+          // Conversão de SVGs no fallback
           const svgs = Array.from(clonedDoc.querySelectorAll('svg'));
           svgs.forEach((svg) => {
             try {
+              const existingImg = svg.parentElement?.querySelector('img[data-technical-image]');
+              if (existingImg) {
+                svg.remove();
+                return;
+              }
               if (!svg.getAttribute('xmlns')) svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
               const svgString = new XMLSerializer().serializeToString(svg);
               const svgBase64 = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgString)));
               const img = clonedDoc.createElement('img');
               img.src = svgBase64;
-              img.style.width = '100%';
-              img.style.height = 'auto';
+              img.width = 90;
+              img.height = 65;
+              img.style.width = '90px';
+              img.style.height = '65px';
+              img.style.minHeight = '65px';
               img.style.display = 'block';
-              img.style.maxWidth = '100%';
+              img.style.backgroundColor = '#090f1d';
+              img.style.borderRadius = '6px';
               if (svg.parentNode) svg.parentNode.replaceChild(img, svg);
             } catch {
               // ignore

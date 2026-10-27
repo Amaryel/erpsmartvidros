@@ -31,6 +31,9 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
     const clientClean = quote.clientName ? quote.clientName.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente';
     const filename = `Orcamento_${quote.code}_${clientClean}.pdf`;
 
+    // Aguarda breve estabilização para garantia de renderização completa dos desenhos
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
     await downloadPdfElement('printable-quote-area', filename);
     setIsGeneratingPdf(false);
   };
@@ -280,6 +283,12 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                         const hasOpening = item.openingType && item.openingType.trim() && item.openingType.toLowerCase() !== 'vazio' && item.openingType.toLowerCase() !== 'nenhum';
                         const hasLeafCount = item.leafCount && item.leafCount.trim() && item.leafCount.toLowerCase() !== 'vazio' && item.leafCount.toLowerCase() !== 'nenhum';
                         const hasFinish = item.finish && item.finish.trim() && item.finish.toLowerCase() !== 'vazio' && item.finish.toLowerCase() !== 'nenhum';
+                        const showTechnicalPreview = item.category !== 'servico' && (
+                          item.type === 'dimensao' ||
+                          item.category === 'produto' ||
+                          Boolean(item.technicalCategory) ||
+                          Boolean(item.technicalModel)
+                        );
 
                         return (
                           <tr key={item.id} className="hover:bg-slate-50/50 break-inside-avoid">
@@ -290,13 +299,17 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
                             <td style={{ width: '51%', textAlign: 'left', verticalAlign: 'top', boxSizing: 'border-box' }} className="py-3 px-3 align-top">
                               <div className="flex flex-row items-start gap-3">
                                 {/* Ilustração Técnica do Produto */}
-                                {item.type === 'dimensao' && (
+                                {showTechnicalPreview && (
                                   <div
-                                    className="shrink-0"
+                                    className="shrink-0 technical-preview-wrapper"
+                                    data-technical-wrapper="true"
                                     style={{
                                       width: '90px',
                                       minWidth: '90px',
                                       maxWidth: '90px',
+                                      height: '65px',
+                                      minHeight: '65px',
+                                      display: 'block',
                                     }}
                                   >
                                     <TechnicalProductPreview
