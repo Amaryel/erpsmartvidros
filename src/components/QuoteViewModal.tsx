@@ -547,7 +547,17 @@ export const QuoteViewModal: React.FC<QuoteViewModalProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button
+              onClick={handlePrint}
+              type="button"
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 border border-slate-700"
+              title="Abrir diálogo nativo do navegador para Imprimir ou Salvar como PDF em alta definição"
+            >
+              <Printer className="w-4 h-4 text-amber-400" />
+              <span>Imprimir / Salvar PDF (Nativo)</span>
+            </button>
+
             <button
               onClick={handleDownloadPdf}
               disabled={isGeneratingPdf}

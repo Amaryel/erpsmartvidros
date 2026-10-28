@@ -769,12 +769,12 @@ async function preRasterizeAllTechnicalDrawings(targetElement: HTMLElement): Pro
     previewDivs.map(async (div) => {
       try {
         const existingSrc = div.getAttribute('data-png-src');
-        if (existingSrc && existingSrc.startsWith('data:image/png;base64,') && existingSrc.length > 200) {
+        if (existingSrc && existingSrc.startsWith('data:image/png;base64,') && existingSrc.length > 300) {
           return;
         }
 
         const hiddenImg = div.querySelector<HTMLImageElement>('img[data-raster-png]');
-        if (hiddenImg && hiddenImg.src && hiddenImg.src.startsWith('data:image/png;base64,') && hiddenImg.src.length > 200) {
+        if (hiddenImg && hiddenImg.src && hiddenImg.src.startsWith('data:image/png;base64,') && hiddenImg.src.length > 300) {
           div.setAttribute('data-png-src', hiddenImg.src);
           return;
         }
@@ -792,8 +792,16 @@ async function preRasterizeAllTechnicalDrawings(targetElement: HTMLElement): Pro
             }
           }
           const pngUrl = await rasterizeSvgElementToPng(svg, vbW, vbH);
-          if (pngUrl && pngUrl.startsWith('data:image/png;base64,')) {
+          if (pngUrl && pngUrl.startsWith('data:image/png;base64,') && pngUrl.length > 300) {
             div.setAttribute('data-png-src', pngUrl);
+            let imgEl = div.querySelector<HTMLImageElement>('img[data-raster-png]');
+            if (!imgEl) {
+              imgEl = document.createElement('img');
+              imgEl.setAttribute('data-raster-png', 'true');
+              imgEl.style.display = 'none';
+              div.appendChild(imgEl);
+            }
+            imgEl.src = pngUrl;
           }
         }
       } catch (err) {
@@ -813,20 +821,39 @@ async function convertSvgElementsToImages(container: HTMLElement, doc: Document)
   const previewDivs = Array.from(container.querySelectorAll<HTMLElement>('[data-technical-preview="true"], .technical-product-preview'));
   for (const div of previewDivs) {
     let pngSrc = div.getAttribute('data-png-src');
-    if (!pngSrc || !pngSrc.startsWith('data:image/png;base64,')) {
+    if (!pngSrc || !pngSrc.startsWith('data:image/png;base64,') || pngSrc.length < 300) {
       const hiddenImg = div.querySelector<HTMLImageElement>('img[data-raster-png]');
-      if (hiddenImg && hiddenImg.src && hiddenImg.src.startsWith('data:image/png;base64,')) {
+      if (hiddenImg && hiddenImg.src && hiddenImg.src.startsWith('data:image/png;base64,') && hiddenImg.src.length > 300) {
         pngSrc = hiddenImg.src;
       }
     }
 
-    if (pngSrc && pngSrc.startsWith('data:image/png;base64,')) {
+    if (!pngSrc || !pngSrc.startsWith('data:image/png;base64,') || pngSrc.length < 300) {
+      const svg = div.querySelector('svg');
+      if (svg) {
+        const viewBox = svg.getAttribute('viewBox');
+        let vbW = 220;
+        let vbH = 160;
+        if (viewBox) {
+          const parts = viewBox.split(/\s+|,/).map(Number);
+          if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+            vbW = parts[2];
+            vbH = parts[3];
+          }
+        }
+        pngSrc = await rasterizeSvgElementToPng(svg, vbW, vbH);
+      }
+    }
+
+    if (pngSrc && pngSrc.startsWith('data:image/png;base64,') && pngSrc.length > 300) {
       const img = doc.createElement('img');
       img.src = pngSrc;
       img.setAttribute('data-technical-image', 'true');
-      img.style.width = '100%';
-      img.style.height = '100%';
+      img.style.width = '90px';
+      img.style.minWidth = '90px';
       img.style.maxWidth = '90px';
+      img.style.height = '65px';
+      img.style.minHeight = '65px';
       img.style.maxHeight = '65px';
       img.style.display = 'block';
       img.style.objectFit = 'contain';
@@ -867,30 +894,58 @@ async function convertSvgElementsToImages(container: HTMLElement, doc: Document)
           vbH = parts[3];
         }
       }
-      const targetH = Math.round(90 * (vbH / vbW)) || 65;
+      // Ícones de interface (lucide etc.) NÃO são desenhos técnicos: mantêm o tamanho renderizado
+      // e não recebem o estilo de miniatura (90x65 com fundo escuro).
+      const isTechnical = Boolean(svg.closest('[data-technical-preview="true"], .technical-product-preview'));
+      const svgRect = svg.getBoundingClientRect();
+      const renderW = Math.round(svgRect.width) || Number(svg.getAttribute('width')) || 16;
+      const renderH = Math.round(svgRect.height) || Number(svg.getAttribute('height')) || 16;
+
+      // Ícones usam stroke/fill="currentColor"; ao rasterizar isoladamente essa cor se perde (vira preto).
+      // Resolve a cor herdada antes da conversão para manter a cor original do ícone no PDF.
+      if (!isTechnical) {
+        const iconColor = (doc.defaultView || window).getComputedStyle(svg).color || '#f59e0b';
+        [svg, ...Array.from(svg.querySelectorAll('*'))].forEach((node) => {
+          ['stroke', 'fill'].forEach((attr) => {
+            if (node.getAttribute(attr) === 'currentColor') node.setAttribute(attr, iconColor);
+          });
+        });
+      }
 
       const pngUrl = await rasterizeSvgElementToPng(svg, vbW, vbH);
       if (pngUrl && pngUrl.startsWith('data:image/png;base64,')) {
         const img = doc.createElement('img');
         img.src = pngUrl;
-        img.setAttribute('data-technical-image', 'true');
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.maxWidth = '90px';
-        img.style.maxHeight = `${targetH}px`;
-        img.style.display = 'block';
-        img.style.objectFit = 'contain';
-        img.style.borderRadius = '8px';
-        img.style.backgroundColor = '#090f1d';
-        img.className = 'technical-preview-img';
-
         const parent = svg.parentElement;
-        if (parent) {
-          parent.style.backgroundColor = '#090f1d';
-          parent.style.display = 'flex';
-          parent.style.alignItems = 'center';
-          parent.style.justifyContent = 'center';
-          parent.replaceChild(img, svg);
+
+        if (isTechnical) {
+          const targetH = Math.round(90 * (vbH / vbW)) || 65;
+          img.setAttribute('data-technical-image', 'true');
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.maxWidth = '90px';
+          img.style.maxHeight = `${targetH}px`;
+          img.style.display = 'block';
+          img.style.objectFit = 'contain';
+          img.style.borderRadius = '8px';
+          img.style.backgroundColor = '#090f1d';
+          img.className = 'technical-preview-img';
+          if (parent) {
+            parent.style.backgroundColor = '#090f1d';
+            parent.style.display = 'flex';
+            parent.style.alignItems = 'center';
+            parent.style.justifyContent = 'center';
+            parent.replaceChild(img, svg);
+          }
+        } else {
+          img.style.width = `${renderW}px`;
+          img.style.height = `${renderH}px`;
+          img.style.display = 'inline-block';
+          img.style.verticalAlign = 'middle';
+          img.style.objectFit = 'contain';
+          if (parent) {
+            parent.replaceChild(img, svg);
+          }
         }
       }
     } catch (err) {
@@ -981,6 +1036,72 @@ export const downloadPdfElement = async (elementOrId: string | HTMLElement, file
       windowWidth: 800,
     });
 
+    // 3.1 PÓS-PROCESSAMENTO CRÍTICO: Estampar diretamente os desenhos técnicos sobre o Canvas principal
+    // Garante 100% que nenhum desenho fique preto/vazio, independentemente de restrições de sandbox ou navegador.
+    const pageCtx = canvas.getContext('2d');
+    if (pageCtx) {
+      // html2canvas captura iframeDoc.body e devolve o contexto com transform scale(N) ainda ativo.
+      // Sem zerar, cada desenho era estampado em coordenadas multiplicadas (fora do lugar / fora do canvas).
+      pageCtx.setTransform(1, 0, 0, 1, 0, 0);
+      const root = iframeDoc.getElementById('pdf-root') || iframeDoc.body;
+      // Coordenadas relativas ao elemento efetivamente capturado (body), e não ao #pdf-root (que possui padding).
+      const rootRect = iframeDoc.body.getBoundingClientRect();
+      const scaleX = canvas.width / (rootRect.width || 800);
+      // html2canvas aplica a MESMA escala nos dois eixos. Usar canvas.height / altura do body
+      // gerava um fator vertical diferente (o canvas é um pouco mais alto que o body) e deslocava
+      // cada desenho para baixo, acumulando a cada item.
+      const scaleY = scaleX;
+
+      const previewDivs = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          '[data-technical-preview="true"], .technical-product-preview'
+        )
+      );
+
+      const livePreviewDivs = Array.from(
+        targetElement.querySelectorAll<HTMLElement>(
+          '[data-technical-preview="true"], .technical-product-preview'
+        )
+      );
+
+      for (let i = 0; i < previewDivs.length; i++) {
+        const div = previewDivs[i];
+        let pngSrc = div.getAttribute('data-png-src');
+        if (!pngSrc || !pngSrc.startsWith('data:image/png;base64,')) {
+          const liveDiv = livePreviewDivs[i];
+          if (liveDiv) {
+            pngSrc = liveDiv.getAttribute('data-png-src');
+          }
+        }
+        if (!pngSrc || !pngSrc.startsWith('data:image/png;base64,')) {
+          const imgChild = div.querySelector<HTMLImageElement>('img');
+          if (imgChild && imgChild.src && imgChild.src.startsWith('data:image/png;base64,')) {
+            pngSrc = imgChild.src;
+          }
+        }
+
+        if (pngSrc && pngSrc.startsWith('data:image/png;base64,')) {
+          const r = div.getBoundingClientRect();
+          const dx = (r.left - rootRect.left) * scaleX;
+          const dy = (r.top - rootRect.top) * scaleY;
+          const dw = r.width * scaleX;
+          const dh = r.height * scaleY;
+
+          await new Promise<void>((resolve) => {
+            const stampImg = new Image();
+            stampImg.onload = () => {
+              pageCtx.save();
+              pageCtx.drawImage(stampImg, dx, dy, dw, dh);
+              pageCtx.restore();
+              resolve();
+            };
+            stampImg.onerror = () => resolve();
+            stampImg.src = pngSrc;
+          });
+        }
+      }
+    }
+
     // 4. Executar divisão inteligente de páginas A4 (Sem cortar cláusulas ou linhas de texto)
     const pageCanvases = sliceCanvasIntoPages(canvas, iframeDoc);
 
@@ -1058,6 +1179,49 @@ export const downloadPdfElement = async (elementOrId: string | HTMLElement, file
           });
         },
       });
+
+      const fallbackCtx = fallbackCanvas.getContext('2d');
+      if (fallbackCtx) {
+        const targetRect = targetElement.getBoundingClientRect();
+        const fScaleX = fallbackCanvas.width / (targetRect.width || 800);
+        const fScaleY = fallbackCanvas.height / (targetRect.height || 1);
+
+        const liveDivs = Array.from(
+          targetElement.querySelectorAll<HTMLElement>(
+            '[data-technical-preview="true"], .technical-product-preview'
+          )
+        );
+
+        for (const div of liveDivs) {
+          let pngSrc = div.getAttribute('data-png-src');
+          if (!pngSrc || !pngSrc.startsWith('data:image/png;base64,')) {
+            const imgChild = div.querySelector<HTMLImageElement>('img');
+            if (imgChild && imgChild.src && imgChild.src.startsWith('data:image/png;base64,')) {
+              pngSrc = imgChild.src;
+            }
+          }
+
+          if (pngSrc && pngSrc.startsWith('data:image/png;base64,')) {
+            const r = div.getBoundingClientRect();
+            const dx = (r.left - targetRect.left) * fScaleX;
+            const dy = (r.top - targetRect.top) * fScaleY;
+            const dw = r.width * fScaleX;
+            const dh = r.height * fScaleY;
+
+            await new Promise<void>((resolve) => {
+              const stampImg = new Image();
+              stampImg.onload = () => {
+                fallbackCtx.save();
+                fallbackCtx.drawImage(stampImg, dx, dy, dw, dh);
+                fallbackCtx.restore();
+                resolve();
+              };
+              stampImg.onerror = () => resolve();
+              stampImg.src = pngSrc;
+            });
+          }
+        }
+      }
 
       const fallbackPages = sliceCanvasIntoPages(fallbackCanvas, document);
       const pdf = new jsPDF('p', 'mm', 'a4');

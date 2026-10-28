@@ -1,5 +1,7 @@
 import React from 'react';
+import { Canvg } from 'canvg';
 import { QuoteItem, TechnicalCategory } from '../types';
+import { generateCadPng } from '../utils/cadCanvasRenderer';
 
 export interface TechnicalModelDefinition {
   id: string;
@@ -578,61 +580,114 @@ export function parseLeafConfiguration(leafCountStr: string = '', name: string =
 
 /**
  * Converte um elemento <svg> em uma string de imagem PNG em Base64 de alta resolução (2x).
- * 100% livre de falhas de CORS, problemas de encode UTF-8 ou restrições de sandbox.
+ * Utiliza Canvg (Canvas 2D direto via JavaScript) para renderização pura,
+ * garantindo ausência total de "Tainted Canvas", restrições de CORS ou bloqueios de data: URLs.
  */
-export const rasterizeSvgElementToPng = (svg: SVGSVGElement, width = 220, height = 160): Promise<string> => {
+export const rasterizeSvgElementToPng = async (
+  svg: SVGSVGElement,
+  width = 220,
+  height = 160
+): Promise<string> => {
+  const targetW = Math.max(100, Math.round(width * 2));
+  const targetH = Math.max(70, Math.round(height * 2));
+
+  // 1. Método Primário: Canvg (Puro Canvas 2D sem carregar Image(), 100% à prova de Tainted Canvas)
+  try {
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    clone.setAttribute('width', `${targetW}`);
+    clone.setAttribute('height', `${targetH}`);
+    clone.removeAttribute('style');
+
+    const xml = new XMLSerializer().serializeToString(clone);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      const v = Canvg.fromString(ctx, xml, {
+        ignoreMouse: true,
+        ignoreAnimation: true,
+        enableRedraw: false,
+      });
+      await v.render();
+
+      const png = canvas.toDataURL('image/png');
+      if (png && png.startsWith('data:image/png;base64,') && png.length > 300) {
+        return png;
+      }
+    }
+  } catch (canvgErr) {
+    console.warn('Canvg primário falhou ao rasterizar SVG, tentando fallback:', canvgErr);
+  }
+
+  // 2. Método Fallback: Blob URL + Image nativo
   return new Promise<string>((resolve) => {
     try {
       const clone = svg.cloneNode(true) as SVGSVGElement;
       clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
       clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-      clone.setAttribute('width', `${width * 2}`);
-      clone.setAttribute('height', `${height * 2}`);
+      clone.setAttribute('width', `${targetW}`);
+      clone.setAttribute('height', `${targetH}`);
       clone.removeAttribute('style');
 
-      // Garantir tipografia limpa com fallback nativo no SVG exportado
-      const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-      styleEl.textContent = 'text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }';
-      clone.insertBefore(styleEl, clone.firstChild);
-
       const xml = new XMLSerializer().serializeToString(clone);
-      const utf8Bytes = new TextEncoder().encode(xml);
-      let binary = '';
-      for (let i = 0; i < utf8Bytes.length; i++) {
-        binary += String.fromCharCode(utf8Bytes[i]);
-      }
-      const base64 = window.btoa(binary);
-      const dataUri = `data:image/svg+xml;base64,${base64}`;
+      const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
 
       const img = new Image();
-      // CRÍTICO: NÃO definir img.crossOrigin em data: URLs no Chrome/Safari!
-      const timer = setTimeout(() => resolve(''), 1500);
+      const timer = setTimeout(() => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (_) {}
+        resolve('');
+      }, 1500);
+
       img.onload = () => {
         clearTimeout(timer);
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = width * 2;
-          canvas.height = height * 2;
+          canvas.width = targetW;
+          canvas.height = targetH;
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, targetW, targetH);
+            try {
+              URL.revokeObjectURL(url);
+            } catch (_) {}
             const png = canvas.toDataURL('image/png');
             resolve(png);
           } else {
+            try {
+              URL.revokeObjectURL(url);
+            } catch (_) {}
             resolve('');
           }
         } catch (e) {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (_) {}
           resolve('');
         }
       };
+
       img.onerror = () => {
         clearTimeout(timer);
+        try {
+          URL.revokeObjectURL(url);
+        } catch (_) {}
         resolve('');
       };
-      img.src = dataUri;
-    } catch (err) {
+
+      img.src = url;
+    } catch {
       resolve('');
     }
   });
@@ -782,7 +837,36 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [rasterPngUrl, setRasterPngUrl] = React.useState<string | null>(null);
 
+  // Renderização 100% nativa em Canvas 2D sem SVG para garantir imagem PNG de altíssima definição no PDF
+  const cadPng = React.useMemo(() => {
+    return generateCadPng({
+      model,
+      category,
+      name,
+      width,
+      height,
+      glassColor,
+      hardwareColor,
+      compact,
+      showDimensions,
+    });
+  }, [
+    model.id,
+    category,
+    name,
+    width,
+    height,
+    glassColor,
+    hardwareColor,
+    compact,
+    showDimensions,
+  ]);
+
   React.useEffect(() => {
+    if (cadPng && containerRef.current) {
+      containerRef.current.setAttribute('data-png-src', cadPng);
+      return;
+    }
     let active = true;
     const renderToPng = async () => {
       const svg = svgRef.current;
@@ -796,12 +880,14 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         }
       }
     };
-    const timer = setTimeout(renderToPng, 30);
+    renderToPng();
+    const timer = setTimeout(renderToPng, 50);
     return () => {
       active = false;
       clearTimeout(timer);
     };
   }, [
+    cadPng,
     width,
     height,
     name,
@@ -818,20 +904,39 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
   return (
     <div
       ref={containerRef}
-      className={`relative inline-flex flex-col items-center justify-center bg-slate-900 text-slate-100 rounded-xl border border-slate-700/80 p-1 sm:p-1.5 select-none notranslate overflow-hidden max-w-full shadow-sm technical-product-preview ${className}`}
+      className={`relative inline-flex flex-col items-center justify-center bg-slate-900 text-slate-100 rounded-xl border border-slate-700/80 p-0.5 select-none notranslate overflow-hidden max-w-full shadow-sm technical-product-preview ${className}`}
       data-technical-preview="true"
-      data-png-src={rasterPngUrl || ''}
+      data-png-src={cadPng || rasterPngUrl || ''}
       translate="no"
       style={{
         boxSizing: 'border-box',
         width: '100%',
         height: '100%',
         minHeight: compact ? '60px' : 'auto',
+        backgroundColor: '#090f1d',
       }}
     >
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${svgW} ${svgH}`}
+      {cadPng ? (
+        <img
+          src={cadPng}
+          alt={name}
+          data-technical-image="true"
+          className="w-full h-full object-contain technical-preview-img"
+          style={{
+            width: '100%',
+            height: '100%',
+            maxWidth: compact ? '220px' : '280px',
+            maxHeight: compact ? '160px' : '200px',
+            display: 'block',
+            backgroundColor: '#090f1d',
+            borderRadius: '6px',
+            objectFit: 'contain',
+          }}
+        />
+      ) : (
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${svgW} ${svgH}`}
         width={svgW}
         height={svgH}
         style={{ width: '100%', height: 'auto', display: 'block', maxWidth: '100%' }}
@@ -1629,15 +1734,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           {name.length > 30 ? name.substring(0, 30) + '...' : name}
           {!compact && ` • ${model.label}`}
         </text>
-      </svg>
-      {rasterPngUrl && (
-        <img
-          src={rasterPngUrl}
-          alt={name}
-          data-raster-png="true"
-          style={{ display: 'none' }}
-          className="hidden"
-        />
+        </svg>
       )}
     </div>
   );
