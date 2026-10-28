@@ -576,6 +576,68 @@ export function parseLeafConfiguration(leafCountStr: string = '', name: string =
   };
 }
 
+/**
+ * Converte um elemento <svg> em uma string de imagem PNG em Base64 de alta resolução (2x).
+ * 100% livre de falhas de CORS, problemas de encode UTF-8 ou restrições de sandbox.
+ */
+export const rasterizeSvgElementToPng = (svg: SVGSVGElement, width = 220, height = 160): Promise<string> => {
+  return new Promise<string>((resolve) => {
+    try {
+      const clone = svg.cloneNode(true) as SVGSVGElement;
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+      clone.setAttribute('width', `${width * 2}`);
+      clone.setAttribute('height', `${height * 2}`);
+      clone.removeAttribute('style');
+
+      // Garantir tipografia limpa com fallback nativo no SVG exportado
+      const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+      styleEl.textContent = 'text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }';
+      clone.insertBefore(styleEl, clone.firstChild);
+
+      const xml = new XMLSerializer().serializeToString(clone);
+      const utf8Bytes = new TextEncoder().encode(xml);
+      let binary = '';
+      for (let i = 0; i < utf8Bytes.length; i++) {
+        binary += String.fromCharCode(utf8Bytes[i]);
+      }
+      const base64 = window.btoa(binary);
+      const dataUri = `data:image/svg+xml;base64,${base64}`;
+
+      const img = new Image();
+      // CRÍTICO: NÃO definir img.crossOrigin em data: URLs no Chrome/Safari!
+      const timer = setTimeout(() => resolve(''), 1500);
+      img.onload = () => {
+        clearTimeout(timer);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = width * 2;
+          canvas.height = height * 2;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const png = canvas.toDataURL('image/png');
+            resolve(png);
+          } else {
+            resolve('');
+          }
+        } catch (e) {
+          resolve('');
+        }
+      };
+      img.onerror = () => {
+        clearTimeout(timer);
+        resolve('');
+      };
+      img.src = dataUri;
+    } catch (err) {
+      resolve('');
+    }
+  });
+};
+
 interface TechnicalProductPreviewProps {
   item?: Partial<QuoteItem>;
   widthMm?: number;
@@ -715,90 +777,50 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
   const midX = boxX + boxW / 2;
   const midY = boxY + boxH / 2;
 
-  const uniqueId = React.useId().replace(/:/g, '');
+  const uniqueId = 'cad';
   const svgRef = React.useRef<SVGSVGElement | null>(null);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [rasterPngUrl, setRasterPngUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const svgEl = svgRef.current;
-    if (!svgEl) return;
-
-    let isMounted = true;
-
-    const generateRaster = () => {
-      try {
-        const clone = svgEl.cloneNode(true) as SVGSVGElement;
-        clone.removeAttribute('style');
-        clone.style.display = 'block';
-        if (!clone.getAttribute('xmlns')) {
-          clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    let active = true;
+    const renderToPng = async () => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const png = await rasterizeSvgElementToPng(svg, svgW, svgH);
+      if (!active) return;
+      if (png && png.startsWith('data:image/png;base64,')) {
+        setRasterPngUrl(png);
+        if (containerRef.current) {
+          containerRef.current.setAttribute('data-png-src', png);
         }
-        if (!clone.getAttribute('xmlns:xlink')) {
-          clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-        }
-        clone.setAttribute('width', `${svgW}`);
-        clone.setAttribute('height', `${svgH}`);
-
-        const svgXml = new XMLSerializer().serializeToString(clone);
-        const svgBase64 = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgXml)));
-
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-
-        img.onload = () => {
-          if (!isMounted) return;
-          try {
-            const canvas = document.createElement('canvas');
-            const scale = 2; // Qualidade 2x Retina para impressão nítida
-            canvas.width = svgW * scale;
-            canvas.height = svgH * scale;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.fillStyle = '#090f1d';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-              const pngDataUrl = canvas.toDataURL('image/png');
-              if (isMounted) {
-                setRasterPngUrl(pngDataUrl);
-              }
-            }
-          } catch (e) {
-            console.warn('Canvas rasterization notice:', e);
-          }
-        };
-
-        img.src = svgBase64;
-      } catch (err) {
-        console.warn('SVG serialization notice:', err);
       }
     };
-
-    generateRaster();
-
+    const timer = setTimeout(renderToPng, 30);
     return () => {
-      isMounted = false;
+      active = false;
+      clearTimeout(timer);
     };
   }, [
-    svgW,
-    svgH,
-    name,
-    model.id,
-    category,
     width,
     height,
+    name,
+    category,
+    model.id,
     glassColor,
     hardwareColor,
     openingType,
     leafCount,
     finish,
     showDimensions,
-    compact,
   ]);
 
   return (
     <div
+      ref={containerRef}
       className={`relative inline-flex flex-col items-center justify-center bg-slate-900 text-slate-100 rounded-xl border border-slate-700/80 p-1 sm:p-1.5 select-none notranslate overflow-hidden max-w-full shadow-sm technical-product-preview ${className}`}
       data-technical-preview="true"
+      data-png-src={rasterPngUrl || ''}
       translate="no"
       style={{
         boxSizing: 'border-box',
@@ -812,13 +834,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         viewBox={`0 0 ${svgW} ${svgH}`}
         width={svgW}
         height={svgH}
-        style={{
-          width: '100%',
-          height: '100%',
-          display: rasterPngUrl ? 'none' : 'block',
-          maxWidth: '100%',
-          objectFit: 'contain',
-        }}
+        style={{ width: '100%', height: 'auto', display: 'block', maxWidth: '100%' }}
         className="w-full h-auto max-h-48 font-sans"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -835,47 +851,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           <line x1={svgW * 0.75} y1="0" x2={svgW * 0.75} y2={svgH} />
         </g>
 
-        <defs>
-          {/* Marcadores de seta CAD */}
-          <marker
-            id={`cad-arrow-${uniqueId}`}
-            viewBox="0 0 10 10"
-            refX="6"
-            refY="5"
-            markerWidth="4"
-            markerHeight="4"
-            orient="auto"
-          >
-            <path d="M 0 2 L 8 5 L 0 8 z" fill="#fbbf24" />
-          </marker>
-
-          <marker
-            id={`cad-arrow-left-${uniqueId}`}
-            viewBox="0 0 10 10"
-            refX="2"
-            refY="5"
-            markerWidth="4"
-            markerHeight="4"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 5 L 8 2 L 8 8 z" fill="#fbbf24" />
-          </marker>
-
-          {/* Gradiente de reflexo e brilho do vidro */}
-          <linearGradient id={`glassGloss-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.32" />
-            <stop offset="30%" stopColor="#ffffff" stopOpacity="0.06" />
-            <stop offset="65%" stopColor="#38bdf8" stopOpacity="0.08" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.22" />
-          </linearGradient>
-
-          {/* Gradiente de espelho LED */}
-          <radialGradient id={`ledGlow-${uniqueId}`} cx="50%" cy="50%" r="50%">
-            <stop offset="60%" stopColor="#38bdf8" stopOpacity="0.0" />
-            <stop offset="90%" stopColor="#38bdf8" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#e0f2fe" stopOpacity="0.8" />
-          </radialGradient>
-        </defs>
+        
 
         {/* ================= COTAS DIMENSIONAIS SE ATIVADO ================= */}
         {showDimensions && (
@@ -889,8 +865,8 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
               y2={boxY - 12}
               stroke="#f59e0b"
               strokeWidth="1.2"
-              markerStart={`url(#cad-arrow-left-${uniqueId})`}
-              markerEnd={`url(#cad-arrow-${uniqueId})`}
+              
+              
             />
             <rect
               x={midX - 32}
@@ -924,8 +900,8 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
               y2={boxY + boxH}
               stroke="#f59e0b"
               strokeWidth="1.2"
-              markerStart={`url(#cad-arrow-left-${uniqueId})`}
-              markerEnd={`url(#cad-arrow-${uniqueId})`}
+              
+              
             />
             <g transform={`translate(${boxX + boxW + 12}, ${midY}) rotate(90)`}>
               <rect
@@ -968,7 +944,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
             />
             <polygon
               points={`${boxX},${boxY + 12} ${midX},${boxY} ${midX},${boxY + boxH - 10} ${boxX},${boxY + boxH}`}
-              fill={`url(#glassGloss-${uniqueId})`}
+              fill="#ffffff" fillOpacity="0.08"
             />
             {/* Divisão da folha fixa e móvel esquerda */}
             <line
@@ -989,7 +965,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
             />
             <polygon
               points={`${midX},${boxY} ${boxX + boxW},${boxY + 12} ${boxX + boxW},${boxY + boxH} ${midX},${boxY + boxH - 10}`}
-              fill={`url(#glassGloss-${uniqueId})`}
+              fill="#ffffff" fillOpacity="0.08"
             />
             {/* Divisão da folha fixa e móvel direita */}
             <line
@@ -1037,13 +1013,13 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
 
             {/* Folha 1 (Móvel - Esquerda) */}
             <rect x={boxX + 1} y={boxY + 3} width={boxW / 2 - 2} height={boxH - 5} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-            <rect x={boxX + 1} y={boxY + 3} width={boxW / 2 - 2} height={boxH - 5} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+            <rect x={boxX + 1} y={boxY + 3} width={boxW / 2 - 2} height={boxH - 5} fill="#ffffff" fillOpacity="0.08" rx="1" />
             {/* Puxador Tubular Elegance */}
             <rect x={boxX + boxW * 0.36} y={midY - 16} width="3" height="32" rx="1" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.8" />
 
             {/* Folha 2 (Fixa - Direita) */}
             <rect x={midX + 2} y={boxY + 3} width={boxW / 2 - 3} height={boxH - 5} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-            <rect x={midX + 2} y={boxY + 3} width={boxW / 2 - 3} height={boxH - 5} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+            <rect x={midX + 2} y={boxY + 3} width={boxW / 2 - 3} height={boxH - 5} fill="#ffffff" fillOpacity="0.08" rx="1" />
 
             {/* Guia Inferior Inox */}
             <rect x={midX - 3} y={boxY + boxH - 3} width="6" height="4" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.5" />
@@ -1053,7 +1029,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
               d={`M ${boxX + boxW * 0.3} ${boxY + boxH * 0.82} L ${boxX + boxW * 0.1} ${boxY + boxH * 0.82}`}
               stroke="#fbbf24"
               strokeWidth="1.3"
-              markerEnd={`url(#cad-arrow-${uniqueId})`}
+              
             />
 
             <text x={midX} y={boxY + 14} fill="#fbbf24" fontSize="7" fontWeight="bold" textAnchor="middle">
@@ -1070,7 +1046,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
 
             {/* Painel Único de Vidro */}
             <rect x={boxX + 5} y={boxY + 4} width={boxW - 10} height={boxH - 6} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="2" rx="1" />
-            <rect x={boxX + 5} y={boxY + 4} width={boxW - 10} height={boxH - 6} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+            <rect x={boxX + 5} y={boxY + 4} width={boxW - 10} height={boxH - 6} fill="#ffffff" fillOpacity="0.08" rx="1" />
 
             {/* Braço Estabilizador de Inox no Topo (45° ou 90°) */}
             <line x1={boxX} y1={boxY - 4} x2={boxX + boxW * 0.75} y2={boxY + 4} stroke={hwStyle.accent} strokeWidth="2" />
@@ -1094,7 +1070,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
 
             {/* Folha de Vidro de Abrir */}
             <rect x={boxX + 3} y={boxY + 2} width={boxW - 6} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.8" rx="1" />
-            <rect x={boxX + 3} y={boxY + 2} width={boxW - 6} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+            <rect x={boxX + 3} y={boxY + 2} width={boxW - 6} height={boxH - 4} fill="#ffffff" fillOpacity="0.08" rx="1" />
 
             {/* Puxador Tipo Ponto / Concha */}
             <circle cx={boxX + boxW - 10} cy={midY} r="3.5" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="1" />
@@ -1131,7 +1107,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                     return (
                       <React.Fragment key={i}>
                         <rect x={px + 1} y={boxY + 2} width={panelW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-                        <rect x={px + 1} y={boxY + 2} width={panelW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                        <rect x={px + 1} y={boxY + 2} width={panelW - 2} height={boxH - 4} fill="#ffffff" fillOpacity="0.08" rx="1" />
                         {/* Dobradiças Centrais */}
                         {i > 0 && (
                           <>
@@ -1147,7 +1123,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                     d={`M ${boxX + boxW * 0.8} ${boxY + boxH * 0.82} L ${boxX + boxW * 0.2} ${boxY + boxH * 0.82}`}
                     stroke="#fbbf24"
                     strokeWidth="1.3"
-                    markerEnd={`url(#cad-arrow-${uniqueId})`}
+                    
                   />
                 </>
               );
@@ -1164,7 +1140,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           <g>
             {/* Marco da Porta */}
             <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="2" rx="2" />
-            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={`url(#glassGloss-${uniqueId})`} rx="2" />
+            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill="#ffffff" fillOpacity="0.08" rx="2" />
 
             {/* Eixo Pivotante (Deslocado 18%) */}
             <line x1={boxX + boxW * 0.18} y1={boxY} x2={boxX + boxW * 0.18} y2={boxY + boxH} stroke="#64748b" strokeWidth="1" strokeDasharray="3,3" />
@@ -1195,7 +1171,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         {model.id === 'porta_abrir' && (
           <g>
             <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="2" rx="2" />
-            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={`url(#glassGloss-${uniqueId})`} rx="2" />
+            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill="#ffffff" fillOpacity="0.08" rx="2" />
 
             {/* 3 Dobradiças Laterais */}
             <rect x={boxX - 2} y={boxY + boxH * 0.15} width="5" height="12" rx="1" fill={hwStyle.accent} />
@@ -1225,8 +1201,8 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
             <rect x={midX + 1} y={boxY + 2} width={boxW / 2 - 3} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
 
             {/* Setas de Abertura Automática Bilaterais */}
-            <path d={`M ${midX - 6} ${boxY + boxH * 0.5} L ${boxX + 10} ${boxY + boxH * 0.5}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
-            <path d={`M ${midX + 6} ${boxY + boxH * 0.5} L ${boxX + boxW - 10} ${boxY + boxH * 0.5}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
+            <path d={`M ${midX - 6} ${boxY + boxH * 0.5} L ${boxX + 10} ${boxY + boxH * 0.5}`} stroke="#fbbf24" strokeWidth="1.3"  />
+            <path d={`M ${midX + 6} ${boxY + boxH * 0.5} L ${boxX + boxW - 10} ${boxY + boxH * 0.5}`} stroke="#fbbf24" strokeWidth="1.3"  />
 
             <text x={midX} y={boxY + 16} fill="#22c55e" fontSize="7" fontWeight="bold" textAnchor="middle">
               PORTA AUTOMÁTICA (RADAR)
@@ -1239,7 +1215,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           <g>
             <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="2.5" rx="2" />
             <rect x={boxX + 4} y={boxY + 4} width={boxW - 8} height={boxH - 8} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-            <rect x={boxX + 4} y={boxY + 4} width={boxW - 8} height={boxH - 8} fill={`url(#glassGloss-${uniqueId})`} />
+            <rect x={boxX + 4} y={boxY + 4} width={boxW - 8} height={boxH - 8} fill="#ffffff" fillOpacity="0.08" />
 
             {/* Linhas Diagonais Tracejadas Indicativas de Maxim-Ar */}
             <polyline
@@ -1295,7 +1271,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
             {/* Travessa Central */}
             <line x1={boxX + 1} y1={midY} x2={boxX + boxW - 1} y2={midY} stroke={hwStyle.stroke} strokeWidth="3" />
             {/* Seta Vertical para Cima */}
-            <path d={`M ${midX} ${boxY + boxH - 10} L ${midX} ${midY + 10}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
+            <path d={`M ${midX} ${boxY + boxH - 10} L ${midX} ${midY + 10}`} stroke="#fbbf24" strokeWidth="1.3"  />
 
             <text x={midX} y={boxY + 14} fill="#fbbf24" fontSize="7" fontWeight="bold" textAnchor="middle">
               JANELA GUILHOTINA
@@ -1325,7 +1301,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         {model.id === 'espelho_redondo_led' && (
           <g>
             {/* Halo de Brilho do LED */}
-            <circle cx={midX} cy={midY} r={Math.min(boxW, boxH) * 0.48} fill={`url(#ledGlow-${uniqueId})`} />
+            <circle cx={midX} cy={midY} r={Math.min(boxW, boxH) * 0.48} fill="#38bdf8" fillOpacity="0.15" />
             {/* Círculo do Espelho */}
             <circle cx={midX} cy={midY} r={Math.min(boxW, boxH) * 0.44} fill="#f8fafc" stroke="#38bdf8" strokeWidth="2" />
             {/* Brilho Diagonal no Vidro */}
@@ -1354,7 +1330,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         {(model.category === 'guarda_corpo' || model.id.includes('guarda_corpo') || model.id === 'sacada_reiki') && (
           <g>
             <rect x={boxX} y={boxY + 6} width={boxW} height={boxH - 16} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="3" />
-            <rect x={boxX} y={boxY + 6} width={boxW} height={boxH - 16} fill={`url(#glassGloss-${uniqueId})`} rx="3" />
+            <rect x={boxX} y={boxY + 6} width={boxW} height={boxH - 16} fill="#ffffff" fillOpacity="0.08" rx="3" />
 
             {/* Corrimão Tubular / Perfil Superior */}
             <rect x={boxX - 2} y={boxY} width={boxW + 4} height="6" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1.5" />
@@ -1405,7 +1381,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
             <rect x={boxX - 2} y={boxY + boxH - 2} width={boxW + 4} height="6" fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1" rx="1" />
 
             {/* Seta de Caimento de Água */}
-            <path d={`M ${midX} ${boxY + 15} L ${midX} ${boxY + boxH - 12}`} stroke="#38bdf8" strokeWidth="1.2" strokeDasharray="3,3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
+            <path d={`M ${midX} ${boxY + 15} L ${midX} ${boxY + boxH - 12}`} stroke="#38bdf8" strokeWidth="1.2" strokeDasharray="3,3"  />
 
             <text x={midX} y={midY} fill="#38bdf8" fontSize="7" fontWeight="bold" textAnchor="middle">
               COBERTURA / PERGOLADO
@@ -1461,7 +1437,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
             {model.id === 'tampo_mesa_redondo' ? (
               <>
                 <ellipse cx={midX} cy={midY} rx={boxW * 0.45} ry={boxH * 0.35} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="2.5" />
-                <ellipse cx={midX} cy={midY} rx={boxW * 0.45} ry={boxH * 0.35} fill={`url(#glassGloss-${uniqueId})`} />
+                <ellipse cx={midX} cy={midY} rx={boxW * 0.45} ry={boxH * 0.35} fill="#ffffff" fillOpacity="0.08" />
               </>
             ) : model.id === 'prateleira_suportes' ? (
               <>
@@ -1474,7 +1450,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
               // Tampo Retangular com Chanfro Lapidado
               <>
                 <rect x={boxX} y={boxY + 10} width={boxW} height={boxH - 20} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="3" rx="4" />
-                <rect x={boxX} y={boxY + 10} width={boxW} height={boxH - 20} fill={`url(#glassGloss-${uniqueId})`} rx="4" />
+                <rect x={boxX} y={boxY + 10} width={boxW} height={boxH - 20} fill="#ffffff" fillOpacity="0.08" rx="4" />
                 <circle cx={boxX + 8} cy={boxY + 18} r="2" fill="#ffffff" />
                 <circle cx={boxX + boxW - 8} cy={boxY + 18} r="2" fill="#ffffff" />
                 <circle cx={boxX + 8} cy={boxY + boxH - 18} r="2" fill="#ffffff" />
@@ -1492,7 +1468,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
         {model.id === 'painel_fixo' && (
           <g>
             <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.8" rx="1" />
-            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill={`url(#glassGloss-${uniqueId})`} />
+            <rect x={boxX} y={boxY} width={boxW} height={boxH} fill="#ffffff" fillOpacity="0.08" />
             <rect x={boxX} y={boxY} width={boxW} height="4" fill={hwStyle.fill} />
             <rect x={boxX} y={boxY + boxH - 4} width={boxW} height="4" fill={hwStyle.fill} />
             <text x={midX} y={midY} fill="#94a3b8" fontSize="7.5" fontWeight="bold" textAnchor="middle">
@@ -1526,8 +1502,8 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                     );
                   })}
                   <rect x={midX - 2.5} y={midY - 12} width="5" height="24" rx="1.5" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.8" />
-                  <path d={`M ${midX - 5} ${boxY + boxH * 0.82} L ${boxX + leafW * 2 + 3} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
-                  <path d={`M ${midX + 5} ${boxY + boxH * 0.82} L ${boxX + leafW * 4 - 3} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
+                  <path d={`M ${midX - 5} ${boxY + boxH * 0.82} L ${boxX + leafW * 2 + 3} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3"  />
+                  <path d={`M ${midX + 5} ${boxY + boxH * 0.82} L ${boxX + leafW * 4 - 3} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3"  />
                 </>
               );
             })()}
@@ -1549,7 +1525,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                     return (
                       <React.Fragment key={i}>
                         <rect x={lx + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth={isM ? '1.5' : '1.2'} rx="1" />
-                        <rect x={lx + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                        <rect x={lx + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill="#ffffff" fillOpacity="0.08" rx="1" />
                         {i > 0 && <line x1={lx} y1={boxY} x2={lx} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth={i === 2 ? '2.8' : '2'} />}
                         <g>
                           <rect x={lx + leafW / 2 - 9} y={boxY + 5} width="18" height="10" rx="2" fill={isM ? '#0284c7' : '#334155'} fillOpacity="0.9" />
@@ -1559,8 +1535,8 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                     );
                   })}
                   <rect x={midX - 2.5} y={midY - 14} width="5" height="28" rx="1.5" fill={hwStyle.accent} stroke="#0f172a" strokeWidth="0.8" />
-                  <path d={`M ${midX - 6} ${boxY + boxH * 0.82} L ${boxX + leafW + 4} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
-                  <path d={`M ${midX + 6} ${boxY + boxH * 0.82} L ${boxX + leafW * 3 - 4} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
+                  <path d={`M ${midX - 6} ${boxY + boxH * 0.82} L ${boxX + leafW + 4} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3"  />
+                  <path d={`M ${midX + 6} ${boxY + boxH * 0.82} L ${boxX + leafW * 3 - 4} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3"  />
                 </>
               );
             })()}
@@ -1582,12 +1558,12 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
                     return (
                       <React.Fragment key={i}>
                         <rect x={lx + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.4" rx="1" />
-                        <rect x={lx + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+                        <rect x={lx + 1} y={boxY + 2} width={leafW - 2} height={boxH - 4} fill="#ffffff" fillOpacity="0.08" rx="1" />
                         {i > 0 && <line x1={lx} y1={boxY} x2={lx} y2={boxY + boxH} stroke={hwStyle.stroke} strokeWidth="2.2" />}
                       </React.Fragment>
                     );
                   })}
-                  <path d={`M ${boxX + leafW * 1.65} ${boxY + boxH * 0.82} L ${boxX + leafW * 0.35} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
+                  <path d={`M ${boxX + leafW * 1.65} ${boxY + boxH * 0.82} L ${boxX + leafW * 0.35} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3"  />
                 </>
               );
             })()}
@@ -1604,11 +1580,11 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
 
             {/* Folha 1 (Móvel - Esquerda) */}
             <rect x={boxX + 1} y={boxY + 2} width={boxW / 2 - 2} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-            <rect x={boxX + 1} y={boxY + 2} width={boxW / 2 - 2} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+            <rect x={boxX + 1} y={boxY + 2} width={boxW / 2 - 2} height={boxH - 4} fill="#ffffff" fillOpacity="0.08" rx="1" />
 
             {/* Folha 2 (Fixa - Direita) */}
             <rect x={midX + 2} y={boxY + 2} width={boxW / 2 - 3} height={boxH - 4} fill={glassStyle.fill} stroke={glassStyle.stroke} strokeWidth="1.5" rx="1" />
-            <rect x={midX + 2} y={boxY + 2} width={boxW / 2 - 3} height={boxH - 4} fill={`url(#glassGloss-${uniqueId})`} rx="1" />
+            <rect x={midX + 2} y={boxY + 2} width={boxW / 2 - 3} height={boxH - 4} fill="#ffffff" fillOpacity="0.08" rx="1" />
 
             {/* Montante / Perfil Central de Divisão */}
             <rect x={midX - 2.5} y={boxY} width="5" height={boxH} fill={hwStyle.fill} stroke={hwStyle.stroke} strokeWidth="1.2" rx="0.5" />
@@ -1626,7 +1602,7 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
             )}
 
             {/* Seta de Deslizamento */}
-            <path d={`M ${boxX + boxW * 0.32} ${boxY + boxH * 0.82} L ${boxX + boxW * 0.12} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3" markerEnd={`url(#cad-arrow-${uniqueId})`} />
+            <path d={`M ${boxX + boxW * 0.32} ${boxY + boxH * 0.82} L ${boxX + boxW * 0.12} ${boxY + boxH * 0.82}`} stroke="#fbbf24" strokeWidth="1.3"  />
 
             {/* Badges de Identificação */}
             <g>
@@ -1654,26 +1630,13 @@ export const TechnicalProductPreview: React.FC<TechnicalProductPreviewProps> = (
           {!compact && ` • ${model.label}`}
         </text>
       </svg>
-
-      {/* Imagem PNG rasterizada: 100% suportada pelo html2canvas no PDF sem qualquer perda ou corte */}
       {rasterPngUrl && (
         <img
           src={rasterPngUrl}
           alt={name}
-          width={svgW}
-          height={svgH}
-          data-technical-image="true"
-          className="technical-preview-img w-full h-full object-contain"
-          style={{
-            width: '100%',
-            height: '100%',
-            maxWidth: '100%',
-            maxHeight: compact ? '65px' : '192px',
-            objectFit: 'contain',
-            display: 'block',
-            borderRadius: '6px',
-            backgroundColor: '#090f1d',
-          }}
+          data-raster-png="true"
+          style={{ display: 'none' }}
+          className="hidden"
         />
       )}
     </div>

@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { rasterizeSvgElementToPng } from '../components/TechnicalProductPreview';
 import {
   parseOklabStringToRgb,
   parseOklchStringToRgb,
@@ -180,6 +181,24 @@ const ISOLATED_IFRAME_CSS = `
     display: block !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
+  }
+  .technical-product-preview,
+  [data-technical-preview="true"] {
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+    height: 65px !important;
+    min-height: 65px !important;
+    max-height: 65px !important;
+    background-color: #090f1d !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
   .technical-preview-wrapper img,
   [data-technical-wrapper] img,
@@ -738,36 +757,106 @@ function sanitizeElementStyles(el: HTMLElement) {
 }
 
 /**
- * Converte elementos <svg> (como o desenho técnico de produtos e esquadrias) em imagens <img> PNG base64
- * antes da renderização do html2canvas. Isso elimina 100% dos problemas com caixas pretas ou SVGs vazios.
+ * Pré-rasteriza todos os desenhos técnicos diretamente no DOM da página ativa antes da clonagem para o PDF.
+ * Garante que cada item tenha sua imagem PNG Base64 pronta, idêntica ao que o usuário vê na tela.
+ */
+async function preRasterizeAllTechnicalDrawings(targetElement: HTMLElement): Promise<void> {
+  const previewDivs = Array.from(
+    targetElement.querySelectorAll<HTMLElement>('[data-technical-preview="true"], .technical-product-preview')
+  );
+
+  await Promise.all(
+    previewDivs.map(async (div) => {
+      try {
+        const existingSrc = div.getAttribute('data-png-src');
+        if (existingSrc && existingSrc.startsWith('data:image/png;base64,') && existingSrc.length > 200) {
+          return;
+        }
+
+        const hiddenImg = div.querySelector<HTMLImageElement>('img[data-raster-png]');
+        if (hiddenImg && hiddenImg.src && hiddenImg.src.startsWith('data:image/png;base64,') && hiddenImg.src.length > 200) {
+          div.setAttribute('data-png-src', hiddenImg.src);
+          return;
+        }
+
+        const svg = div.querySelector('svg');
+        if (svg) {
+          const viewBox = svg.getAttribute('viewBox');
+          let vbW = 220;
+          let vbH = 160;
+          if (viewBox) {
+            const parts = viewBox.split(/\s+|,/).map(Number);
+            if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+              vbW = parts[2];
+              vbH = parts[3];
+            }
+          }
+          const pngUrl = await rasterizeSvgElementToPng(svg, vbW, vbH);
+          if (pngUrl && pngUrl.startsWith('data:image/png;base64,')) {
+            div.setAttribute('data-png-src', pngUrl);
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao pré-rasterizar desenho técnico:', err);
+      }
+    })
+  );
+}
+
+/**
+ * Converte elementos técnicos em imagens PNG reais perfeitamente dimensionadas
+ * para que o html2canvas renderize com 100% de nitidez, fidelidade de cores e sem colapso.
+ * NUNCA utiliza data:image/svg+xml porque o html2canvas não suporta esse formato em vários navegadores.
  */
 async function convertSvgElementsToImages(container: HTMLElement, doc: Document): Promise<void> {
+  // 1. Previews técnicos que já possuem data-png-src pré-renderizado pelo TechnicalProductPreview
+  const previewDivs = Array.from(container.querySelectorAll<HTMLElement>('[data-technical-preview="true"], .technical-product-preview'));
+  for (const div of previewDivs) {
+    let pngSrc = div.getAttribute('data-png-src');
+    if (!pngSrc || !pngSrc.startsWith('data:image/png;base64,')) {
+      const hiddenImg = div.querySelector<HTMLImageElement>('img[data-raster-png]');
+      if (hiddenImg && hiddenImg.src && hiddenImg.src.startsWith('data:image/png;base64,')) {
+        pngSrc = hiddenImg.src;
+      }
+    }
+
+    if (pngSrc && pngSrc.startsWith('data:image/png;base64,')) {
+      const img = doc.createElement('img');
+      img.src = pngSrc;
+      img.setAttribute('data-technical-image', 'true');
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.maxWidth = '90px';
+      img.style.maxHeight = '65px';
+      img.style.display = 'block';
+      img.style.objectFit = 'contain';
+      img.style.borderRadius = '8px';
+      img.style.backgroundColor = '#090f1d';
+      img.className = 'technical-preview-img';
+
+      div.innerHTML = '';
+      div.style.backgroundColor = '#090f1d';
+      div.style.width = '90px';
+      div.style.minWidth = '90px';
+      div.style.maxWidth = '90px';
+      div.style.height = '65px';
+      div.style.minHeight = '65px';
+      div.style.maxHeight = '65px';
+      div.style.display = 'flex';
+      div.style.alignItems = 'center';
+      div.style.justifyContent = 'center';
+      div.style.padding = '0';
+      div.style.margin = '0';
+      div.style.overflow = 'hidden';
+      div.style.borderRadius = '8px';
+      div.appendChild(img);
+    }
+  }
+
+  // 2. Para qualquer <svg> remanescente no container, rasterizar para PNG real em alta definição
   const svgs = Array.from(container.querySelectorAll('svg'));
   for (const svg of svgs) {
     try {
-      // 1. Se o container já possuir a imagem rasterizada (PNG) de TechnicalProductPreview, remove o SVG
-      const parent = svg.parentElement;
-      const existingImg = parent?.querySelector('img[data-technical-image]') as HTMLImageElement | null;
-      if (existingImg && existingImg.getAttribute('src')?.startsWith('data:image/')) {
-        existingImg.style.display = 'block';
-        existingImg.style.width = '90px';
-        existingImg.style.height = '65px';
-        existingImg.style.minHeight = '65px';
-        existingImg.style.maxHeight = '65px';
-        existingImg.style.objectFit = 'contain';
-        existingImg.style.backgroundColor = '#090f1d';
-        existingImg.style.borderRadius = '6px';
-        svg.remove();
-        continue;
-      }
-
-      if (!svg.getAttribute('xmlns')) {
-        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-      }
-      if (!svg.getAttribute('xmlns:xlink')) {
-        svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-      }
-
       const viewBox = svg.getAttribute('viewBox');
       let vbW = 220;
       let vbH = 160;
@@ -778,66 +867,34 @@ async function convertSvgElementsToImages(container: HTMLElement, doc: Document)
           vbH = parts[3];
         }
       }
+      const targetH = Math.round(90 * (vbH / vbW)) || 65;
 
-      svg.setAttribute('width', `${vbW}`);
-      svg.setAttribute('height', `${vbH}`);
+      const pngUrl = await rasterizeSvgElementToPng(svg, vbW, vbH);
+      if (pngUrl && pngUrl.startsWith('data:image/png;base64,')) {
+        const img = doc.createElement('img');
+        img.src = pngUrl;
+        img.setAttribute('data-technical-image', 'true');
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.maxWidth = '90px';
+        img.style.maxHeight = `${targetH}px`;
+        img.style.display = 'block';
+        img.style.objectFit = 'contain';
+        img.style.borderRadius = '8px';
+        img.style.backgroundColor = '#090f1d';
+        img.className = 'technical-preview-img';
 
-      const svgString = new XMLSerializer().serializeToString(svg);
-      const svgBase64 = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgString)));
-
-      // Renderiza para um canvas real para obter data:image/png (100% compatível com html2canvas)
-      const pngDataUrl = await new Promise<string | null>((resolve) => {
-        const tempImg = new Image();
-        tempImg.crossOrigin = 'anonymous';
-        const timer = setTimeout(() => resolve(null), 300);
-        tempImg.onload = () => {
-          clearTimeout(timer);
-          try {
-            const canvas = document.createElement('canvas');
-            const scale = 2;
-            canvas.width = (vbW || 220) * scale;
-            canvas.height = (vbH || 160) * scale;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.fillStyle = '#090f1d';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              ctx.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
-              resolve(canvas.toDataURL('image/png'));
-              return;
-            }
-          } catch {
-            // ignore
-          }
-          resolve(null);
-        };
-        tempImg.onerror = () => {
-          clearTimeout(timer);
-          resolve(null);
-        };
-        tempImg.src = svgBase64;
-      });
-
-      const finalSrc = pngDataUrl || svgBase64;
-      const img = doc.createElement('img');
-      img.src = finalSrc;
-      img.width = 90;
-      img.height = 65;
-      img.setAttribute('data-technical-image', 'true');
-      img.style.width = '90px';
-      img.style.height = '65px';
-      img.style.minHeight = '65px';
-      img.style.maxHeight = '65px';
-      img.style.display = 'block';
-      img.style.objectFit = 'contain';
-      img.style.backgroundColor = '#090f1d';
-      img.style.borderRadius = '6px';
-      img.className = 'technical-preview-img';
-
-      if (svg.parentNode) {
-        svg.parentNode.replaceChild(img, svg);
+        const parent = svg.parentElement;
+        if (parent) {
+          parent.style.backgroundColor = '#090f1d';
+          parent.style.display = 'flex';
+          parent.style.alignItems = 'center';
+          parent.style.justifyContent = 'center';
+          parent.replaceChild(img, svg);
+        }
       }
     } catch (err) {
-      console.warn('Erro ao rasterizar SVG para o PDF:', err);
+      console.warn('Erro ao converter SVG residual para o PDF:', err);
     }
   }
 }
@@ -853,9 +910,12 @@ export const downloadPdfElement = async (elementOrId: string | HTMLElement, file
     return false;
   }
 
+  // 1. Pré-rasterizar todos os desenhos técnicos diretamente no elemento ativo
+  await preRasterizeAllTechnicalDrawings(targetElement);
+
   // 1. Criar um iframe isolado do Tailwind v4 principal
   const iframe = document.createElement('iframe');
-  iframe.setAttribute('style', 'position: fixed; left: -9999px; top: 0; width: 800px; height: 1120px; border: none; opacity: 0; pointer-events: none; z-index: -99999;');
+  iframe.setAttribute('style', 'position: fixed; left: 0; top: 0; width: 800px; height: 1120px; border: none; opacity: 1; visibility: visible; pointer-events: none; z-index: -99999;');
   document.body.appendChild(iframe);
 
   try {
@@ -891,12 +951,18 @@ export const downloadPdfElement = async (elementOrId: string | HTMLElement, file
       sanitizeElementStyles(rootEl);
     }
 
-    // Pausa para montagem e estabilização do layout + garantia de carregamento de imagens
+    // Pausa para montagem e estabilização do layout + garantia de decodificação completa das imagens PNG
     const images = Array.from(iframeDoc.querySelectorAll('img'));
     await Promise.all([
       new Promise((resolve) => setTimeout(resolve, 250)),
-      ...images.map((img) => {
-        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+      ...images.map(async (img) => {
+        if (img.decode) {
+          try {
+            await img.decode();
+            return;
+          } catch (_) {}
+        }
+        if (img.complete && img.naturalHeight !== 0) return;
         return new Promise((resolve) => {
           img.onload = () => resolve(null);
           img.onerror = () => resolve(null);
