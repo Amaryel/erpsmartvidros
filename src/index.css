@@ -178,3 +178,103 @@ body {
     break-inside: avoid !important;
   }
 }
+
+/* ============================================================================
+   ACABAMENTO VISUAL (ERP sóbrio) — aplicado ao conteúdo do sistema
+   Mantém a identidade (preto + âmbar) e reduz excessos: pesos de fonte muito
+   fortes, números em fonte de código, animações chamativas e sombras coloridas.
+   Não afeta os PDFs (gerados fora da área "main") nem a impressão.
+   ========================================================================== */
+
+html {
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Rolagem discreta em áreas claras */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+aside ::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(113, 113, 122, 0.5);
+}
+
+/* Números e códigos com a fonte do sistema, alinhados em colunas */
+main .font-mono,
+header .font-mono,
+aside .font-mono {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* Pesos de fonte mais equilibrados */
+main .font-black,
+aside .font-black,
+header .font-black {
+  font-weight: 700;
+}
+
+/* Sem pulsar, saltar ou crescer ao passar o mouse */
+main .animate-pulse,
+aside .animate-pulse,
+header .animate-pulse,
+.animate-bounce {
+  animation: none;
+}
+main [class*="hover:scale-"]:hover,
+main [class*="group-hover:scale-"] {
+  transform: none;
+}
+
+/* Sombras neutras (sem brilho colorido) */
+main [class*="shadow-amber-"],
+main [class*="shadow-emerald-"],
+main [class*="shadow-indigo-"],
+main [class*="shadow-rose-"],
+main [class*="shadow-blue-"] {
+  --tw-shadow-color: rgb(15 23 42 / 0.08);
+}
+
+/* Foco visível para navegação por teclado */
+main button:focus-visible,
+aside button:focus-visible,
+header button:focus-visible,
+main a:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+/* Alvos de toque confortáveis em telas sensíveis ao toque */
+@media (pointer: coarse) {
+  main select,
+  main input:not([type="checkbox"]):not([type="radio"]) {
+    min-height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Faixas roláveis (filtros, abas, tabelas) sem barra aparente em telas de toque */
+@media (pointer: coarse) {
+  main .overflow-x-auto {
+    scrollbar-width: none;
+  }
+  main .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+}

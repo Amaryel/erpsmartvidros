@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
+  ArrowLeft,
   LayoutDashboard,
   FileText,
   ShoppingBag,
@@ -48,6 +49,8 @@ interface NavbarProps {
   onNewReceiptClick?: () => void;
   onOpenPdvClick: () => void;
   onToggleSidebarMobile: () => void;
+  /** Celular/tablet: mostra a seta de voltar no lugar do botão de menu. */
+  onBack?: () => void;
   onOpenAuthModal: () => void;
   onOpenProfileModal?: () => void;
   onOpenSupabaseSyncModal?: () => void;
@@ -94,6 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNewQuoteClick,
   onOpenPdvClick,
   onToggleSidebarMobile,
+  onBack,
   onOpenAuthModal,
   onOpenProfileModal,
   onOpenSupabaseSyncModal,
@@ -129,203 +133,190 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  return (
-    <header className="bg-zinc-950 text-white border-b border-amber-500/20 sticky top-0 z-30 shadow-xl print:hidden w-full select-none pt-safe">
-      <div className="w-full px-2.5 sm:px-4 lg:px-6">
-        <div className="flex items-center justify-between h-14 sm:h-16 lg:h-18 gap-2">
-          
-          {/* LADO ESQUERDO: Botão Mobile + Identificador do Módulo / Página Atual */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
-            {/* Botão Menu Lateral Mobile/Tablet */}
-            <button
-              onClick={onToggleSidebarMobile}
-              className="p-2 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors lg:hidden active:scale-95 shrink-0 border border-zinc-800"
-              title="Abrir Menu Lateral"
-              aria-label="Abrir Menu Lateral"
-            >
-              <Menu className="w-5 h-5 text-amber-400" />
-            </button>
+  const roleLabel =
+    currentUser?.role === 'superadmin'
+      ? 'Super admin'
+      : currentUser?.role === 'admin'
+      ? 'Administrador'
+      : currentUser?.role === 'vendedor'
+      ? 'Vendedor'
+      : 'Colaborador';
 
-            {/* Logo no Mobile */}
-            <div className="lg:hidden shrink-0 flex items-center">
+  const iconButton =
+    'inline-flex items-center justify-center h-9 w-9 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors focus-visible:outline-2 focus-visible:outline-amber-500';
+
+  return (
+    <header className="bg-zinc-950 text-white border-b border-zinc-800 sticky top-0 z-30 print:hidden w-full select-none pt-safe">
+      <div className="w-full px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-14 lg:h-16 gap-2">
+          {/* Esquerda: menu (mobile/tablet) + título da página */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {onBack ? (
+              <button
+                type="button"
+                onClick={onBack}
+                className={`${iconButton} lg:hidden -ml-1`}
+                title="Voltar"
+                aria-label="Voltar"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onToggleSidebarMobile}
+                className={`${iconButton} lg:hidden -ml-1`}
+                title="Abrir menu"
+                aria-label="Abrir menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            )}
+
+            <div className="lg:hidden shrink-0 flex items-center h-10">
               <SmartVidrosLogo
                 companyInfo={companyInfo}
-                size="sm"
+                size="md"
                 variant="dark"
                 showSubtitle={false}
                 onClick={() => setActiveTab('dashboard')}
               />
             </div>
 
-            {/* Breadcrumb / Título do Módulo Ativo no Desktop & Tablet */}
-            <div className="hidden sm:flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                <TabIcon className="w-4 h-4" />
-              </div>
+            <div className="hidden lg:flex items-center gap-2.5 min-w-0">
+              <TabIcon className="w-4 h-4 text-zinc-500 shrink-0" aria-hidden="true" />
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
-                    Smart Vidros
-                  </span>
-                  <span className="text-zinc-600 text-xs">/</span>
-                  <h1 className="text-xs sm:text-sm font-extrabold text-white truncate">
-                    {currentTabMeta.title}
-                  </h1>
-                </div>
-                <p className="text-[10px] text-zinc-400 truncate hidden md:block">
-                  {currentTabMeta.subtitle}
-                </p>
+                <h1 className="text-sm font-semibold text-white truncate">{currentTabMeta.title}</h1>
+                <p className="text-xs text-zinc-400 truncate">{currentTabMeta.subtitle}</p>
               </div>
             </div>
           </div>
 
-          {/* LADO DIREITO: Ações Rápidas, IA, Dúvidas, PDV e Perfil */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            
-            {/* 📱 BOTÃO INSTALAR APLICATIVO (PWA) - Visível a partir de md */}
+          {/* Direita: ações */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {onOpenPwaInstall && (
               <button
+                type="button"
                 onClick={onOpenPwaInstall}
-                className="hidden md:flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95 group"
-                title="Instalar Aplicativo (PWA) no Celular/Tablet"
+                className={`${iconButton} hidden md:inline-flex`}
+                title="Instalar o aplicativo neste aparelho"
+                aria-label="Instalar o aplicativo"
               >
-                <Download className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                <span className="hidden lg:inline">Instalar App</span>
-                <span className="lg:hidden">App</span>
+                <Download className="w-4 h-4" />
               </button>
             )}
 
-            {/* ❓ MENU DE DÚVIDAS & TOUR - Visível a partir de md */}
             <div className="relative hidden md:block" ref={helpDropdownRef}>
               <button
+                type="button"
                 onClick={() => setIsHelpDropdownOpen(!isHelpDropdownOpen)}
-                className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all active:scale-95"
-                title="Dúvidas do Sistema & Tour"
+                className={iconButton}
+                title="Ajuda"
+                aria-label="Ajuda"
+                aria-expanded={isHelpDropdownOpen}
               >
-                <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="hidden lg:inline">Dúvidas</span>
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isHelpDropdownOpen ? 'rotate-180' : ''}`} />
+                <HelpCircle className="w-4 h-4" />
               </button>
 
               {isHelpDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2">
-                  <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-800 mb-1">
-                    Ajuda & Suporte
-                  </div>
-
+                <div className="absolute right-0 top-full mt-2 w-60 bg-white text-slate-900 border border-slate-200 rounded-xl p-1.5 shadow-lg z-50">
                   {onOpenTour && (
                     <button
+                      type="button"
                       onClick={() => {
                         setIsHelpDropdownOpen(false);
                         onOpenTour();
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-200 hover:bg-zinc-800 transition-colors text-left"
+                      className="w-full flex items-start gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-slate-50 transition-colors"
                     >
-                      <Play className="w-4 h-4 text-indigo-400" />
-                      <div>
-                        <p className="font-extrabold">Tour pelo Sistema</p>
-                        <p className="text-[10px] text-zinc-400">Aprenda o passo a passo</p>
-                      </div>
+                      <Play className="w-4 h-4 mt-0.5 text-slate-500" />
+                      <span>
+                        <span className="block text-sm font-medium">Tour pelo sistema</span>
+                        <span className="block text-xs text-slate-500">Passo a passo dos módulos</span>
+                      </span>
                     </button>
                   )}
-
                   {onOpenHelp && (
                     <button
+                      type="button"
                       onClick={() => {
                         setIsHelpDropdownOpen(false);
                         onOpenHelp();
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-200 hover:bg-zinc-800 transition-colors text-left"
+                      className="w-full flex items-start gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-slate-50 transition-colors"
                     >
-                      <HelpCircle className="w-4 h-4 text-emerald-400" />
-                      <div>
-                        <p className="font-extrabold">Perguntas Frequentes (FAQ)</p>
-                        <p className="text-[10px] text-zinc-400">Guia de cálculos e funções</p>
-                      </div>
+                      <HelpCircle className="w-4 h-4 mt-0.5 text-slate-500" />
+                      <span>
+                        <span className="block text-sm font-medium">Central de ajuda</span>
+                        <span className="block text-xs text-slate-500">Perguntas frequentes e suporte</span>
+                      </span>
                     </button>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Botão Novo Orçamento - Visível em telas lg+ */}
-            {hasAccess('quotes') && (
-              <button
-                onClick={onNewQuoteClick}
-                className="hidden lg:flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-amber-500/30 hover:border-amber-400 font-extrabold px-3 py-2 rounded-xl transition-all text-xs whitespace-nowrap active:scale-95"
-                title="Criar Novo Orçamento"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>+ Orçamento</span>
-              </button>
-            )}
-
-            {/* Botão Supabase (Exclusivo SuperAdmin) */}
             {isSuper && onOpenSupabaseSyncModal && (
               <button
+                type="button"
                 onClick={onOpenSupabaseSyncModal}
-                className="hidden sm:flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all whitespace-nowrap active:scale-95"
-                title="Sincronizar Banco Supabase"
+                className={`${iconButton} hidden sm:inline-flex`}
+                title="Banco de dados e sincronização"
+                aria-label="Banco de dados e sincronização"
               >
-                <Database className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden xl:inline">Supabase</span>
+                <Database className="w-4 h-4" />
               </button>
             )}
 
-            {/* Botão PDV */}
             {hasAccess('sales') && (
               <button
+                type="button"
                 onClick={onOpenPdvClick}
-                className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl shadow-lg active:scale-95 transition-all text-xs whitespace-nowrap"
-                title="Abrir Ponto de Venda"
+                className="hidden lg:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-semibold transition-colors whitespace-nowrap"
+                title="Abrir ponto de venda"
               >
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>+ PDV</span>
+                <ShoppingBag className="w-4 h-4" />
+                <span>PDV</span>
               </button>
             )}
 
-            {/* Perfil & Logout */}
             {currentUser ? (
-              <div className="flex items-center gap-1 sm:gap-1.5 pl-1 sm:pl-2 border-l border-zinc-800 shrink-0">
+              <div className="flex items-center gap-1 pl-1.5 sm:pl-2 ml-0.5 border-l border-zinc-800 shrink-0">
                 <button
+                  type="button"
                   onClick={onOpenProfileModal || onOpenAuthModal}
-                  className="flex items-center gap-1.5 sm:gap-2 text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 p-1 sm:px-2.5 sm:py-1.5 rounded-xl transition-all group max-w-[120px] sm:max-w-[180px] shrink-0"
-                  title="Configurar Meu Perfil"
+                  className="flex items-center gap-2 text-left rounded-lg p-1 sm:pr-2.5 hover:bg-zinc-800 transition-colors max-w-[180px]"
+                  title="Meu perfil"
+                  aria-label="Meu perfil"
                 >
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-xs group-hover:bg-amber-500 group-hover:text-zinc-950 transition-colors shrink-0">
-                    {currentUser.username ? currentUser.username[0].toUpperCase() : currentUser.name[0]}
-                  </div>
-                  <div className="hidden sm:block min-w-0">
-                    <p className="text-[11px] font-bold text-white leading-tight truncate flex items-center gap-1">
-                      <span>{currentUser.name.split(' ')[0]}</span>
-                      {isSuper ? (
-                        <span className="text-[9px] text-amber-400">👑</span>
-                      ) : currentUser.role === 'admin' ? (
-                        <span className="text-[9px] text-indigo-400">👔</span>
-                      ) : (
-                        <span className="text-[9px] text-emerald-400">💼</span>
-                      )}
-                    </p>
-                    <div className="flex items-center gap-1 text-[9px] text-amber-400/90 font-mono truncate">
-                      <span>@{currentUser.username || 'user'}</span>
-                    </div>
-                  </div>
+                  <span className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-100 flex items-center justify-center text-xs font-semibold shrink-0">
+                    {(currentUser.name || currentUser.username || '?').trim()[0]?.toUpperCase()}
+                  </span>
+                  <span className="hidden sm:block min-w-0">
+                    <span className="block text-xs font-medium text-white leading-tight truncate">
+                      {currentUser.name.split(' ')[0]}
+                    </span>
+                    <span className="block text-[11px] text-zinc-400 leading-tight truncate">{roleLabel}</span>
+                  </span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={onLogout}
-                  className="p-1.5 sm:p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-900 rounded-xl transition-colors flex items-center justify-center active:scale-95 shrink-0"
-                  title="Sair do Sistema"
+                  className={`${iconButton} hover:text-red-300`}
+                  title="Sair"
+                  aria-label="Sair do sistema"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <button
+                type="button"
                 onClick={onOpenAuthModal}
-                className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white border border-amber-500/30 font-bold px-3 py-2 rounded-xl text-xs transition-all whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-zinc-700 text-sm font-medium text-white hover:bg-zinc-800 transition-colors"
               >
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <Lock className="w-4 h-4" />
                 <span>Entrar</span>
               </button>
             )}

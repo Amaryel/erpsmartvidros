@@ -178,7 +178,8 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
 
     const saved = saveContract({
       ...contractData,
-      totalAmountInWords: contractData.totalAmountInWords || valorPorExtenso(contractData.totalAmount || 0),
+      // Sempre derivado do valor numérico (o texto salvo nunca fica divergente do valor)
+      totalAmountInWords: valorPorExtenso(contractData.totalAmount || 0),
     });
 
     onSaveSuccess(saved, shouldOpenView);
@@ -207,7 +208,7 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
   };
 
   const handleShareWhatsApp = () => {
-    const text = `*SMART VIDROS — CONTRATO DE PRESTAÇÃO DE SERVIÇOS*\n\n*${contractData.code}*\n*Cliente:* ${contractData.clientName}\n*Valor Total:* R$ ${(contractData.totalAmount || 0).toFixed(2)} (${contractData.totalAmountInWords})\n\n*Objeto:* ${contractData.objectClauseText.slice(0, 150)}...\n\n_Documento emitido por Smart Vidros em ${contractData.cityDate}._`;
+    const text = `*SMART VIDROS — CONTRATO DE PRESTAÇÃO DE SERVIÇOS*\n\n*${contractData.code}*\n*Cliente:* ${contractData.clientName}\n*Valor Total:* R$ ${(contractData.totalAmount || 0).toFixed(2)} (${valorPorExtenso(contractData.totalAmount || 0)})\n\n*Objeto:* ${contractData.objectClauseText.slice(0, 150)}...\n\n_Documento emitido por Smart Vidros em ${contractData.cityDate}._`;
     
     if (navigator.share) {
       navigator.share({ title: `Contrato ${contractData.code}`, text }).catch(() => {});
@@ -443,9 +444,10 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
                     <label className="text-xs font-bold text-slate-700">Valor por Extenso (Gerado Automaticamente)</label>
                     <input
                       type="text"
-                      value={contractData.totalAmountInWords || ''}
-                      onChange={(e) => handleFieldChange('totalAmountInWords', e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      value={valorPorExtenso(contractData.totalAmount || 0)}
+                  readOnly
+                  aria-readonly="true"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-amber-950 cursor-default focus:outline-none"
                     />
                   </div>
                 </div>

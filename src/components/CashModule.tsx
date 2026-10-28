@@ -215,7 +215,7 @@ export const CashModule: React.FC<CashModuleProps> = ({ currentUser }) => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
                 Caixa & Controle Financeiro
               </h1>
               {activeSession ? (
@@ -242,7 +242,7 @@ export const CashModule: React.FC<CashModuleProps> = ({ currentUser }) => {
           <button
             type="button"
             onClick={() => setIsAudioModalOpen(true)}
-            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded-2xl shadow-md active:scale-95 transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-2xl shadow-md active:scale-95 transition-all flex items-center gap-2"
           >
             <Mic className="w-4 h-4 text-slate-950" />
             <span>Lançar por Áudio</span>
@@ -323,28 +323,26 @@ export const CashModule: React.FC<CashModuleProps> = ({ currentUser }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* CARD 1: SALDO ATUAL DO CAIXA (DESTAQUE MÁXIMO) */}
-        <div className="p-6 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl shadow-xl space-y-3 relative overflow-hidden border border-slate-800">
-          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
-          
+        <div className="p-6 bg-white text-slate-900 rounded-3xl border-2 border-slate-900 space-y-3 relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+            <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
               <DollarSign className="w-4 h-4" />
               Saldo Atual em Caixa
             </span>
-            <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-full">
+            <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">
               Tempo Real
             </span>
           </div>
 
-          <div className="text-3xl font-black font-mono tracking-tight text-white">
+          <div className="text-3xl font-black font-mono tracking-tight text-slate-900">
             R$ {(summary?.currentBalance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
 
-          <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-2.5">
+          <div className="text-[11px] text-slate-500 flex items-center justify-between border-t border-slate-200 pt-2.5">
             <span>Saldo Inicial: R$ {(summary?.initialBalance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             <button
               onClick={() => setIsInitialBalanceModalOpen(true)}
-              className="text-amber-400 hover:underline font-bold text-[10px]"
+              className="text-amber-700 hover:underline font-bold text-[10px]"
             >
               Histórico
             </button>
@@ -415,8 +413,8 @@ export const CashModule: React.FC<CashModuleProps> = ({ currentUser }) => {
           </div>
 
           <div className="text-[11px] text-slate-500 border-t border-slate-100 pt-2.5 flex items-center justify-between">
-            <span>Dinheiro: R$ {(summary?.byPaymentMethodToday.dinheiro || 0).toFixed(2)}</span>
-            <span>PIX: R$ {(summary?.byPaymentMethodToday.pix || 0).toFixed(2)}</span>
+            <span>Dinheiro: {Number(summary?.byPaymentMethodToday.dinheiro || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            <span>PIX: {Number(summary?.byPaymentMethodToday.pix || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
           </div>
         </div>
 
@@ -872,7 +870,7 @@ export const CashModule: React.FC<CashModuleProps> = ({ currentUser }) => {
                           {Math.abs(diff) < 0.01
                             ? 'Saldo Exato'
                             : diff > 0
-                            ? `Sobra: +R$ ${diff.toFixed(2)}`
+                            ? `Sobra: +${Number(diff).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
                             : `Falta: -R$ ${Math.abs(diff).toFixed(2)}`}
                         </span>
                       )}

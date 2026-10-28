@@ -15,6 +15,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Contract, CompanyInfo } from '../types';
+import { valorPorExtenso } from '../utils/numberToWords';
 import { downloadPdfElement } from '../utils/pdfGenerator';
 import { ContractDocumentView } from './ContractDocumentView';
 
@@ -61,7 +62,7 @@ export const ContractViewModal: React.FC<ContractViewModalProps> = ({
   };
 
   const handleShare = () => {
-    const summary = `*SMART VIDROS — CONTRATO DE PRESTAÇÃO DE SERVIÇOS*\n*Documento:* ${contract.code}\n*Cliente:* ${contract.clientName}\n*Valor Total:* R$ ${(contract.totalAmount || 0).toFixed(2)} (${contract.totalAmountInWords})\n*Local/Data:* ${contract.cityDate}\n\n_Documento oficial Smart Vidros._`;
+    const summary = `*SMART VIDROS — CONTRATO DE PRESTAÇÃO DE SERVIÇOS*\n*Documento:* ${contract.code}\n*Cliente:* ${contract.clientName}\n*Valor Total:* R$ ${(contract.totalAmount || 0).toFixed(2)} (${valorPorExtenso(contract.totalAmount || 0)})\n*Local/Data:* ${contract.cityDate}\n\n_Documento oficial Smart Vidros._`;
 
     if (navigator.share) {
       navigator.share({ title: `Contrato ${contract.code}`, text: summary }).catch(() => {});

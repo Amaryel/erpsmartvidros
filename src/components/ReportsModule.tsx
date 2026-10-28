@@ -931,7 +931,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-400">
-                      {sale.discountAmount > 0 ? `R$ ${sale.discountAmount.toFixed(2)}` : '-'}
+                      {sale.discountAmount > 0 ? `${Number(sale.discountAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : '-'}
                     </td>
                     <td className="py-3 px-4 text-right font-black font-mono text-slate-100">
                       R$ {sale.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

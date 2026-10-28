@@ -2,6 +2,7 @@ import React from 'react';
 import { Contract, CompanyInfo } from '../types';
 import { Layers } from 'lucide-react';
 import SMART_VIDROS_OFFICIAL_LOGO_BASE64 from '../assets/logoBase64';
+import { valorPorExtenso } from '../utils/numberToWords';
 
 interface ContractDocumentViewProps {
   contract: Contract;
@@ -158,7 +159,7 @@ export const ContractDocumentView: React.FC<ContractDocumentViewProps> = ({
                 R$ {(contract.totalAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <div className="text-xs text-amber-900 font-bold italic mt-0.5">
-                ({contract.totalAmountInWords || 'zero reais'})
+                ({valorPorExtenso(contract.totalAmount || 0)})
               </div>
             </div>
           </div>
@@ -268,7 +269,7 @@ export const ContractDocumentView: React.FC<ContractDocumentViewProps> = ({
       {/* BLOCO DE ASSINATURAS */}
       <div className="mt-12 pt-6 grid grid-cols-2 gap-8 text-center text-xs signature-box break-inside-avoid notranslate" translate="no">
         {/* ASSINATURA CONTRATANTE */}
-        <div className="flex flex-col items-center justify-end">
+        <div className="flex flex-col items-center justify-start">
           <div className="w-64 border-t-2 border-slate-900 mb-2"></div>
           <p className="font-bold text-slate-950 uppercase">{contract.clientName || 'CONTRATANTE'}</p>
           <p className="text-[11px] text-slate-500">CONTRATANTE</p>
@@ -278,7 +279,7 @@ export const ContractDocumentView: React.FC<ContractDocumentViewProps> = ({
         </div>
 
         {/* ASSINATURA CONTRATADA */}
-        <div className="flex flex-col items-center justify-end">
+        <div className="flex flex-col items-center justify-start">
           <div className="w-64 border-t-2 border-slate-900 mb-2"></div>
           <p className="font-black text-slate-950 uppercase">{contractorName}</p>
           <p className="text-[11px] text-amber-800 font-bold">CONTRATADA</p>

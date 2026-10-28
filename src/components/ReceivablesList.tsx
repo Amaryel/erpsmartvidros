@@ -186,7 +186,7 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
 
       if (onShowToast) {
         onShowToast(
-          `Baixa de R$ ${totalBaixaValue.toFixed(2)} confirmada! ${
+          `Baixa de ${Number(totalBaixaValue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} confirmada! ${
             createdReceipt ? `Recibo ${createdReceipt.code} gerado.` : ''
           }`
         );
@@ -206,7 +206,7 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-amber-500" />
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">Contas a Receber (Fiado & Parcelas)</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">Contas a Receber (Fiado & Parcelas)</h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Gestão financeira de vendas fiadas, acompanhamento de parcelas, datas de vencimento e baixa de pagamentos
@@ -323,13 +323,13 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
                 {/* Resumo de Valores e Ações de Vínculo */}
                 <div className="flex flex-col sm:items-end gap-1">
                   <div className="text-xs font-bold text-slate-700">
-                    Total Fiado: <span className="font-black text-slate-900 text-sm">R$ {rec.totalAmount.toFixed(2)}</span>
+                    Total Fiado: <span className="font-black text-slate-900 text-sm">{Number(rec.totalAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                   </div>
                   <div className="text-xs font-bold text-emerald-600">
-                    Já Pago: <span>R$ {rec.paidAmount.toFixed(2)}</span>
+                    Já Pago: <span>{Number(rec.paidAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                   </div>
                   <div className="text-xs font-black text-amber-600">
-                    Restante: <span>R$ {rec.remainingAmount.toFixed(2)}</span>
+                    Restante: <span>{Number(rec.remainingAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                   </div>
 
                   {/* Vínculos com Venda e Orçamento (#11) */}
@@ -412,7 +412,7 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
                         <div className="space-y-0.5 font-medium">
                           <div className="flex justify-between text-slate-600">
                             <span>Valor:</span>
-                            <strong className="text-slate-900 font-bold">R$ {inst.amount.toFixed(2)}</strong>
+                            <strong className="text-slate-900 font-bold">{Number(inst.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
                           </div>
 
                           {editingDueDateInstId === inst.id ? (
@@ -465,7 +465,7 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
                           {inst.paidAmount > 0 && (
                             <div className="flex justify-between text-emerald-700 text-[11px] font-bold pt-1 border-t border-slate-100">
                               <span>Pago:</span>
-                              <span>R$ {inst.paidAmount.toFixed(2)}</span>
+                              <span>{Number(inst.paidAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                             </div>
                           )}
                         </div>
@@ -478,7 +478,7 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
                               className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-1.5 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1 mt-1"
                             >
                               <CreditCard className="w-3.5 h-3.5" />
-                              <span>Dar Baixa (R$ {remainingInInst.toFixed(2)})</span>
+                              <span>Dar Baixa ({Number(remainingInInst).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})</span>
                             </button>
                           ) : (
                             <div
@@ -545,21 +545,21 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
                 <div className="bg-white p-2 rounded-lg border border-slate-200">
                   <span className="text-[10px] uppercase text-slate-400 font-bold block">Valor Parcela</span>
                   <span className="font-mono font-bold text-slate-900 text-xs">
-                    R$ {selectedInstallment.amount.toFixed(2)}
+                    {Number(selectedInstallment.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </span>
                 </div>
 
                 <div className="bg-emerald-50 p-2 rounded-lg border border-emerald-200">
                   <span className="text-[10px] uppercase text-emerald-700 font-bold block">Já Pago</span>
                   <span className="font-mono font-bold text-emerald-900 text-xs">
-                    R$ {(selectedInstallment.paidAmount || 0).toFixed(2)}
+                    {Number(selectedInstallment.paidAmount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </span>
                 </div>
 
                 <div className="bg-amber-50 p-2 rounded-lg border border-amber-200">
                   <span className="text-[10px] uppercase text-amber-800 font-bold block">Saldo Pendente</span>
                   <span className="font-mono font-black text-amber-900 text-xs">
-                    R$ {currentInstRemaining.toFixed(2)}
+                    {Number(currentInstRemaining).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </span>
                 </div>
               </div>
@@ -668,14 +668,14 @@ export const ReceivablesList: React.FC<ReceivablesListProps> = ({
                   <div className="flex items-center justify-between">
                     <span>Total sendo pago nesta baixa:</span>
                     <span className="font-mono text-base font-black text-amber-700">
-                      R$ {totalBaixaValue.toFixed(2)}
+                      {Number(totalBaixaValue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between pt-1 border-t border-amber-200 text-[11px]">
                     <span className="text-slate-600">Saldo Restante na Parcela após a Baixa:</span>
                     <span className={`font-mono font-bold ${balanceAfterBaixa > 0 ? 'text-amber-800' : 'text-emerald-700'}`}>
-                      {balanceAfterBaixa > 0 ? `R$ ${balanceAfterBaixa.toFixed(2)}` : 'QUITADA TOTALMENTE!'}
+                      {balanceAfterBaixa > 0 ? `${Number(balanceAfterBaixa).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : 'QUITADA TOTALMENTE!'}
                     </span>
                   </div>
                 </div>

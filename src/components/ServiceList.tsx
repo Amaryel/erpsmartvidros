@@ -56,7 +56,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({ catalog, onRefresh }) 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-2">
             <Wrench className="w-6 h-6 text-amber-500" />
             <span>Cadastro de Serviços</span>
           </h1>
@@ -194,7 +194,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({ catalog, onRefresh }) 
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Preço Padrão Sugerido</span>
                     <span className="font-extrabold font-mono text-amber-600 text-sm">
-                      R$ {service.defaultPrice.toFixed(2)}
+                      {Number(service.defaultPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
 

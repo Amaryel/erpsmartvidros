@@ -75,7 +75,7 @@ export const SaleList: React.FC<SaleListProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-6 h-6 text-amber-500" />
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">Vendas & PDV</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">Vendas & PDV</h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Histórico completo de vendas efetuadas, orçamentos convertidos, pagamentos e fiado
@@ -87,40 +87,40 @@ export const SaleList: React.FC<SaleListProps> = ({
           className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-5 py-3 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          <span>+ Abrir PDV / Nova Venda</span>
+          <span>Nova venda</span>
         </button>
       </div>
 
       {/* Cards de Métricas do Módulo de Vendas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-950 text-white p-4 rounded-xl border border-slate-800 shadow-md">
-          <span className="text-[10px] font-extrabold uppercase text-amber-400 tracking-wider block">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200">
+          <span className="text-sm font-medium text-slate-500 block">
             Volume Total Vendido
           </span>
-          <span className="text-2xl font-black text-white mt-1 block">
+          <span className="text-2xl font-semibold text-slate-900 mt-1 block tabular-nums">
             {totalVendas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </span>
-          <span className="text-[10px] text-slate-400 font-semibold">{sales.length} venda(s) registrada(s)</span>
+          <span className="text-xs text-slate-500">{sales.length} venda(s) registrada(s)</span>
         </div>
 
-        <div className="bg-emerald-950/80 text-white p-4 rounded-xl border border-emerald-800 shadow-md">
-          <span className="text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider block">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200">
+          <span className="text-sm font-medium text-slate-500 block">
             Recebido no Ato
           </span>
-          <span className="text-2xl font-black text-emerald-300 mt-1 block">
+          <span className="text-2xl font-semibold text-emerald-700 mt-1 block tabular-nums">
             {totalRecebidoAto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </span>
-          <span className="text-[10px] text-emerald-200/70 font-semibold">Pagamentos PIX / Dinheiro / Cartão</span>
+          <span className="text-xs text-slate-500">Pagamentos PIX / Dinheiro / Cartão</span>
         </div>
 
-        <div className="bg-amber-950/80 text-white p-4 rounded-xl border border-amber-800 shadow-md">
-          <span className="text-[10px] font-extrabold uppercase text-amber-400 tracking-wider block">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200">
+          <span className="text-sm font-medium text-slate-500 block">
             Fiado / Contas a Receber
           </span>
-          <span className="text-2xl font-black text-amber-300 mt-1 block">
+          <span className="text-2xl font-semibold text-amber-700 mt-1 block tabular-nums">
             {totalFiado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </span>
-          <span className="text-[10px] text-amber-200/70 font-semibold">Lançados no Contas a Receber</span>
+          <span className="text-xs text-slate-500">Lançados no Contas a Receber</span>
         </div>
       </div>
 
@@ -149,7 +149,7 @@ export const SaleList: React.FC<SaleListProps> = ({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900 text-white font-bold uppercase text-[10px]">
+              <thead className="bg-slate-50 text-slate-500 font-medium text-xs border-b border-slate-200">
                 <tr>
                   <th className="p-3.5">Código Venda</th>
                   <th className="p-3.5">Cliente</th>
@@ -185,15 +185,15 @@ export const SaleList: React.FC<SaleListProps> = ({
                     </td>
 
                     <td className="p-3.5 text-right font-black text-slate-900 text-sm">
-                      R$ {(sale.total || 0).toFixed(2)}
+                      {Number(sale.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
 
                     <td className="p-3.5 text-right font-bold text-emerald-600">
-                      R$ {(sale.totalPaid || 0).toFixed(2)}
+                      {Number(sale.totalPaid || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
 
                     <td className="p-3.5 text-right font-bold text-amber-600">
-                      {(sale.totalFiado || 0) > 0 ? `R$ ${(sale.totalFiado || 0).toFixed(2)}` : '—'}
+                      {(sale.totalFiado || 0) > 0 ? `${Number(sale.totalFiado || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : '—'}
                     </td>
 
                     {/* Vínculos com Orçamento, Recibo e Contas a Receber (#11) */}
@@ -283,7 +283,7 @@ export const SaleList: React.FC<SaleListProps> = ({
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Tem certeza que deseja excluir o registro da venda <strong className="text-slate-900 font-bold">{saleToDelete.code}</strong> no valor de <strong className="text-slate-900 font-bold">R$ {(saleToDelete.total || 0).toFixed(2)}</strong>?
+              Tem certeza que deseja excluir o registro da venda <strong className="text-slate-900 font-bold">{saleToDelete.code}</strong> no valor de <strong className="text-slate-900 font-bold">{Number(saleToDelete.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>?
               {saleToDelete.receivableId && (
                 <span className="block mt-1 text-amber-700 font-semibold bg-amber-50 p-2 rounded border border-amber-200">
                   ⚠️ O lançamento associado no Contas a Receber também será removido.

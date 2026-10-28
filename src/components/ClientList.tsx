@@ -66,9 +66,9 @@ export const ClientList: React.FC<ClientListProps> = ({
     <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 pb-20">
       
       {/* Topo / Barra de Ação */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-2">
             <Users className="w-6 h-6 text-amber-500" />
             <span>Cadastro de Clientes</span>
           </h1>
@@ -77,15 +77,15 @@ export const ClientList: React.FC<ClientListProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full min-[480px]:flex-1 md:w-64">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por nome, CPF/CNPJ, fone..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-amber-500 focus:outline-none font-medium"
+              className="w-full pl-9 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-amber-500 focus:outline-none font-medium"
             />
           </div>
 
@@ -94,7 +94,7 @@ export const ClientList: React.FC<ClientListProps> = ({
               setEditingClient(null);
               setIsFormModalOpen(true);
             }}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5 shrink-0"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm px-4 h-10 rounded-xl transition-colors flex items-center justify-center gap-1.5 shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>+ Novo Cliente</span>
@@ -182,14 +182,14 @@ export const ClientList: React.FC<ClientListProps> = ({
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Vendas</span>
                     <span className="font-black text-slate-900 font-mono">
-                      R$ {totalSales.toFixed(2)}
+                      {Number(totalSales).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
 
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Saldo Fiado</span>
                     <span className={`font-black font-mono ${totalFiado > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                      R$ {totalFiado.toFixed(2)}
+                      {Number(totalFiado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
                 </div>

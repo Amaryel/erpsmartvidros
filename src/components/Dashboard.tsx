@@ -23,7 +23,8 @@ import {
   Filter,
   Calendar,
   Scissors,
-  BadgeDollarSign
+  BadgeDollarSign,
+  Wallet
 } from 'lucide-react';
 import { Quote, Sale, Receivable, Receipt, CompanyInfo, UserAccount, AppUser } from '../types';
 import { calculateCashSummary } from '../services/data/repositories/cashRepository';
@@ -214,794 +215,502 @@ export const Dashboard: React.FC<DashboardProps> = ({
   urgentReceivables.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const urgentReceivablesList = urgentReceivables.slice(0, 5);
 
+  const brl = (value: number) =>
+    (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const formatDate = (iso?: string) => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('T')[0].split('-');
+    return d && m && y ? `${d}/${m}/${y}` : iso;
+  };
+
+  const periodOptions: { id: DashboardPeriod; label: string }[] = [
+    { id: 'today', label: 'Hoje' },
+    { id: '7days', label: '7 dias' },
+    { id: 'this_month', label: 'Este mês' },
+    { id: 'this_year', label: 'Este ano' },
+    { id: 'all', label: 'Tudo' },
+  ];
+
+  const quickLinks: { id: string; label: string; detail: string; icon: React.ElementType }[] = [
+    { id: 'quotes', label: 'Orçamentos', detail: `${quotes.length} cadastrados`, icon: FileText },
+    { id: 'sales', label: 'Vendas', detail: `${sales.length} registradas`, icon: ShoppingBag },
+    { id: 'clients', label: 'Clientes', detail: 'Cadastro e histórico', icon: Users },
+    { id: 'cash', label: 'Caixa', detail: 'Entradas e saídas', icon: Wallet },
+    { id: 'receivables', label: 'A receber', detail: `${receivables.length} contas`, icon: ShieldCheck },
+    { id: 'receipts', label: 'Recibos', detail: `${receipts.length} emitidos`, icon: ReceiptText },
+    { id: 'contracts', label: 'Contratos', detail: 'Emissão e PDF', icon: Scroll },
+    { id: 'operations', label: 'Obras', detail: 'Produção e entregas', icon: Wrench },
+    { id: 'payslips', label: 'Contracheques', detail: payslipsCount > 0 ? `${payslipsCount} emitidos` : 'Folha e holerites', icon: BadgeDollarSign },
+    { id: 'products', label: 'Produtos', detail: 'Vidros e acessórios', icon: Package },
+    { id: 'services', label: 'Serviços', detail: 'Mão de obra', icon: Wrench },
+    { id: 'reports', label: 'Relatórios', detail: 'Vendas e faturamento', icon: BarChart3 },
+  ];
+
+  const todayLabel = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const card = 'bg-white border border-slate-200 rounded-xl';
+  const sectionTitle = 'text-sm font-semibold text-slate-900';
+  const linkButton =
+    'inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-md px-2 py-1 -mr-2 transition-colors focus-visible:outline-2 focus-visible:outline-amber-500';
+
   return (
-    <div className="space-y-6 pb-8 font-sans notranslate" translate="no" id="dashboard-main">
-      
-      {/* Banner de Boas-Vindas com Logo Oficial */}
-      <div className="bg-gradient-to-r from-zinc-950 via-slate-900 to-zinc-950 border border-amber-500/40 rounded-2xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-1/3 -mb-10 w-60 h-60 bg-amber-400/5 rounded-full blur-2xl pointer-events-none"></div>
-        
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="bg-amber-500 text-slate-950 text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full tracking-wider shadow-sm">
-                  Painel de Controle
-                </span>
-                <span className="text-xs text-amber-200/80 font-medium">
-                  {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-                <span>Gestão</span>
-                <span className="text-amber-400">Smart Vidros</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-xl font-normal leading-relaxed">
-                Bem-vindo ao sistema da <strong className="text-amber-400 font-bold">{companyInfo.name || 'Smart Vidros'}</strong>. Controle orçamentos, vendas no PDV, recibos e fluxo financeiro com total facilidade.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <button
-              onClick={() => onNavigate('payslips')}
-              className="flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-amber-400/20 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-400/30 text-amber-300 border border-amber-500/50 font-black text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
-              title="Emissão e Gestão de Contracheques / Holerites"
-            >
-              <BadgeDollarSign className="w-4 h-4 text-amber-400" />
-              <span>Contracheques</span>
-              <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded uppercase animate-pulse">
-                Novo
-              </span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('reports')}
-              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs px-4 py-3 rounded-xl shadow-md active:scale-95 transition-all"
-              title="Acessar Relatórios Detalhados"
-            >
-              <BarChart3 className="w-4 h-4 text-amber-400" />
-              <span>Ver Relatórios</span>
-            </button>
-
-            <button
-              onClick={onOpenPdv}
-              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs px-4 py-3 rounded-xl shadow-lg active:scale-95 transition-all"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Abrir PDV</span>
-            </button>
-
-            <button
-              onClick={onNewQuote}
-              className="flex items-center gap-2 bg-zinc-800/90 hover:bg-zinc-700 text-amber-400 border border-amber-500/40 font-bold text-xs px-4 py-3 rounded-xl shadow-sm active:scale-95 transition-all"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Novo Orçamento</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* BARRA DE FILTROS RÁPIDOS DE VENDAS DO DASHBOARD */}
-      <div className="bg-slate-900 border border-zinc-800 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
-            <Filter className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="text-xs font-black text-slate-200 uppercase tracking-wider block">
-              Filtro de Vendas & Faturamento
-            </span>
-            <span className="text-[11px] text-slate-400">
-              Exibindo dados de: <strong className="text-amber-400">{dateRange.label}</strong>
-            </span>
-          </div>
+    <div className="space-y-5 sm:space-y-6 pb-8 font-sans notranslate" translate="no" id="dashboard-main">
+      {/* Cabeçalho da página */}
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-slate-500 first-letter:uppercase">{todayLabel}</p>
+          <h1 className="mt-1 text-2xl sm:text-[28px] font-semibold tracking-tight text-slate-900">Painel</h1>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Visão geral de {companyInfo.name || 'Smart Vidros'}
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Botões de Período */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-zinc-800">
-            {[
-              { id: 'today', label: 'Hoje' },
-              { id: '7days', label: '7 Dias' },
-              { id: 'this_month', label: 'Este Mês' },
-              { id: 'this_year', label: 'Este Ano' },
-              { id: 'all', label: 'Todos' },
-            ].map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setSelectedPeriod(p.id as DashboardPeriod)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedPeriod === p.id
-                    ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <button
+            type="button"
+            onClick={onNewQuote}
+            className="inline-flex items-center justify-center gap-2 h-11 px-4 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-800 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Novo orçamento</span>
+          </button>
+          <button
+            type="button"
+            onClick={onOpenPdv}
+            className="inline-flex items-center justify-center gap-2 h-11 px-4 rounded-lg bg-amber-500 text-sm font-semibold text-slate-950 hover:bg-amber-400 active:bg-amber-600 transition-colors"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span>Abrir PDV</span>
+          </button>
+        </div>
+      </header>
 
-          {/* Seletor de Vendedor */}
-          {users.length > 0 && (
+      {/* Filtros */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          className="flex w-full sm:w-auto overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 [scrollbar-width:none]"
+          role="group"
+          aria-label="Período"
+        >
+          {periodOptions.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setSelectedPeriod(p.id)}
+              aria-pressed={selectedPeriod === p.id}
+              className={`flex-1 sm:flex-none whitespace-nowrap px-3.5 h-9 rounded-md text-sm font-medium transition-colors ${
+                selectedPeriod === p.id
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {users.length > 0 && (
+          <label className="flex items-center gap-2 text-sm text-slate-500">
+            <span className="shrink-0">Vendedor</span>
             <select
               value={selectedSeller}
               onChange={(e) => setSelectedSeller(e.target.value)}
-              className="bg-slate-950 border border-zinc-800 text-slate-200 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-amber-500"
+              className="h-10 w-full sm:w-56 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
             >
-              <option value="all">Todos os Vendedores</option>
+              <option value="all">Todos</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
                 </option>
               ))}
             </select>
-          )}
-        </div>
+          </label>
+        )}
       </div>
 
-      {/* MÓDULO DE CAIXA E FLUXO DIÁRIO - CARD DE DESTAQUE */}
-      <div className="bg-gradient-to-br from-zinc-950 via-slate-900 to-zinc-950 border-2 border-amber-500/40 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          
-          {/* Dados de Saldo e Movimento */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-amber-500 text-slate-950 rounded-xl font-bold shadow-md">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-white tracking-tight flex items-center gap-2">
-                  <span>Caixa & Movimento Financeiro</span>
-                  {cashSummary.activeSession ? (
-                    <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
-                      Caixa Aberto
-                    </span>
-                  ) : (
-                    <span className="bg-zinc-800 text-zinc-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      Saldo Contínuo
-                    </span>
-                  )}
-                </h3>
-                <p className="text-xs text-zinc-400">
-                  Saldo real apurado com base no saldo inicial e movimentações registradas
-                </p>
-              </div>
-            </div>
-
-            {/* Grid de Valores do Caixa */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-              
-              {/* Saldo Atual */}
-              <div className="bg-zinc-900/80 border border-amber-500/30 p-3.5 rounded-2xl">
-                <span className="text-[10px] font-extrabold uppercase text-amber-400 tracking-wider block">
-                  Saldo Atual em Caixa
-                </span>
-                <div className="text-xl font-black font-mono text-white mt-0.5">
-                  R$ {cashSummary.currentBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-
-              {/* Entradas Hoje */}
-              <div className="bg-zinc-900/80 border border-zinc-800 p-3.5 rounded-2xl">
-                <span className="text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider block">
-                  Entradas Hoje
-                </span>
-                <div className="text-xl font-black font-mono text-emerald-400 mt-0.5">
-                  + R$ {cashSummary.todayEntries.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-
-              {/* Saídas Hoje */}
-              <div className="bg-zinc-900/80 border border-zinc-800 p-3.5 rounded-2xl">
-                <span className="text-[10px] font-extrabold uppercase text-rose-400 tracking-wider block">
-                  Saídas Hoje
-                </span>
-                <div className="text-xl font-black font-mono text-rose-400 mt-0.5">
-                  - R$ {cashSummary.todayExits.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-
-              {/* Resultado do Dia */}
-              <div className="bg-zinc-900/80 border border-zinc-800 p-3.5 rounded-2xl">
-                <span className="text-[10px] font-extrabold uppercase text-zinc-400 tracking-wider block">
-                  Resultado do Dia
-                </span>
-                <div
-                  className={`text-xl font-black font-mono mt-0.5 ${
-                    cashSummary.todayResult >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                  }`}
-                >
-                  {cashSummary.todayResult >= 0 ? '+' : ''} R${' '}
-                  {cashSummary.todayResult.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-
-            </div>
+      {/* Indicadores principais */}
+      <section aria-label="Indicadores" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className={`${card} p-4 sm:p-5`}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs sm:text-sm font-medium text-slate-500">Faturamento</span>
+            <TrendingUp className="w-4 h-4 text-slate-400" aria-hidden="true" />
           </div>
-
-          {/* Botões de Ação Rápida no Caixa */}
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onNavigate('cash')}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <Mic className="w-4 h-4 text-slate-950" />
-                <span>Lançar por Áudio</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onNavigate('cash')}
-                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl border border-zinc-700 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <span>Ver Caixa</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onNavigate('cash')}
-                className="flex-1 px-3.5 py-2 bg-emerald-600/90 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition-colors flex items-center justify-center gap-1"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>+ Entrada</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onNavigate('cash')}
-                className="flex-1 px-3.5 py-2 bg-rose-600/90 hover:bg-rose-500 text-white font-black text-xs rounded-xl transition-colors flex items-center justify-center gap-1"
-              >
-                <Minus className="w-3.5 h-3.5" />
-                <span>- Despesa</span>
-              </button>
-            </div>
+          <div className="mt-2 text-lg sm:text-2xl font-semibold text-slate-900 tabular-nums truncate">
+            {brl(totalFaturamento)}
           </div>
-
-        </div>
-      </div>
-
-      {/* Cards de Métricas Principais Dinâmicos com Filtros */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Card 1: Faturamento no Período */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">
-              Faturamento ({dateRange.label})
-            </span>
-            <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-slate-900 font-mono">
-            R$ {totalFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1 flex items-center justify-between font-medium">
-            <span>{validSales.length} venda(s)</span>
-            <span className="text-emerald-700 font-bold">R$ {totalRecebidoNaoFiado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} à vista</span>
+          <p className="mt-1 text-xs text-slate-500 truncate">
+            {validSales.length} {validSales.length === 1 ? 'venda' : 'vendas'} · {brl(totalRecebidoNaoFiado)} recebido
           </p>
         </div>
 
-        {/* Card 2: Orçamentos no Período */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">
-              Orçamentos ({dateRange.label})
-            </span>
-            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
-              <FileText className="w-5 h-5" />
-            </div>
+        <div className={`${card} p-4 sm:p-5`}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs sm:text-sm font-medium text-slate-500">Orçamentos</span>
+            <FileText className="w-4 h-4 text-slate-400" aria-hidden="true" />
           </div>
-          <div className="text-2xl font-black text-slate-900 font-mono">
-            {filteredQuotes.length} <span className="text-xs font-semibold text-slate-400">no período</span>
+          <div className="mt-2 text-lg sm:text-2xl font-semibold text-slate-900 tabular-nums">
+            {filteredQuotes.length}
           </div>
-          <div className="flex items-center gap-2 mt-1 text-[11px] font-medium">
-            <span className="text-amber-700 font-bold">{orcamentosPendentes} pendentes</span>
-            <span>•</span>
-            <span className="text-emerald-700 font-bold">{orcamentosAprovados} aprovados</span>
-          </div>
+          <p className="mt-1 text-xs text-slate-500 truncate">
+            {orcamentosPendentes} em aberto · {orcamentosAprovados} aprovados
+          </p>
         </div>
 
-        {/* Card 3: Fiado / Contas a Receber */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">A Receber (Total Geral)</span>
-            <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
+        <div className={`${card} p-4 sm:p-5`}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs sm:text-sm font-medium text-slate-500">A receber</span>
+            <ShieldCheck className="w-4 h-4 text-slate-400" aria-hidden="true" />
           </div>
-          <div className="text-2xl font-black text-rose-600 font-mono">
-            R$ {totalFiadoPendenteGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <div
+            className={`mt-2 text-lg sm:text-2xl font-semibold tabular-nums truncate ${
+              totalFiadoPendenteGeral > 0 ? 'text-rose-700' : 'text-slate-900'
+            }`}
+          >
+            {brl(totalFiadoPendenteGeral)}
           </div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">
+          <p className="mt-1 text-xs text-slate-500 truncate">
             {receivables.filter((r) => r.remainingAmount > 0).length} clientes com saldo em aberto
           </p>
         </div>
 
-        {/* Card 4: Ticket Médio */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">Ticket Médio</span>
-            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
-              <ShoppingBag className="w-5 h-5" />
-            </div>
+        <div className={`${card} p-4 sm:p-5`}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs sm:text-sm font-medium text-slate-500">Ticket médio</span>
+            <BarChart3 className="w-4 h-4 text-slate-400" aria-hidden="true" />
           </div>
-          <div className="text-2xl font-black text-indigo-900 font-mono">
-            R$ {ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <div className="mt-2 text-lg sm:text-2xl font-semibold text-slate-900 tabular-nums truncate">
+            {brl(ticketMedio)}
           </div>
-          <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500 font-medium">
-            <span>Média por venda</span>
-            <button
-              onClick={() => onNavigate('reports')}
-              className="text-amber-700 hover:underline font-bold"
+          <button type="button" onClick={() => onNavigate('reports')} className={`${linkButton} mt-0.5 -ml-2`}>
+            Ver relatórios
+            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      </section>
+
+      {/* Caixa */}
+      <section className={`${card} p-4 sm:p-5`} aria-labelledby="dash-caixa">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <h2 id="dash-caixa" className={sectionTitle}>
+              Caixa
+            </h2>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                cashSummary.activeSession
+                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200'
+                  : 'bg-slate-100 text-slate-600'
+              }`}
             >
-              Ver relatório →
-            </button>
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${cashSummary.activeSession ? 'bg-emerald-500' : 'bg-slate-400'}`}
+                aria-hidden="true"
+              />
+              {cashSummary.activeSession ? 'Aberto' : 'Saldo contínuo'}
+            </span>
           </div>
+          <button type="button" onClick={() => onNavigate('cash')} className={linkButton}>
+            Abrir caixa
+            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
         </div>
 
-      </div>
-
-      {/* SEÇÃO PRINCIPAL DE ALERTAS OPERACIONAIS & VENCIMENTOS DE CLIENTES */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* BLOCO 1: OBRAS & ENTREGAS NO PRAZO */}
-        <div className="bg-white border-2 border-amber-400 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-amber-500 text-slate-950 rounded-xl shadow-xs font-bold">
-                  <Wrench className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="font-extrabold text-slate-900 text-base leading-tight">
-                    Obras & Entregas no Prazo
-                  </h2>
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    Prazos de execução e entrega de serviços
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => onNavigate('operations')}
-                className="text-xs font-black text-amber-900 hover:text-slate-950 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-xl border border-amber-300 transition-colors flex items-center gap-1 shadow-xs"
-              >
-                <span>Ver Painel ({urgentObras.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {urgentObras.length === 0 ? (
-              <div className="p-6 bg-slate-50 rounded-xl text-center space-y-1">
-                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
-                <p className="text-xs font-extrabold text-slate-700">Tudo em dia com as entregas!</p>
-                <p className="text-[11px] text-slate-500">Nenhuma obra em atraso ou com entrega urgente marcada.</p>
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {urgentObras.map((obra) => {
-                  const isOverdue = obra.deliveryDate < todayStr;
-                  const [y, m, d] = obra.deliveryDate.split('-');
-                  const formattedDate = `${d}/${m}/${y}`;
-
-                  return (
-                    <div
-                      key={`${obra.type}-${obra.id}`}
-                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all ${
-                        isOverdue
-                          ? 'bg-rose-50 border-rose-300'
-                          : 'bg-amber-50/80 border-amber-300'
-                      }`}
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
-                              isOverdue ? 'bg-rose-600 text-white' : 'bg-amber-500 text-slate-950'
-                            }`}
-                          >
-                            {isOverdue ? '⚠️ Atrasada' : '⏰ Prazo Próximo'}
-                          </span>
-                          <span className="font-mono text-[11px] font-bold text-slate-600">
-                            {obra.code}
-                          </span>
-                        </div>
-                        <h4 className="font-extrabold text-slate-900 text-sm">{obra.clientName}</h4>
-                        <span className="text-[11px] text-slate-600 font-medium block">
-                          Previsão: <strong className={isOverdue ? 'text-rose-700 font-black' : 'text-slate-900 font-bold'}>{formattedDate}</strong>
-                        </span>
-                      </div>
-
-                      <div className="text-right shrink-0 space-y-1">
-                        <span className="text-xs font-black font-mono text-slate-900 block">
-                          R$ {obra.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                        <button
-                          onClick={() => onNavigate('operations')}
-                          className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] rounded-lg transition-colors shadow-2xs"
-                        >
-                          Ver Obra
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        <dl className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200">
+          <div className="bg-white p-3 sm:p-4">
+            <dt className="text-xs font-medium text-slate-500">Saldo atual</dt>
+            <dd className="mt-1 text-base sm:text-xl font-semibold text-slate-900 tabular-nums truncate">
+              {brl(cashSummary.currentBalance)}
+            </dd>
           </div>
-        </div>
-
-        {/* BLOCO 2: VENCIMENTOS DE CLIENTES (FIADO) */}
-        <div className="bg-white border-2 border-rose-300 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-rose-500 text-white rounded-xl shadow-xs font-bold">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="font-extrabold text-slate-900 text-base leading-tight">
-                    Vencimentos de Clientes (Fiado)
-                  </h2>
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    Parcelas vencidas ou com vencimento próximo
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => onNavigate('receivables')}
-                className="text-xs font-black text-rose-800 hover:text-rose-950 bg-rose-100 hover:bg-rose-200 px-3 py-1.5 rounded-xl border border-rose-300 transition-colors flex items-center gap-1 shadow-xs"
-              >
-                <span>Ver Fiado ({urgentReceivablesList.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {urgentReceivablesList.length === 0 ? (
-              <div className="p-6 bg-slate-50 rounded-xl text-center space-y-1">
-                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
-                <p className="text-xs font-extrabold text-slate-700">Sem cobranças pendentes!</p>
-                <p className="text-[11px] text-slate-500">Todas as contas de fiado estão quitadas ou em dia.</p>
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {urgentReceivablesList.map((item) => {
-                  const [y, m, d] = item.dueDate.split('-');
-                  const formattedDueDate = `${d}/${m}/${y}`;
-                  const isToday = item.dueDate === todayStr;
-
-                  return (
-                    <div
-                      key={`${item.receivableId}-${item.installmentId}`}
-                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all ${
-                        item.isOverdue
-                          ? 'bg-rose-50 border-rose-300'
-                          : isToday
-                          ? 'bg-amber-50 border-amber-300'
-                          : 'bg-slate-50 border-slate-200'
-                      }`}
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
-                              item.isOverdue
-                                ? 'bg-rose-600 text-white'
-                                : isToday
-                                ? 'bg-amber-500 text-slate-950'
-                                : 'bg-slate-200 text-slate-800'
-                            }`}
-                          >
-                            {item.isOverdue ? '⚠️ Parcela Vencida' : isToday ? '⏰ Vence Hoje' : '📅 Próxima'}
-                          </span>
-                          <span className="font-mono text-[11px] font-bold text-slate-600">
-                            Venda {item.saleCode} • Parc {item.number}
-                          </span>
-                        </div>
-                        <h4 className="font-extrabold text-slate-900 text-sm">{item.clientName}</h4>
-                        <span className="text-[11px] text-slate-600 font-medium block">
-                          Vencimento: <strong className={item.isOverdue ? 'text-rose-700 font-black' : 'text-slate-900 font-bold'}>{formattedDueDate}</strong>
-                        </span>
-                      </div>
-
-                      <div className="text-right shrink-0 space-y-1">
-                        <span className="text-xs font-black font-mono text-slate-900 block">
-                          R$ {(item.amount - item.paidAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                        <button
-                          onClick={() => onNavigate('receivables')}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-lg transition-colors shadow-2xs"
-                        >
-                          Dar Baixa
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <div className="bg-white p-3 sm:p-4">
+            <dt className="text-xs font-medium text-slate-500">Entradas hoje</dt>
+            <dd className="mt-1 text-base sm:text-xl font-semibold text-emerald-700 tabular-nums truncate">
+              {brl(cashSummary.todayEntries)}
+            </dd>
           </div>
-        </div>
+          <div className="bg-white p-3 sm:p-4">
+            <dt className="text-xs font-medium text-slate-500">Saídas hoje</dt>
+            <dd className="mt-1 text-base sm:text-xl font-semibold text-rose-700 tabular-nums truncate">
+              {brl(cashSummary.todayExits)}
+            </dd>
+          </div>
+          <div className="bg-white p-3 sm:p-4">
+            <dt className="text-xs font-medium text-slate-500">Resultado do dia</dt>
+            <dd
+              className={`mt-1 text-base sm:text-xl font-semibold tabular-nums truncate ${
+                cashSummary.todayResult >= 0 ? 'text-slate-900' : 'text-rose-700'
+              }`}
+            >
+              {brl(cashSummary.todayResult)}
+            </dd>
+          </div>
+        </dl>
 
-      </div>
-
-      {/* Acesso Rápido aos Módulos */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <h2 className="text-sm font-black uppercase text-slate-900 tracking-wider mb-4 flex items-center gap-2">
-          <span>Acesso Rápido aos Módulos</span>
-        </h2>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
           <button
-            onClick={() => onNavigate('reports')}
-            className="flex flex-col items-center p-3.5 rounded-xl border-2 border-amber-400 bg-amber-50/80 hover:bg-amber-100 transition-all text-center group shadow-xs"
-          >
-            <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 group-hover:scale-110 transition-transform mb-1.5 shadow-xs">
-              <BarChart3 className="w-4 h-4" />
-            </div>
-            <span className="font-black text-xs text-slate-950">Relatórios</span>
-            <span className="text-[10px] text-amber-800 font-bold">Vendas & Lucro</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('operations')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
-          >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
-              <Wrench className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Obras & Operações</span>
-            <span className="text-[10px] text-slate-500">Acompanhamento</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('quotes')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
-          >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
-              <FileText className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Orçamentos</span>
-            <span className="text-[10px] text-slate-500">{quotes.length} salvos</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('sales')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
-          >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
-              <ShoppingBag className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Vendas & PDV</span>
-            <span className="text-[10px] text-slate-500">{sales.length} vendas</span>
-          </button>
-
-          <button
+            type="button"
             onClick={() => onNavigate('cash')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-colors"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-emerald-600 group-hover:scale-110 transition-transform mb-1.5">
-              <DollarSign className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Caixa Diário</span>
-            <span className="text-[10px] text-slate-500">Fluxo & Movimento</span>
+            <PlusCircle className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+            <span>Entrada</span>
           </button>
-
           <button
-            onClick={() => onNavigate('contracts')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            type="button"
+            onClick={() => onNavigate('cash')}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-colors"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-indigo-600 group-hover:scale-110 transition-transform mb-1.5">
-              <Scroll className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Contratos</span>
-            <span className="text-[10px] text-slate-500">Geração & PDF</span>
+            <Minus className="w-4 h-4 text-rose-600" aria-hidden="true" />
+            <span>Despesa</span>
           </button>
-
           <button
-            onClick={() => onNavigate('receivables')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
+            type="button"
+            onClick={() => onNavigate('cash')}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-colors"
           >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-rose-600 group-hover:scale-110 transition-transform mb-1.5">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">A Receber</span>
-            <span className="text-[10px] text-slate-500">{receivables.length} contas</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('receipts')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
-          >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
-              <ReceiptText className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Recibos</span>
-            <span className="text-[10px] text-slate-500">{receipts.length} emitidos</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('payslips')}
-            className="flex flex-col items-center p-3.5 rounded-xl border-2 border-amber-400 bg-amber-50/90 hover:bg-amber-100 hover:border-amber-500 transition-all text-center group relative shadow-sm"
-          >
-            <span className="absolute -top-2.5 right-2 bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md animate-pulse">
-              NOVO
-            </span>
-            <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 group-hover:scale-110 transition-transform mb-1.5 shadow-sm">
-              <BadgeDollarSign className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-950">Contracheques</span>
-            <span className="text-[10px] text-amber-900 font-bold">
-              {payslipsCount > 0 ? `${payslipsCount} emitidos` : 'Folha & Holerite'}
-            </span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('clients')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
-          >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-blue-600 group-hover:scale-110 transition-transform mb-1.5">
-              <Users className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Clientes</span>
-            <span className="text-[10px] text-slate-500">Histórico & Ficha</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('products')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
-          >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
-              <Package className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Produtos & Vidros</span>
-            <span className="text-[10px] text-slate-500">Catálogo com Fotos</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('services')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
-          >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 group-hover:scale-110 transition-transform mb-1.5">
-              <Wrench className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Serviços</span>
-            <span className="text-[10px] text-slate-500">Mão de Obra</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('company')}
-            className="flex flex-col items-center p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-amber-50 hover:border-amber-300 transition-all text-center group"
-          >
-            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-amber-600 group-hover:scale-110 transition-transform mb-1.5">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-xs text-slate-900">Empresa</span>
-            <span className="text-[10px] text-slate-500">Dados & Logo</span>
+            <Mic className="w-4 h-4 text-slate-500" aria-hidden="true" />
+            <span>Por áudio</span>
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* Duas Colunas: Vendas Recentes & Orçamentos Ativos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Vendas Recentes */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-black uppercase text-slate-900 tracking-wider flex items-center gap-2">
-              <ShoppingBag className="w-4 h-4 text-amber-600" />
-              <span>Últimas Vendas ({dateRange.label})</span>
-            </h2>
-            <button
-              onClick={() => onNavigate('sales')}
-              className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1"
-            >
-              <span>Ver todas</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+      {/* Pendências: entregas e parcelas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <section className={`${card} p-4 sm:p-5`} aria-labelledby="dash-entregas">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 id="dash-entregas" className={sectionTitle}>
+                Entregas e obras
+              </h2>
+              <p className="text-xs text-slate-500">Atrasadas ou com prazo próximo</p>
+            </div>
+            <button type="button" onClick={() => onNavigate('operations')} className={linkButton}>
+              Ver todas
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100 flex-1">
-            {recentSales.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-8">
-                Nenhuma venda registrada no período selecionado.
-              </p>
-            ) : (
-              recentSales.map((sale) => (
-                <div key={sale.id} className="py-3 flex items-center justify-between hover:bg-slate-50/80 rounded-lg px-2 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-xs text-slate-900 font-mono">{sale.code}</span>
-                      <span className="text-xs font-bold text-slate-800">{sale.clientName || 'Cliente Balcão'}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500">
-                      {new Date((sale.date || sale.createdAt?.split('T')[0]) + 'T00:00:00').toLocaleDateString('pt-BR')} • {sale.items.length} itens
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-sm font-black text-slate-900 font-mono block">
-                      R$ {sale.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
+          {urgentObras.length === 0 ? (
+            <div className="mt-4 flex items-center gap-3 rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-600">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" aria-hidden="true" />
+              Nenhuma entrega atrasada ou com prazo próximo.
+            </div>
+          ) : (
+            <ul className="mt-3 divide-y divide-slate-100">
+              {urgentObras.map((obra) => {
+                const isOverdue = obra.deliveryDate < todayStr;
+                return (
+                  <li key={`${obra.type}-${obra.id}`}>
                     <button
-                      onClick={() => onViewSale(sale)}
-                      className="text-[10px] font-bold text-amber-700 hover:underline"
+                      type="button"
+                      onClick={() => onNavigate('operations')}
+                      className="w-full flex items-center justify-between gap-3 py-3 text-left rounded-md hover:bg-slate-50 -mx-2 px-2 transition-colors"
                     >
-                      Detalhes
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{obra.clientName}</p>
+                        <p className="text-xs text-slate-500 tabular-nums">
+                          {obra.code} · entrega {formatDate(obra.deliveryDate)}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-slate-900 tabular-nums">{brl(obra.total)}</p>
+                        <span
+                          className={`inline-block mt-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                            isOverdue ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-800'
+                          }`}
+                        >
+                          {isOverdue ? 'Atrasada' : 'Prazo próximo'}
+                        </span>
+                      </div>
                     </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-        {/* Orçamentos Recentes */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-black uppercase text-slate-900 tracking-wider flex items-center gap-2">
-              <FileText className="w-4 h-4 text-amber-600" />
-              <span>Orçamentos Recentes ({dateRange.label})</span>
-            </h2>
-            <button
-              onClick={() => onNavigate('quotes')}
-              className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1"
-            >
-              <span>Ver todos</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+        <section className={`${card} p-4 sm:p-5`} aria-labelledby="dash-parcelas">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 id="dash-parcelas" className={sectionTitle}>
+                Parcelas a receber
+              </h2>
+              <p className="text-xs text-slate-500">Vencidas ou vencendo nos próximos 7 dias</p>
+            </div>
+            <button type="button" onClick={() => onNavigate('receivables')} className={linkButton}>
+              Ver todas
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100 flex-1">
-            {recentQuotes.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-8">
-                Nenhum orçamento cadastrado no período.
-              </p>
-            ) : (
-              recentQuotes.map((quote) => (
-                <div key={quote.id} className="py-3 flex items-center justify-between hover:bg-slate-50/80 rounded-lg px-2 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-xs text-slate-900 font-mono">{quote.code}</span>
-                      <span className="text-xs font-bold text-slate-800">{quote.clientName || 'Cliente'}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500">
-                      {new Date((quote.date || quote.createdAt?.split('T')[0]) + 'T00:00:00').toLocaleDateString('pt-BR')} • {quote.items.length} itens
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-sm font-black text-amber-600 font-mono block">
-                      R$ {quote.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
+          {urgentReceivablesList.length === 0 ? (
+            <div className="mt-4 flex items-center gap-3 rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-600">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" aria-hidden="true" />
+              Nenhuma parcela vencida ou vencendo nesta semana.
+            </div>
+          ) : (
+            <ul className="mt-3 divide-y divide-slate-100">
+              {urgentReceivablesList.map((item) => {
+                const isToday = item.dueDate === todayStr;
+                return (
+                  <li key={`${item.receivableId}-${item.installmentId}`}>
                     <button
-                      onClick={() => onViewQuote(quote)}
-                      className="text-[10px] font-bold text-amber-700 hover:underline"
+                      type="button"
+                      onClick={() => onNavigate('receivables')}
+                      className="w-full flex items-center justify-between gap-3 py-3 text-left rounded-md hover:bg-slate-50 -mx-2 px-2 transition-colors"
                     >
-                      Ver Orçamento
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{item.clientName}</p>
+                        <p className="text-xs text-slate-500 tabular-nums">
+                          {item.saleCode} · parcela {item.number} · vence {formatDate(item.dueDate)}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-slate-900 tabular-nums">
+                          {brl(item.amount - item.paidAmount)}
+                        </p>
+                        <span
+                          className={`inline-block mt-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                            item.isOverdue
+                              ? 'bg-rose-50 text-rose-700'
+                              : isToday
+                              ? 'bg-amber-50 text-amber-800'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {item.isOverdue ? 'Vencida' : isToday ? 'Vence hoje' : 'Próxima'}
+                        </span>
+                      </div>
                     </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
 
+      {/* Movimento recente */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <section className={`${card} p-4 sm:p-5`} aria-labelledby="dash-vendas">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="dash-vendas" className={sectionTitle}>
+              Últimas vendas
+            </h2>
+            <button type="button" onClick={() => onNavigate('sales')} className={linkButton}>
+              Ver todas
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          </div>
+
+          {recentSales.length === 0 ? (
+            <p className="mt-4 rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-500">
+              Nenhuma venda no período selecionado.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-slate-100">
+              {recentSales.map((sale) => (
+                <li key={sale.id}>
+                  <button
+                    type="button"
+                    onClick={() => onViewSale(sale)}
+                    className="w-full flex items-center justify-between gap-3 py-3 text-left rounded-md hover:bg-slate-50 -mx-2 px-2 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">
+                        {sale.clientName || 'Cliente balcão'}
+                      </p>
+                      <p className="text-xs text-slate-500 tabular-nums">
+                        {sale.code} · {formatDate(sale.date || sale.createdAt)} · {sale.items.length}{' '}
+                        {sale.items.length === 1 ? 'item' : 'itens'}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-900 tabular-nums shrink-0">
+                      {brl(sale.total)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className={`${card} p-4 sm:p-5`} aria-labelledby="dash-orcamentos">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="dash-orcamentos" className={sectionTitle}>
+              Orçamentos recentes
+            </h2>
+            <button type="button" onClick={() => onNavigate('quotes')} className={linkButton}>
+              Ver todos
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          </div>
+
+          {recentQuotes.length === 0 ? (
+            <p className="mt-4 rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-500">
+              Nenhum orçamento no período selecionado.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-slate-100">
+              {recentQuotes.map((quote) => (
+                <li key={quote.id}>
+                  <button
+                    type="button"
+                    onClick={() => onViewQuote(quote)}
+                    className="w-full flex items-center justify-between gap-3 py-3 text-left rounded-md hover:bg-slate-50 -mx-2 px-2 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{quote.clientName || 'Cliente'}</p>
+                      <p className="text-xs text-slate-500 tabular-nums">
+                        {quote.code} · {formatDate(quote.date || quote.createdAt)} · {quote.items.length}{' '}
+                        {quote.items.length === 1 ? 'item' : 'itens'}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-900 tabular-nums shrink-0">
+                      {brl(quote.total)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      {/* Atalhos */}
+      <section aria-labelledby="dash-atalhos">
+        <h2 id="dash-atalhos" className={`${sectionTitle} mb-3`}>
+          Atalhos
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
+          {quickLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <button
+                key={link.id}
+                type="button"
+                onClick={() => onNavigate(link.id)}
+                className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left hover:border-slate-300 hover:bg-slate-50 transition-colors"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-700">
+                  <Icon className="w-4 h-4" aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-900 truncate">{link.label}</span>
+                  <span className="block text-xs text-slate-500 truncate">{link.detail}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 };

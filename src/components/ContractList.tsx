@@ -19,6 +19,7 @@ import {
   Layers
 } from 'lucide-react';
 import { Contract, CompanyInfo } from '../types';
+import { valorPorExtenso } from '../utils/numberToWords';
 import { downloadPdfElement } from '../utils/pdfGenerator';
 
 interface ContractListProps {
@@ -98,7 +99,7 @@ export const ContractList: React.FC<ContractListProps> = ({
       {/* CABEÇALHO DA ABA & BOTÃO DE NOVO CONTRATO */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div>
-          <h1 className="text-xl font-black text-slate-950 flex items-center gap-2.5">
+          <h1 className="text-xl sm:text-2xl font-semibold text-slate-950 tracking-tight flex items-center gap-2.5">
             <span className="p-2 bg-amber-500 text-slate-950 rounded-xl">
               <FileText className="w-5 h-5" />
             </span>
@@ -283,7 +284,7 @@ export const ContractList: React.FC<ContractListProps> = ({
                     R$ {(contract.totalAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   <p className="text-[10px] text-slate-500 italic max-w-xs truncate">
-                    ({contract.totalAmountInWords || 'zero reais'})
+                    ({valorPorExtenso(contract.totalAmount || 0)})
                   </p>
                 </div>
 

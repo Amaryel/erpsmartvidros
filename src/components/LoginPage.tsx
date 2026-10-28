@@ -186,15 +186,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
 
   return (
     <div className="min-h-screen w-full bg-slate-950 flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-x-hidden selection:bg-amber-500 selection:text-slate-950 notranslate" translate="no">
-      {/* Luzes e Efeitos de Fundo */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 sm:w-[600px] h-96 sm:h-[600px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-400/5 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute -top-20 -right-20 w-80 h-80 bg-slate-800/40 rounded-full blur-3xl pointer-events-none"></div>
-
       <div className="w-full max-w-md relative z-10 my-auto">
         {/* Identidade Visual / Logotipo no Topo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500 text-slate-950 font-black text-2xl shadow-xl shadow-amber-500/30 mb-4 ring-4 ring-amber-500/20">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-amber-500 text-slate-950 font-bold text-xl mb-4">
             SV
           </div>
 
@@ -208,7 +203,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
         </div>
 
         {/* Card Principal de Autenticação */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/50 backdrop-blur-xl">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8">
           
           {/* Alternador de Abas (Entrar / Solicitar Acesso) */}
           <div className="flex bg-slate-950/80 p-1 rounded-2xl border border-slate-800 mb-6">
@@ -328,7 +323,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 active:scale-98 text-slate-950 font-black rounded-xl text-sm shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+                className="w-full h-12 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
@@ -461,7 +456,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
                 onClick={onOpenPublicCatalog}
                 className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 hover:from-amber-500/20 hover:to-amber-500/30 text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 group shadow-lg"
               >
-                <span>✨</span>
                 <span>Ver Catálogo Digital da Vidraçaria (Acesso Livre)</span>
                 <span className="text-amber-400 group-hover:translate-x-0.5 transition-transform">→</span>
               </button>

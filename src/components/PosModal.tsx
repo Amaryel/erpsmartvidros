@@ -469,7 +469,7 @@ export const PosModal: React.FC<PosModalProps> = ({
       if (!discCheck.valid) {
         alert(
           discCheck.errorMessage ||
-            `O desconto informado ultrapassa o limite máximo permitido de ${discCheck.maxAllowedPercent}% (R$ ${discCheck.maxAllowedAmount.toFixed(2)}).`
+            `O desconto informado ultrapassa o limite máximo permitido de ${discCheck.maxAllowedPercent}% (${Number(discCheck.maxAllowedAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}).`
         );
         return;
       }
@@ -682,7 +682,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                       .filter((c) => c.status === 'ativo')
                       .map((item) => (
                         <option key={item.id} value={item.id}>
-                          {item.category === 'servico' ? '🔧' : '📦'} {item.name} — R$ {item.defaultPrice.toFixed(2)} {item.unit ? `/${item.unit}` : ''}
+                          {item.category === 'servico' ? '🔧' : '📦'} {item.name} — {Number(item.defaultPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} {item.unit ? `/${item.unit}` : ''}
                         </option>
                       ))}
                   </select>
@@ -708,7 +708,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                     </span>
                   </div>
                   <span className="text-xs text-amber-300 font-bold">
-                    Subtotal: R$ {subtotal.toFixed(2)}
+                    Subtotal: {Number(subtotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </span>
                 </div>
 
@@ -888,7 +888,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                             </div>
                             <div className="text-right flex flex-col justify-end pb-0.5">
                               <span className="text-[10px] text-slate-400 font-bold">Total do Item</span>
-                              <span className="text-sm font-black text-amber-700">R$ {item.totalPrice.toFixed(2)}</span>
+                              <span className="text-sm font-black text-amber-700">{Number(item.totalPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                             </div>
                           </div>
                         )}
@@ -1017,7 +1017,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between text-zinc-300">
                     <span>Subtotal dos Itens:</span>
-                    <span className="font-bold text-white">R$ {subtotal.toFixed(2)}</span>
+                    <span className="font-bold text-white">{Number(subtotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                   </div>
 
                   {/* Campo de Desconto */}
@@ -1080,7 +1080,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                     <div className="space-y-1 pt-0.5">
                       <div className="flex justify-between text-red-400 font-semibold text-[11px]">
                         <span>Desconto Aplicado:</span>
-                        <span>- R$ {discountAmount.toFixed(2)}</span>
+                        <span>- {Number(discountAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                       </div>
                       {(() => {
                         const check = validateUserDiscount(currentUser, subtotal, discountAmount);
@@ -1099,7 +1099,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                   <div className="border-t border-zinc-800 pt-3 mt-2 flex justify-between items-baseline">
                     <span className="text-sm font-black text-white uppercase tracking-wider">Total a Pagar:</span>
                     <span className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">
-                      R$ {totalSale.toFixed(2)}
+                      {Number(totalSale).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
                 </div>
@@ -1217,7 +1217,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-extrabold text-purple-900 flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5 text-purple-700" />
-                        <span>Parcelamento do Fiado (R$ {totalFiado.toFixed(2)})</span>
+                        <span>Parcelamento do Fiado ({Number(totalFiado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})</span>
                       </span>
 
                       <select
@@ -1267,7 +1267,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                             </div>
 
                             <strong className="text-xs font-black font-mono text-purple-950 shrink-0">
-                              R$ {amt.toFixed(2)}
+                              {Number(amt).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </strong>
                           </div>
                         ))}
@@ -1297,7 +1297,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                     <span>
                       {isBalanceValid
                         ? 'Valores conferem perfeitamente'
-                        : `Falta definir R$ ${remainingToDefine.toFixed(2)}`}
+                        : `Falta definir ${Number(remainingToDefine).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
                     </span>
                   </div>
 
@@ -1397,7 +1397,7 @@ export const PosModal: React.FC<PosModalProps> = ({
                 O que deseja fazer agora?
               </h3>
               <p className="text-xs text-slate-600 mt-1">
-                Cliente: <strong className="text-slate-900">{completedSaleResult.clientName}</strong> • Total: <strong className="text-emerald-700">R$ {completedSaleResult.total.toFixed(2)}</strong>
+                Cliente: <strong className="text-slate-900">{completedSaleResult.clientName}</strong> • Total: <strong className="text-emerald-700">{Number(completedSaleResult.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
               </p>
             </div>
 

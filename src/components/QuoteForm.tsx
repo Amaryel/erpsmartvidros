@@ -721,7 +721,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
               <span>Módulo de Orçamentos Comerciais & Técnicos</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
               {initialQuote ? `Editar Orçamento ${initialQuote.code}` : 'Novo Orçamento Smart Vidros'}
             </h1>
           </div>
@@ -1515,7 +1515,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                       <div className="flex flex-col justify-end">
                         <div className="text-xs text-slate-500 font-medium">Subtotal Item:</div>
                         <div className="text-sm text-slate-900 font-black font-mono">
-                          {Number(item.quantity) || 1} × R$ {(Number(item.unitPrice) || 0).toFixed(2)}
+                          {Number(item.quantity) || 1} × {Number(Number(item.unitPrice) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </div>
                       </div>
                     </div>

@@ -26,6 +26,7 @@ import {
   Scissors,
   Download,
   BadgeDollarSign,
+  Store,
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
@@ -143,21 +144,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'Orçamentos',
           icon: FileText,
           badge: quotesCount > 0 ? quotesCount : null,
-          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+          badgeColor: 'bg-zinc-800 text-zinc-300 border-zinc-700',
         },
         {
           id: 'sales',
           label: 'Vendas / PDV',
           icon: ShoppingBag,
           badge: salesCount > 0 ? salesCount : null,
-          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+          badgeColor: 'bg-zinc-800 text-zinc-300 border-zinc-700',
         },
         {
           id: 'contracts',
           label: 'Contratos',
           icon: Scroll,
           badge: contractsCount > 0 ? contractsCount : null,
-          badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+          badgeColor: 'bg-zinc-800 text-zinc-300 border-zinc-700',
         },
         {
           id: 'clients',
@@ -184,24 +185,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'Contas a Receber',
           icon: ShieldCheck,
           badge: receivablesCount > 0 ? receivablesCount : null,
-          badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+          badgeColor: 'bg-zinc-800 text-zinc-300 border-zinc-700',
         },
         {
           id: 'receipts',
           label: 'Recibos',
           icon: ReceiptText,
           badge: receiptsCount > 0 ? receiptsCount : null,
-          badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+          badgeColor: 'bg-zinc-800 text-zinc-300 border-zinc-700',
         },
         {
           id: 'payslips',
           label: 'Contracheques',
           icon: BadgeDollarSign,
-          badge: payslipsCount > 0 ? payslipsCount : 'NOVO',
-          badgeColor:
-            payslipsCount > 0
-              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-              : 'bg-amber-400 text-slate-950 font-black text-[9px] px-1.5 border-amber-300 shadow-sm animate-pulse',
+          badge: payslipsCount > 0 ? payslipsCount : null,
+          badgeColor: 'bg-zinc-800 text-zinc-300 border-zinc-700',
         },
       ],
     },
@@ -235,7 +233,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 label: isSuper ? 'Painel Super Admin' : 'Gestão de Usuários',
                 icon: isSuper ? ShieldCheck : UserCheck,
                 badge: pendingUsersCount > 0 ? pendingUsersCount : null,
-                badgeColor: 'bg-amber-500 text-slate-950 font-black animate-pulse',
+                badgeColor: 'bg-amber-500 text-slate-950 border-amber-400',
               },
             ]
           : []),
@@ -268,7 +266,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Container Principal do Menu Lateral (Sidebar) */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-zinc-950 border-r border-amber-500/30 text-white flex flex-col transition-all duration-300 print:hidden shadow-2xl pt-safe pb-safe ${
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-zinc-950 border-r border-zinc-800 text-white flex flex-col transition-all duration-300 print:hidden pt-safe pb-safe ${
           isCollapsed ? 'w-20' : 'w-64'
         } ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -290,7 +288,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <div
               onClick={() => handleSelectTab('dashboard')}
-              className="mx-auto cursor-pointer p-1 bg-zinc-900 border border-amber-400/50 rounded-xl hover:border-amber-400 transition-colors flex items-center justify-center"
+              className="mx-auto cursor-pointer p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-600 transition-colors flex items-center justify-center"
               title="Smart Vidros — Início"
             >
               <SmartVidrosLogo companyInfo={companyInfo} size="sm" showSubtitle={false} className="justify-center" />
@@ -314,13 +312,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onOpenPdvClick();
               setIsMobileOpen(false);
             }}
-            className={`w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
-              isCollapsed ? 'p-3' : 'px-4 py-2.5 text-xs'
+            className={`w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 ${
+              isCollapsed ? 'p-3' : 'px-4 h-10 text-sm'
             }`}
             title="Abrir Ponto de Venda (PDV)"
           >
             <ShoppingBag className="w-4 h-4 shrink-0" />
-            {!isCollapsed && <span>+ Abrir PDV</span>}
+            {!isCollapsed && <span>Abrir PDV</span>}
           </button>
 
           {!isCollapsed && (
@@ -329,11 +327,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onNewQuoteClick();
                 setIsMobileOpen(false);
               }}
-              className="w-full bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-amber-500/30 hover:border-amber-400 font-extrabold rounded-xl transition-all px-3 py-2 text-xs flex items-center justify-center gap-1.5"
+              className="w-full hover:bg-zinc-900 text-zinc-200 border border-zinc-700 hover:border-zinc-600 font-medium rounded-lg transition-colors px-3 h-10 text-sm flex items-center justify-center gap-1.5"
               title="Criar Novo Orçamento"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Novo Orçamento</span>
+              <span>Novo orçamento</span>
             </button>
           )}
         </div>
@@ -343,7 +341,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {menuGroups.map((group, groupIdx) => (
             <div key={groupIdx} className="space-y-1">
               {!isCollapsed && group.groupTitle && (
-                <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                <div className="px-3 pt-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                   {group.groupTitle}
                 </div>
               )}
@@ -367,14 +365,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <button
                       key={item.id}
                       onClick={() => handleSelectTab(item.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
                         isActive
-                          ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                          ? 'bg-zinc-800 text-white'
                           : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
                       } ${isCollapsed ? 'justify-center px-0' : ''}`}
                       title={item.label}
                     >
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-amber-400'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-zinc-500'}`} />
                       
                       {!isCollapsed && (
                         <span className="truncate flex-1 text-left">{item.label}</span>
@@ -382,9 +380,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                       {!isCollapsed && item.badge !== null && item.badge !== undefined && (
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-black border ${
+                          className={`text-[11px] px-1.5 py-0.5 rounded-md font-medium border tabular-nums ${
                             isActive
-                              ? 'bg-slate-950/20 text-slate-950 border-slate-950/20'
+                              ? 'bg-zinc-700 text-zinc-100 border-zinc-600'
                               : item.badgeColor || 'bg-zinc-800 text-amber-400 border-amber-500/30'
                           }`}
                         >
@@ -406,11 +404,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={onOpenTour}
               className={`w-full flex items-center ${
                 isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-1.5'
-              } rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 text-xs font-bold transition-all active:scale-95`}
+              } rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-900 text-sm font-medium transition-colors`}
               title="Iniciar Tour pelo Sistema"
             >
-              <HelpCircle className="w-4 h-4 text-indigo-400 shrink-0" />
-              {!isCollapsed && <span className="truncate">Tour do Sistema</span>}
+              <HelpCircle className="w-4 h-4 text-zinc-500 shrink-0" />
+              {!isCollapsed && <span className="truncate">Ajuda e tour</span>}
             </button>
           )}
 
@@ -419,11 +417,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={onOpenPwaInstall}
               className={`w-full flex items-center ${
                 isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-1.5'
-              } rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all active:scale-95`}
+              } rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-900 text-sm font-medium transition-colors`}
               title="Instalar Aplicativo (PWA) no Celular/Tablet"
             >
-              <Download className="w-4 h-4 text-amber-400 shrink-0" />
-              {!isCollapsed && <span className="truncate">Instalar App (PWA)</span>}
+              <Download className="w-4 h-4 text-zinc-500 shrink-0" />
+              {!isCollapsed && <span className="truncate">Instalar aplicativo</span>}
             </button>
           )}
 
@@ -432,11 +430,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={onOpenPublicCatalog}
               className={`w-full flex items-center ${
                 isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-1.5'
-              } rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs font-semibold transition-all`}
+              } rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-900 text-sm font-medium transition-colors`}
               title="Abrir Vitrine Pública (Link do Cliente)"
             >
-              <span className="text-amber-400 text-xs">✨</span>
-              {!isCollapsed && <span className="truncate">Vitrine do Cliente</span>}
+              <Store className="w-4 h-4 text-zinc-500 shrink-0" />
+              {!isCollapsed && <span className="truncate">Vitrine do cliente</span>}
             </button>
           )}
         </div>
@@ -445,7 +443,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-3 border-t border-zinc-800/80 shrink-0 hidden lg:block">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="w-full flex items-center justify-center gap-2 p-2 rounded-xl text-zinc-400 hover:text-amber-400 hover:bg-zinc-900 text-xs font-semibold transition-colors"
+            className="w-full flex items-center justify-center gap-2 p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 text-sm font-medium transition-colors"
             title={isCollapsed ? 'Expandir Menu Lateral' : 'Recolher Menu Lateral'}
           >
             {isCollapsed ? (
@@ -453,7 +451,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             ) : (
               <>
                 <ChevronLeft className="w-4 h-4 text-amber-400" />
-                <span>Recolher Menu</span>
+                <span>Recolher menu</span>
               </>
             )}
           </button>

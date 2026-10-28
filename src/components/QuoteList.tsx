@@ -82,7 +82,7 @@ export const QuoteList: React.FC<QuoteListProps> = ({
       {/* Cabeçalho de Ações e Título */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Gestão de Orçamentos</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">Gestão de Orçamentos</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Crie, edite, converta em venda e gere os PDFs oficiais de orçamentos e recibos.
           </p>
@@ -194,7 +194,7 @@ export const QuoteList: React.FC<QuoteListProps> = ({
                     <div key={item.id} className="text-slate-700 truncate flex justify-between">
                       <span className="truncate">• {item.name}</span>
                       <span className="font-mono font-bold shrink-0 ml-2">
-                        R$ {item.totalPrice.toFixed(2)}
+                        {Number(item.totalPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
                     </div>
                   ))}
@@ -219,7 +219,7 @@ export const QuoteList: React.FC<QuoteListProps> = ({
                   {quote.downPaymentAmount && quote.downPaymentAmount > 0 ? (
                     <div className="flex items-center justify-between text-[11px] font-bold bg-amber-50/90 p-2 rounded-xl border border-amber-200/80">
                       <span className="text-slate-600">
-                        Entrada: <strong className="text-emerald-700 font-black">R$ {quote.downPaymentAmount.toFixed(2)}</strong>
+                        Entrada: <strong className="text-emerald-700 font-black">{Number(quote.downPaymentAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
                       </span>
                       <span className="text-slate-600">
                         Restante: <strong className="text-amber-700 font-black">R$ {Math.max(0, quote.total - quote.downPaymentAmount).toFixed(2)}</strong>

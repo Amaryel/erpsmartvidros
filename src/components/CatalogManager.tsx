@@ -122,7 +122,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-20 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Catálogo de Preços & Produtos</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">Catálogo de Preços & Produtos</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Cadastre os produtos com fotos reais e preços padrão de referência para importar rapidamente nos novos orçamentos.
           </p>
@@ -397,7 +397,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                   <div className="text-right">
                     <p className="text-[10px] text-slate-400 font-semibold uppercase">Preço Padrão</p>
                     <p className="text-sm font-extrabold font-mono text-amber-600">
-                      R$ {item.defaultPrice.toFixed(2)}{' '}
+                      {Number(item.defaultPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}{' '}
                       <span className="text-[10px] text-slate-400">{item.type === 'dimensao' ? '/m²' : '/un'}</span>
                     </p>
                   </div>

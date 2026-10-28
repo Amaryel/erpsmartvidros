@@ -37,7 +37,10 @@ import { HelpSupportModal } from './components/HelpSupportModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { ResetDatabaseModal } from './components/ResetDatabaseModal';
 import { usePwaInstall } from './hooks/usePwaInstall';
-import { HelpCircle, Sparkles, Smartphone, Download } from 'lucide-react';
+import { HelpCircle, Sparkles, Smartphone, Download, LayoutDashboard, FileText, Users } from 'lucide-react';
+import MobileBottomNav from './components/MobileBottomNav';
+import { useBackNavigation } from './hooks/useBackNavigation';
+import { hasModuleAccess } from './utils/permissions';
 import {
   Quote,
   CompanyInfo,
@@ -394,6 +397,38 @@ export default function App() {
     setViewingQuote(null);
   };
 
+  // Voltar do celular/tablet (gesto do Android, navegador e seta do topo):
+  // fecha a janela aberta mais acima ou volta para a tela anterior.
+  const { goBack } = useBackNavigation<ActiveTab>({
+    activeTab,
+    setActiveTab,
+    homeTab: 'dashboard',
+    enabled: !!currentUser && !isPublicCatalogView,
+    overlays: [
+      { open: isSidebarMobileOpen, close: () => setIsSidebarMobileOpen(false) },
+      { open: isResetDatabaseModalOpen, close: () => setIsResetDatabaseModalOpen(false) },
+      { open: isTourOpen, close: () => setIsTourOpen(false) },
+      { open: isHelpModalOpen, close: () => setIsHelpModalOpen(false) },
+      { open: isSupabaseSyncModalOpen, close: () => setIsSupabaseSyncModalOpen(false) },
+      { open: isProfileModalOpen, close: () => setIsProfileModalOpen(false) },
+      { open: !!viewingQuote, close: () => setViewingQuote(null) },
+      { open: !!viewingSale, close: () => setViewingSale(null) },
+      { open: !!viewingContract, close: () => setViewingContract(null) },
+      { open: !!viewingReceipt, close: () => setViewingReceipt(null) },
+      { open: !!viewingPayslip, close: () => setViewingPayslip(null) },
+      { open: !!generatorSale, close: () => setGeneratorSale(null) },
+      { open: !!editingContract, close: () => setEditingContract(null) },
+      { open: isNewContractOpen, close: () => setIsNewContractOpen(false) },
+      {
+        open: isPosOpen,
+        close: () => {
+          setIsPosOpen(false);
+          setPosInitialQuote(null);
+        },
+      },
+    ],
+  });
+
   // Abrir PDV Venda Direta
   const handleOpenPdvDirect = () => {
     setPosInitialQuote(null);
@@ -686,8 +721,7 @@ export default function App() {
         />
 
         {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-[9999] bg-slate-900 text-amber-400 px-4 py-3 rounded-xl font-bold text-xs shadow-2xl flex items-center gap-2 border border-amber-500/50 animate-fade-in">
-            <span>✨</span>
+          <div role="status" aria-live="polite" className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:max-w-sm z-[9999] bg-slate-900 text-white px-4 py-3 rounded-lg text-sm shadow-lg">
             <span>{toastMessage}</span>
           </div>
         )}
@@ -717,8 +751,7 @@ export default function App() {
           onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
         />
         {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-[9999] bg-slate-900 text-amber-400 px-4 py-3 rounded-xl font-bold text-xs shadow-2xl flex items-center gap-2 border border-amber-500/50 animate-fade-in">
-            <span>✨</span>
+          <div role="status" aria-live="polite" className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:max-w-sm z-[9999] bg-slate-900 text-white px-4 py-3 rounded-lg text-sm shadow-lg">
             <span>{toastMessage}</span>
           </div>
         )}
@@ -752,7 +785,7 @@ export default function App() {
         }}
         onOpenPdvClick={handleOpenPdvDirect}
         onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
-        onOpenTour={() => setIsTourOpen(true)}
+        onOpenTour={() => setIsHelpModalOpen(true)}
       />
 
       {/* Conteúdo Principal com Recuo Adaptativo para a Sidebar */}
@@ -760,8 +793,7 @@ export default function App() {
         
         {/* Toast Notificação Flutuante */}
         {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-amber-400 px-4 py-3 rounded-xl font-bold text-xs shadow-2xl flex items-center gap-2 border border-amber-500/50 print:hidden animate-bounce">
-            <span>✨</span>
+          <div role="status" aria-live="polite" className="fixed bottom-24 lg:bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:max-w-sm z-50 bg-slate-900 text-white px-4 py-3 rounded-lg text-sm shadow-lg print:hidden pb-safe">
             <span>{toastMessage}</span>
           </div>
         )}
@@ -786,6 +818,7 @@ export default function App() {
             setActiveTab('new_receipt');
           }}
           onOpenPdvClick={handleOpenPdvDirect}
+          onBack={activeTab !== 'dashboard' ? goBack : undefined}
           onToggleSidebarMobile={() => setIsSidebarMobileOpen(!isSidebarMobileOpen)}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
@@ -797,7 +830,7 @@ export default function App() {
         />
 
         {/* Área de Conteúdo do Sistema */}
-        <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 pb-safe">
+        <main className="flex-1 max-w-screen-2xl w-full mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8 pb-safe">
           
           {/* ABA 1: DASHBOARD / INÍCIO */}
           {activeTab === 'dashboard' && (
@@ -1234,23 +1267,24 @@ export default function App() {
           }}
         />
 
-        {/* BOTÃO FLUTUANTE DA CENTRAL DE DÚVIDAS (Canto Inferior Direito) */}
-        <div className="fixed bottom-4 left-4 sm:left-auto sm:right-5 z-40 flex items-center gap-2 print:hidden">
-          <button
-            onClick={() => setIsHelpModalOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black px-3.5 py-2.5 rounded-2xl shadow-xl shadow-amber-500/25 border border-amber-300 transition-all hover:scale-105 active:scale-95 text-xs group"
-            title="Central de Ajuda e Dúvidas"
-          >
-            <HelpCircle className="w-4 h-4 text-slate-950" />
-            <span className="hidden sm:inline">Dúvidas? Central de Ajuda</span>
-            <span className="sm:hidden">Ajuda</span>
-          </button>
-        </div>
-
         {/* Rodapé do Sistema */}
-        <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 print:hidden mt-auto">
-          <p>Smart Vidros — Módulo ERP de Orçamentos, Vendas, PDV, Contratos, Contas a Receber e Recibos © {new Date().getFullYear()}</p>
+        <footer className="border-t border-slate-200 bg-white py-4 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-4 text-center text-xs text-slate-500 print:hidden mt-auto">
+          <p>{companyInfo.name || 'Smart Vidros'} · Sistema de gestão © {new Date().getFullYear()}</p>
         </footer>
+
+        {/* Barra de navegação inferior (celular e tablet) */}
+        <MobileBottomNav
+          activeTab={activeTab}
+          items={[
+            { id: 'dashboard', label: 'Início', icon: LayoutDashboard },
+            ...(hasModuleAccess(currentUser, 'quotes') ? [{ id: 'quotes', label: 'Orçamentos', icon: FileText }] : []),
+            ...(hasModuleAccess(currentUser, 'clients') ? [{ id: 'clients', label: 'Clientes', icon: Users }] : []),
+          ]}
+          onNavigate={(id) => setActiveTab(id as ActiveTab)}
+          onOpenPdv={hasModuleAccess(currentUser, 'sales') ? handleOpenPdvDirect : undefined}
+          onOpenMenu={() => setIsSidebarMobileOpen(true)}
+          isMenuOpen={isSidebarMobileOpen}
+        />
       </div>
     </div>
   );

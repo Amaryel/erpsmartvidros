@@ -1,7 +1,7 @@
 /**
  * Utilitário para conversão de valores monetários numéricos em texto por extenso (Português do Brasil).
  * Exemplo: 57000.00 -> "cinquenta e sete mil reais"
- *          1250.50 -> "um mil, duzentos e cinquenta reais e cinquenta centavos"
+ *          1250.50 -> "mil duzentos e cinquenta reais e cinquenta centavos"
  */
 
 const UNIDADES = [
@@ -83,49 +83,45 @@ function converterGrupoAte999(num: number): string {
 }
 
 /**
- * Converte um número inteiro (de 0 até 999.999.999) para extenso
+ * Converte um número inteiro (de 0 até 999.999.999.999) para extenso, seguindo a norma do português:
+ * - "mil" sem "um" (1.250 -> "mil duzentos e cinquenta");
+ * - "e" antes do último grupo quando ele é menor que 100 ou uma centena redonda
+ *   (1.500 -> "mil e quinhentos"; 2.050 -> "dois mil e cinquenta"; 1.005.000 -> "um milhão e cinco mil").
  */
 export function converterNumeroInteiroPorExtenso(num: number): string {
-  if (num === 0) return 'zero';
+  const inteiro = Math.floor(Math.abs(num));
+  if (inteiro === 0) return 'zero';
 
-  const bilhoes = Math.floor(num / 1_000_000_000);
-  const milhoes = Math.floor((num % 1_000_000_000) / 1_000_000);
-  const milhares = Math.floor((num % 1_000_000) / 1_000);
-  const unidades = num % 1_000;
+  const escalas: Array<[number, string, string]> = [
+    [1_000_000_000, 'bilhão', 'bilhões'],
+    [1_000_000, 'milhão', 'milhões'],
+    [1_000, 'mil', 'mil'],
+  ];
 
-  const partes: string[] = [];
+  const partes: Array<{ texto: string; quantidade: number }> = [];
+  let resto = inteiro;
 
-  if (bilhoes > 0) {
-    const textoBilhoes = converterGrupoAte999(bilhoes);
-    partes.push(`${textoBilhoes} ${bilhoes === 1 ? 'bilhão' : 'bilhões'}`);
+  for (const [base, singular, plural] of escalas) {
+    const quantidade = Math.floor(resto / base);
+    resto %= base;
+    if (quantidade === 0) continue;
+    const texto =
+      base === 1_000 && quantidade === 1
+        ? 'mil'
+        : `${converterGrupoAte999(quantidade)} ${quantidade === 1 ? singular : plural}`;
+    partes.push({ texto, quantidade });
   }
 
-  if (milhoes > 0) {
-    const textoMilhoes = converterGrupoAte999(milhoes);
-    partes.push(`${textoMilhoes} ${milhoes === 1 ? 'milhão' : 'milhões'}`);
+  if (resto > 0) {
+    partes.push({ texto: converterGrupoAte999(resto), quantidade: resto });
   }
 
-  if (milhares > 0) {
-    if (milhares === 1) {
-      partes.push('um mil');
-    } else {
-      const textoMilhares = converterGrupoAte999(milhares);
-      partes.push(`${textoMilhares} mil`);
-    }
-  }
+  if (partes.length === 1) return partes[0].texto;
 
-  if (unidades > 0) {
-    const textoUnidades = converterGrupoAte999(unidades);
-    partes.push(textoUnidades);
-  }
-
-  // Montagem da conjunção "e"
-  if (partes.length === 1) {
-    return partes[0];
-  }
-
-  // Regra padrão de junção em português
-  return partes.join(' ');
+  const ultimo = partes[partes.length - 1];
+  const usaConjuncao = ultimo.quantidade < 100 || ultimo.quantidade % 100 === 0;
+  const anteriores = partes.slice(0, -1).map((p) => p.texto).join(' ');
+  return `${anteriores}${usaConjuncao ? ' e ' : ' '}${ultimo.texto}`;
 }
 
 /**
@@ -148,7 +144,8 @@ export function valorPorExtenso(valor: number): string {
 
   if (reais > 0) {
     const textoReais = converterNumeroInteiroPorExtenso(reais);
-    const moeda = reais === 1 ? 'real' : 'reais';
+    // "um milhão de reais", "dois bilhões de reais"
+    const moeda = reais === 1 ? 'real' : reais % 1_000_000 === 0 ? 'de reais' : 'reais';
     partesReais.push(`${textoReais} ${moeda}`);
   }
 
