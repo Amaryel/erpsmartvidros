@@ -6,7 +6,6 @@ import {
   ShoppingBag,
   Scroll,
   Wallet,
-  Bot,
   ChevronRight,
   ChevronLeft,
   X,
@@ -25,7 +24,6 @@ interface SystemTourModalProps {
   onClose: () => void;
   companyInfo: CompanyInfo;
   onNavigateToTab?: (tab: any) => void;
-  onOpenSmartIA?: () => void;
 }
 
 const TOUR_STEPS = [
@@ -41,7 +39,6 @@ const TOUR_STEPS = [
       '⚡ Sincronização em tempo real na nuvem via Supabase em todos os dispositivos',
       '📱 100% responsivo para celular, tablet, notebook e computadores',
       '🔒 Segurança multicontas com controle rigoroso de permissões e descontos',
-      '🤖 Assistente Smart IA gratuito 24h para cálculos e dúvidas do dia a dia',
     ],
     targetTab: 'dashboard',
   },
@@ -109,22 +106,6 @@ const TOUR_STEPS = [
     ],
     targetTab: 'cash',
   },
-  {
-    id: 'smart_ia',
-    title: 'Smart IA: Assistente Virtual Gratuito',
-    badge: 'Inteligência Artificial 24h',
-    icon: Bot,
-    color: 'from-amber-500 to-yellow-400 text-amber-400 bg-amber-500/10 border-amber-500/30',
-    description:
-      'Sua vidraçaria agora conta com um assistente inteligente integrado para tirar dúvidas técnicas, calcular folgas de temperados e orientar sua equipe.',
-    highlights: [
-      '💬 Tire dúvidas sobre fórmulas de cálculo de vidro temperado e laminado',
-      '🛠️ Orientações sobre normas técnicas ABNT (NBR 14207 para Box, NBR 7199)',
-      '💡 Ajuda passo a passo sobre qualquer função ou relatório do ERP',
-      '⚡ Acesso instantâneo a qualquer hora pelo botão "Smart IA" no topo do sistema',
-    ],
-    targetTab: 'dashboard',
-  },
 ];
 
 export const SystemTourModal: React.FC<SystemTourModalProps> = ({
@@ -132,7 +113,6 @@ export const SystemTourModal: React.FC<SystemTourModalProps> = ({
   onClose,
   companyInfo,
   onNavigateToTab,
-  onOpenSmartIA,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -176,13 +156,6 @@ export const SystemTourModal: React.FC<SystemTourModalProps> = ({
       if (onNavigateToTab && TOUR_STEPS[prevIdx].targetTab) {
         onNavigateToTab(TOUR_STEPS[prevIdx].targetTab);
       }
-    }
-  };
-
-  const handleOpenIAFromTour = () => {
-    handleFinish();
-    if (onOpenSmartIA) {
-      setTimeout(() => onOpenSmartIA(), 150);
     }
   };
 
@@ -265,27 +238,6 @@ export const SystemTourModal: React.FC<SystemTourModalProps> = ({
               ))}
             </div>
           </div>
-
-          {/* Botão de Destaque Especial para o Smart IA no Último Passo */}
-          {isLastStep && onOpenSmartIA && (
-            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-black text-white">Experimente Agora</p>
-                  <p className="text-[11px] text-zinc-400">Abra o chat do Smart IA e faça sua primeira pergunta!</p>
-                </div>
-              </div>
-              <button
-                onClick={handleOpenIAFromTour}
-                className="w-full sm:w-auto px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all whitespace-nowrap active:scale-95"
-              >
-                Abrir Smart IA ✨
-              </button>
-            </div>
-          )}
 
           {/* Seletor de Passos (Bolinhas) */}
           <div className="flex items-center justify-center gap-2 pt-2">

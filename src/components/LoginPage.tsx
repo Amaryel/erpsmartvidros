@@ -21,7 +21,6 @@ import { AppUser } from '../types';
 import {
   loginUser,
   registerUser,
-  SUPERADMIN_EMAIL,
   getSupabaseConfig,
   saveSupabaseConfig,
   testSupabaseConnection,
@@ -96,6 +95,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
     text: string;
   } | null>(null);
 
+  const [isRegistering, setIsRegistering] = useState(false);
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
@@ -127,8 +128,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isRegistering) return;
     setRegStatusMessage(null);
 
     if (!regName.trim() || !regEmail.trim()) {
@@ -139,10 +141,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
       return;
     }
 
-    if (regPassword && regPassword.length < 3) {
+    if (regPassword.length < 8) {
       setRegStatusMessage({
         type: 'error',
-        text: 'A senha deve possuir pelo menos 3 caracteres.',
+        text: 'A senha deve possuir pelo menos 8 caracteres.',
       });
       return;
     }
@@ -155,12 +157,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
       return;
     }
 
-    const res = registerUser({
+    setIsRegistering(true);
+    const res = await registerUser({
       name: regName.trim(),
       email: regEmail.trim(),
       username: regUsername.trim() || undefined,
-      password: regPassword || '123456',
+      password: regPassword,
     });
+    setIsRegistering(false);
 
     if (res.success) {
       setRegStatusMessage({
@@ -261,7 +265,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm font-medium focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
-                    placeholder="amaryelcc@gmail.com ou amaryel"
+                    placeholder="seu@email.com ou nome de usuário"
                     autoComplete="username"
                     autoFocus
                     required
@@ -440,10 +444,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
 
               <button
                 type="submit"
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 active:scale-98 text-slate-950 font-black rounded-xl text-sm shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center gap-2 mt-3"
+                disabled={isRegistering}
+              className="w-full py-3 bg-amber-500 hover:bg-amber-400 active:scale-98 text-slate-950 font-black rounded-xl text-sm shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center gap-2 mt-3"
               >
                 <UserPlus className="w-4 h-4" />
-                <span>Enviar Solicitação de Cadastro</span>
+                <span>{isRegistering ? 'Enviando...' : 'Enviar Solicitação de Cadastro'}</span>
               </button>
             </form>
           )}
@@ -493,7 +498,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin, onOpenPubl
             <span>Ambiente Protegido & Criptografado</span>
           </div>
           <p className="text-[11px] text-slate-600">
-            Smart Vidros ERP • Administrador: {SUPERADMIN_EMAIL}
+            Smart Vidros ERP • Acesso restrito a colaboradores autorizados
           </p>
         </div>
       </div>

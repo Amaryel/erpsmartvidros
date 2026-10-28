@@ -32,7 +32,7 @@ import {
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
 import { ActiveTab } from './Sidebar';
-import { hasModuleAccess, getUserPermissions, SUPERADMIN_EMAIL } from '../utils/permissions';
+import { hasModuleAccess, getUserPermissions } from '../utils/permissions';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -52,7 +52,6 @@ interface NavbarProps {
   onOpenProfileModal?: () => void;
   onOpenSupabaseSyncModal?: () => void;
   onOpenPublicCatalog?: () => void;
-  onOpenSmartIA?: () => void;
   onOpenHelp?: () => void;
   onOpenTour?: () => void;
   onOpenPwaInstall?: () => void;
@@ -99,15 +98,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenProfileModal,
   onOpenSupabaseSyncModal,
   onOpenPublicCatalog,
-  onOpenSmartIA,
   onOpenHelp,
   onOpenTour,
   onOpenPwaInstall,
   onLogout,
 }) => {
   const isSuper =
-    currentUser?.role === 'superadmin' ||
-    (currentUser?.email && currentUser.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
+    currentUser?.role === 'superadmin';
 
   const perms = getUserPermissions(currentUser);
   const hasAccess = (modId: SystemModuleId) => hasModuleAccess(currentUser, modId);
@@ -198,23 +195,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* 🤖 BOTÃO DESTAQUE: SMART IA - Visível a partir de sm (no mobile fica no menu lateral) */}
-            {onOpenSmartIA && (
-              <button
-                onClick={onOpenSmartIA}
-                className="hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 text-amber-300 border border-amber-500/40 font-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95 group"
-                title="Abrir Assistente Smart IA (Grátis)"
-              >
-                <div className="w-4 h-4 rounded-md bg-amber-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Bot className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                </div>
-                <span className="font-extrabold">Smart IA</span>
-                <span className="hidden xl:inline text-[9px] px-1.5 py-0.2 bg-amber-500/30 text-amber-300 rounded font-black">
-                  Grátis
-                </span>
-              </button>
-            )}
-
             {/* ❓ MENU DE DÚVIDAS & TOUR - Visível a partir de md */}
             <div className="relative hidden md:block" ref={helpDropdownRef}>
               <button
@@ -232,22 +212,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-800 mb-1">
                     Ajuda & Suporte
                   </div>
-
-                  {onOpenSmartIA && (
-                    <button
-                      onClick={() => {
-                        setIsHelpDropdownOpen(false);
-                        onOpenSmartIA();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 hover:bg-amber-500/10 transition-colors text-left"
-                    >
-                      <Bot className="w-4 h-4 text-amber-400" />
-                      <div>
-                        <p className="font-extrabold">Smart IA (Chat 24h)</p>
-                        <p className="text-[10px] text-zinc-400">Tire dúvidas técnicas na hora</p>
-                      </div>
-                    </button>
-                  )}
 
                   {onOpenTour && (
                     <button

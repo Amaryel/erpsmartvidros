@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { SmartVidrosLogo } from './SmartVidrosLogo';
 import { AppUser, CompanyInfo, SystemModuleId } from '../types';
-import { hasModuleAccess, SUPERADMIN_EMAIL } from '../utils/permissions';
+import { hasModuleAccess } from '../utils/permissions';
 
 export type ActiveTab =
   | 'dashboard'
@@ -85,7 +85,6 @@ interface SidebarProps {
   onNewQuoteClick: () => void;
   onOpenPdvClick: () => void;
   onOpenPublicCatalog?: () => void;
-  onOpenSmartIA?: () => void;
   onOpenTour?: () => void;
   onOpenPwaInstall?: () => void;
 }
@@ -109,13 +108,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewQuoteClick,
   onOpenPdvClick,
   onOpenPublicCatalog,
-  onOpenSmartIA,
   onOpenTour,
   onOpenPwaInstall,
 }) => {
   const isSuper =
-    currentUser?.role === 'superadmin' ||
-    (currentUser?.email && currentUser.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
+    currentUser?.role === 'superadmin';
 
   const canManageUsers =
     isSuper ||
@@ -402,28 +399,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </nav>
 
-        {/* Acesso Rápido à Smart IA e Tour */}
+        {/* Acesso Rápido ao Tour */}
         <div className="p-2.5 border-t border-zinc-800/80 shrink-0 space-y-1.5">
-          {onOpenSmartIA && (
-            <button
-              onClick={onOpenSmartIA}
-              className={`w-full flex items-center ${
-                isCollapsed ? 'justify-center p-2.5' : 'gap-2 px-3 py-2'
-              } rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-xs font-black transition-all shadow-sm group active:scale-95`}
-              title="Abrir Assistente Smart IA"
-            >
-              <Bot className="w-4 h-4 text-amber-400 shrink-0 group-hover:animate-pulse" />
-              {!isCollapsed && (
-                <div className="flex items-center justify-between flex-1 min-w-0">
-                  <span className="truncate">Smart IA</span>
-                  <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded-full font-black border border-amber-500/30">
-                    Grátis
-                  </span>
-                </div>
-              )}
-            </button>
-          )}
-
           {onOpenTour && (
             <button
               onClick={onOpenTour}

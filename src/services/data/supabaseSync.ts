@@ -149,7 +149,7 @@ function mapEntityToSupabaseRow(table: string, entity: any): { targetTable: stri
           name: entity.name,
           email: entity.email,
           username: entity.username || (entity.email ? entity.email.split('@')[0] : 'usuario'),
-          password: entity.password || '123456',
+          permissions: entity.permissions || null,
           role: entity.role || 'vendedor',
           status: entity.status || 'pendente',
           approved_at: entity.approvedAt || null,
@@ -348,6 +348,12 @@ export function autoSyncEntityChange(
       const client = getSupabaseClient();
       if (!client) return;
 
+      // Perfis de usuário são gravados diretamente pelo repositório de usuários
+      if (table === 'user_accounts') return;
+
+      const { data: sessionData } = await client.auth.getSession();
+      if (!sessionData?.session) return;
+
       const mapped = mapEntityToSupabaseRow(table, data);
       const targetTable = mapped ? mapped.targetTable : (table === 'catalog' ? 'catalog_items' : table);
 
@@ -376,6 +382,12 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
     return { success: false, message: 'Supabase não está configurado. Informe a URL e Chave.' };
   }
 
+  // Sem usuário autenticado não há sincronização (o banco recusa acesso anônimo)
+  const { data: sessionData } = await client.auth.getSession();
+  if (!sessionData?.session) {
+    return { success: false, message: 'Entre no sistema para sincronizar os dados com a nuvem.' };
+  }
+
   try {
     let totalPushed = 0;
 
@@ -399,29 +411,7 @@ export async function pushAllToSupabase(): Promise<SyncResult> {
       if (!error) totalPushed++;
     }
 
-    // 2. Usuários
-    const usersStr = localStorage.getItem('smart_vidros_user_accounts');
-    if (usersStr) {
-      const users: UserAccount[] = JSON.parse(usersStr);
-      if (users.length > 0) {
-        const rows = users.map((u) => ({
-          id: u.id,
-          company_id: u.companyId || 'comp-smart-vidros-001',
-          name: u.name,
-          email: u.email,
-          username: u.username || (u.email ? u.email.split('@')[0] : 'usuario'),
-          password: u.password || '123456',
-          role: u.role,
-          status: u.status,
-          approved_at: u.approvedAt || null,
-          approved_by: u.approvedBy || null,
-          created_at: u.createdAt || new Date().toISOString(),
-          updated_at: u.updatedAt || new Date().toISOString(),
-        }));
-        const { error } = await client.from('user_accounts').upsert(rows);
-        if (!error) totalPushed += users.length;
-      }
-    }
+    // 2. Usuários: não são enviados por aqui (gestão exclusiva pelo painel de administração)
 
     // 3. Clientes
     const clientsStr = localStorage.getItem('smart_vidros_clients');
@@ -666,6 +656,12 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
     return { success: false, message: 'Supabase não está configurado.' };
   }
 
+  // Sem usuário autenticado não há sincronização (o banco recusa acesso anônimo)
+  const { data: sessionData } = await client.auth.getSession();
+  if (!sessionData?.session) {
+    return { success: false, message: 'Entre no sistema para sincronizar os dados com a nuvem.' };
+  }
+
   try {
     let pulledTotal = 0;
 
@@ -688,24 +684,24 @@ export async function pullAllFromSupabase(): Promise<SyncResult> {
       pulledTotal++;
     }
 
-    // 2. Usuários
+    // 2. Usuários (somente perfis — credenciais ficam exclusivamente no Supabase Auth)
     const { data: users, error: uErr } = await client.from('user_accounts').select('*');
     if (!uErr && users && users.length > 0) {
-      const userModels: UserAccount[] = users.map((u) => ({
+      const userModels: UserAccount[] = users.map((u: any) => ({
         id: u.id,
-        companyId: u.company_id || 'comp-smart-vidros-001',
+        companyId: u.company_id || '',
         name: u.name,
-        email: u.email,
-        username: u.username || (u.email ? u.email.split('@')[0] : 'usuario'),
-        password: u.password,
+        email: (u.email || '').toLowerCase(),
+        username: u.username || undefined,
         role: u.role || 'vendedor',
-        status: u.status || 'aprovado',
+        status: u.status || 'pendente',
+        permissions: u.permissions || undefined,
         createdAt: u.created_at,
         updatedAt: u.updated_at,
-        approvedAt: u.approved_at,
-        approvedBy: u.approved_by,
+        approvedAt: u.approved_at || undefined,
+        approvedBy: u.approved_by || undefined,
       }));
-      localStorage.setItem('smart_vidros_user_accounts', JSON.stringify(userModels));
+      localStorage.setItem('smart_vidros_users', JSON.stringify(userModels));
       pulledTotal += users.length;
     }
 
@@ -954,4 +950,49 @@ export async function syncAllWithSupabase(): Promise<SyncResult> {
     success: true,
     message: `Sincronização bidirecional concluída com sucesso! (${pushRes.pushedCount || 0} enviados, ${pullRes.pulledCount || 0} recebidos)`,
   };
+}
+
+// ============================================================================
+// VITRINE PÚBLICA (visitantes sem login)
+// Usa o RPC public.get_public_catalog, que expõe SOMENTE catálogo e contato da empresa.
+// ============================================================================
+export async function fetchPublicCatalog(): Promise<{ company: Partial<CompanyInfo> | null; items: CatalogItem[] } | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client.rpc('get_public_catalog');
+    if (error || !data) return null;
+
+    const c = (data as any).company;
+    const company: Partial<CompanyInfo> | null = c
+      ? {
+          name: c.name || '',
+          phone: c.phone || '',
+          email: c.email || '',
+          address: c.address || '',
+          city: c.city || '',
+          logoUrl: c.logo_url || '',
+        }
+      : null;
+
+    const items: CatalogItem[] = (((data as any).items as any[]) || []).map((ci: any) => ({
+      id: ci.id,
+      companyId: ci.company_id || 'comp-smart-vidros-001',
+      name: ci.name,
+      description: ci.description || '',
+      type: ci.type || 'dimensao',
+      category: ci.category || 'produto',
+      defaultPrice: Number(ci.unit_price) || 0,
+      status: 'ativo',
+      unit: ci.unit_of_measure || (ci.type === 'dimensao' ? 'm²' : 'un'),
+      createdAt: ci.created_at || new Date().toISOString(),
+      updatedAt: ci.created_at || new Date().toISOString(),
+    })) as CatalogItem[];
+
+    return { company, items };
+  } catch (err) {
+    console.warn('[Vitrine] Não foi possível carregar o catálogo público:', err);
+    return null;
+  }
 }

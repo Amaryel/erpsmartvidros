@@ -587,8 +587,11 @@ function sliceCanvasIntoPages(canvas: HTMLCanvasElement, iframeDoc: Document): H
   }
 
   const root = iframeDoc.getElementById('pdf-root') || iframeDoc.body;
-  const rootRect = root.getBoundingClientRect();
-  const scaleFactor = canvas.height / (rootRect.height || 1);
+  // O canvas corresponde ao iframeDoc.body (não ao #pdf-root, que tem padding) e o html2canvas
+  // usa escala uniforme. Medir a partir do #pdf-root com canvas.height/altura deslocava os
+  // pontos de corte e podia partir uma linha da tabela ao meio entre páginas.
+  const rootRect = iframeDoc.body.getBoundingClientRect();
+  const scaleFactor = canvas.width / (rootRect.width || 800);
 
   // Mapear limites dos blocos que não devem ser cortados
   const candidateElements = root.querySelectorAll(
@@ -955,10 +958,96 @@ async function convertSvgElementsToImages(container: HTMLElement, doc: Document)
 }
 
 /**
+ * Ajustes aplicados por cima do CSS real da aplicação dentro do documento isolado do PDF.
+ * Garante largura A4 fixa (800px), fundo branco e remove elementos marcados como "só tela".
+ */
+const PDF_DOCUMENT_OVERRIDES = `
+  html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; width: 800px !important; }
+  #pdf-root { width: 800px !important; padding: 24px !important; box-sizing: border-box !important; background: #ffffff !important; overflow: visible !important; max-height: none !important; height: auto !important; }
+  .print\\:hidden, [data-pdf-hide] { display: none !important; }
+  *, *::before, *::after { animation: none !important; transition: none !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+`;
+
+const UNSUPPORTED_COLOR_PATTERN = /oklch|oklab|color-mix|color\(|lab\(|lch\(|light-dark/;
+const COLOR_PROPERTIES = [
+  'color', 'background-color', 'border-top-color', 'border-right-color', 'border-bottom-color',
+  'border-left-color', 'outline-color', 'text-decoration-color', 'fill', 'stroke', 'box-shadow',
+  'background-image', 'caret-color', 'column-rule-color',
+];
+
+/**
+ * CAUSA do texto "deslocado para baixo" no PDF (selos cortados, textos encostando em bordas):
+ * o html2canvas mede a linha de base das fontes no documento PRINCIPAL usando uma imagem 1x1
+ * (gif em base64). O reset do Tailwind aplica `img { display: block }` a essa imagem, a medição
+ * sai errada e TODO texto é desenhado ~4px abaixo. Esta regra restaura a medição correta e só
+ * atinge a imagem de medição do html2canvas.
+ */
+const HTML2CANVAS_METRICS_FIX = 'img[src^="data:image/gif;base64,R0lGOD"] { display: inline !important; vertical-align: baseline !important; }';
+
+function ensureHtml2CanvasMetricsFix(): void {
+  if (typeof document === 'undefined' || document.querySelector('style[data-pdf-metrics-fix]')) return;
+  const style = document.createElement('style');
+  style.setAttribute('data-pdf-metrics-fix', 'true');
+  style.textContent = HTML2CANVAS_METRICS_FIX;
+  document.head.appendChild(style);
+}
+
+/**
+ * Lê as folhas de estilo reais da aplicação (Tailwind compilado) para que o PDF tenha
+ * exatamente o mesmo layout do preview. Cores modernas (oklch/oklab) são convertidas para RGB,
+ * pois o html2canvas não as interpreta. Retorna '' se nada puder ser lido (usa o CSS de fallback).
+ */
+async function collectAppStylesheets(): Promise<{ css: string; externalLinks: string[] }> {
+  const chunks: string[] = [];
+  const externalLinks: string[] = [];
+  const nodes = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'));
+  for (const node of nodes) {
+    try {
+      if (node.tagName === 'STYLE') {
+        chunks.push(node.textContent || '');
+        continue;
+      }
+      const href = (node as HTMLLinkElement).href;
+      if (!href) continue;
+      const url = new URL(href, window.location.href);
+      if (url.origin !== window.location.origin) {
+        externalLinks.push(url.href); // ex.: Google Fonts
+        continue;
+      }
+      const res = await fetch(url.href);
+      if (res.ok) chunks.push(await res.text());
+    } catch (err) {
+      console.warn('[PDF] Não foi possível ler uma folha de estilo da aplicação:', err);
+    }
+  }
+  const css = chunks.join('\n');
+  return { css: css.trim() ? convertAllUnsupportedColors(css) : '', externalLinks };
+}
+
+/**
+ * Converte para RGB (inline) qualquer cor computada que ainda use funções não suportadas
+ * pelo html2canvas (ex.: color-mix gerado pelas opacidades do Tailwind v4).
+ */
+function inlineUnsupportedComputedColors(doc: Document): void {
+  const view = doc.defaultView;
+  if (!view) return;
+  doc.querySelectorAll<HTMLElement>('#pdf-root, #pdf-root *').forEach((el) => {
+    const cs = view.getComputedStyle(el);
+    for (const prop of COLOR_PROPERTIES) {
+      const value = cs.getPropertyValue(prop);
+      if (value && UNSUPPORTED_COLOR_PATTERN.test(value)) {
+        el.style.setProperty(prop, convertAllUnsupportedColors(value), 'important');
+      }
+    }
+  });
+}
+
+/**
  * OBRIGA a geração do arquivo PDF com corte inteligente de páginas e download direto.
  * 100% à prova de falhas e sem textos cortados ao meio!
  */
 export const downloadPdfElement = async (elementOrId: string | HTMLElement, filename: string): Promise<boolean> => {
+  ensureHtml2CanvasMetricsFix();
   const targetElement = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
   if (!targetElement) {
     console.error(`Elemento para gerar PDF não foi encontrado:`, elementOrId);
@@ -969,6 +1058,9 @@ export const downloadPdfElement = async (elementOrId: string | HTMLElement, file
   await preRasterizeAllTechnicalDrawings(targetElement);
 
   // 1. Criar um iframe isolado do Tailwind v4 principal
+    // Usa o CSS real da aplicação (mesmo layout do preview); se indisponível, cai no CSS isolado
+    const appStyles = await collectAppStylesheets();
+
   const iframe = document.createElement('iframe');
   iframe.setAttribute('style', 'position: fixed; left: 0; top: 0; width: 800px; height: 1120px; border: none; opacity: 1; visibility: visible; pointer-events: none; z-index: -99999;');
   document.body.appendChild(iframe);
@@ -988,7 +1080,9 @@ export const downloadPdfElement = async (elementOrId: string | HTMLElement, file
           <meta charset="utf-8">
           <meta name="google" content="notranslate">
           <title>${filename}</title>
-          <style>${ISOLATED_IFRAME_CSS}</style>
+          ${appStyles.css
+      ? `${appStyles.externalLinks.map((href) => `<link rel="stylesheet" href="${href}">`).join('')}<style>${appStyles.css}</style><style>${PDF_DOCUMENT_OVERRIDES}</style>`
+      : `<style>${ISOLATED_IFRAME_CSS}</style>`}
         </head>
         <body class="notranslate" translate="no">
           <div id="pdf-root" class="notranslate" translate="no">
@@ -1004,6 +1098,11 @@ export const downloadPdfElement = async (elementOrId: string | HTMLElement, file
     if (rootEl) {
       await convertSvgElementsToImages(rootEl, iframeDoc);
       sanitizeElementStyles(rootEl);
+    }
+
+    // 2.2 Com o CSS real da aplicação, normaliza cores modernas restantes para o html2canvas
+    if (appStyles.css) {
+      inlineUnsupportedComputedColors(iframeDoc);
     }
 
     // Pausa para montagem e estabilização do layout + garantia de decodificação completa das imagens PNG

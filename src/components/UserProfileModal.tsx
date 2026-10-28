@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, KeyRound, ShieldCheck, UserCheck, Eye, EyeOff, Save, X, Mail } from 'lucide-react';
 import { AppUser } from '../types';
-import { updateUser, getUsers, setSessionUser } from '../services/storage';
+import { updateUser, getUsers, setSessionUser, changeOwnPassword } from '../services/storage';
 
 interface UserProfileModalProps {
   currentUser: AppUser | null;
@@ -26,6 +26,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -41,8 +42,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   if (!isOpen || !currentUser) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     setErrorMsg(null);
 
     if (!name.trim()) {
@@ -58,8 +60,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const cleanUsername = username.trim().toLowerCase().replace(/\s+/g, '');
 
     // Verificar se o username já está em uso por outro usuário
-    const allUsers = getUsers();
-    const existingUsernameUser = allUsers.find(
+    const existingUsernameUser = getUsers().find(
       (u) => u.id !== currentUser.id && u.username && u.username.toLowerCase() === cleanUsername
     );
     if (existingUsernameUser) {
@@ -67,16 +68,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       return;
     }
 
-    const currentAccount = allUsers.find((u) => u.id === currentUser.id);
-
-    // Se forneceu nova senha, validar
-    if (newPassword || confirmPassword || currentPassword) {
-      if (currentAccount?.password && currentAccount.password !== currentPassword) {
-        setErrorMsg('A senha atual digitada está incorreta.');
+    const wantsPasswordChange = Boolean(newPassword || confirmPassword || currentPassword);
+    if (wantsPasswordChange) {
+      if (!currentPassword) {
+        setErrorMsg('Informe sua senha atual para definir uma nova senha.');
         return;
       }
-      if (newPassword.length < 3) {
-        setErrorMsg('A nova senha deve possuir no mínimo 3 caracteres.');
+      if (newPassword.length < 8) {
+        setErrorMsg('A nova senha deve possuir no mínimo 8 caracteres.');
         return;
       }
       if (newPassword !== confirmPassword) {
@@ -85,34 +84,36 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       }
     }
 
-    // Atualizar no repositório de usuários
-    const updatePayload: Record<string, any> = {
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      username: cleanUsername,
-    };
+    setIsSaving(true);
+    try {
+      // A senha é alterada no Supabase Auth (com confirmação da senha atual)
+      if (wantsPasswordChange) {
+        const pwd = await changeOwnPassword(currentPassword, newPassword);
+        if (!pwd.success) {
+          setErrorMsg(pwd.message);
+          return;
+        }
+      }
 
-    if (newPassword.trim()) {
-      updatePayload.password = newPassword.trim();
-    }
+      const updatedAcc = await updateUser(currentUser.id, {
+        name: name.trim(),
+        username: cleanUsername,
+      });
 
-    const updatedAcc = updateUser(currentUser.id, updatePayload);
-
-    if (updatedAcc) {
       const updatedAppUser: AppUser = {
         ...currentUser,
-        name: updatedAcc.name,
-        email: updatedAcc.email,
-        username: updatedAcc.username,
+        name: updatedAcc?.name || name.trim(),
+        username: updatedAcc?.username || cleanUsername,
       };
 
-      // Atualizar a sessão ativa
       setSessionUser(updatedAppUser);
       onUpdateUser(updatedAppUser);
-      onShowToast('Seu perfil e senha foram atualizados e sincronizados com sucesso!');
+      onShowToast(wantsPasswordChange ? 'Perfil e senha atualizados com sucesso!' : 'Perfil atualizado com sucesso!');
       onClose();
-    } else {
-      setErrorMsg('Ocorreu um erro ao atualizar os dados. Tente novamente.');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Ocorreu um erro ao atualizar os dados. Tente novamente.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -203,7 +204,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    readOnly
+                    aria-readonly="true"
+                    title="O e-mail de acesso é gerenciado pelo administrador"
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all"
                     placeholder="exemplo@email.com"
                     required
@@ -314,10 +317,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
             <button
               type="submit"
-              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+              disabled={isSaving}
+            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5"
             >
               <Save className="w-4 h-4" />
-              <span>Salvar Alterações</span>
+              <span>{isSaving ? 'Salvando...' : 'Salvar Alterações'}</span>
             </button>
           </div>
         </form>

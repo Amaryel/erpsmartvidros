@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   HelpCircle,
   X,
-  Bot,
   Sparkles,
   Play,
   ChevronDown,
@@ -24,7 +23,6 @@ interface HelpSupportModalProps {
   onClose: () => void;
   companyInfo: CompanyInfo;
   onStartTour: () => void;
-  onOpenSmartIA: () => void;
 }
 
 interface FaqItem {
@@ -83,7 +81,6 @@ export const HelpSupportModal: React.FC<HelpSupportModalProps> = ({
   onClose,
   companyInfo,
   onStartTour,
-  onOpenSmartIA,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'todos' | 'calculos' | 'contratos' | 'financeiro' | 'sistema'>('todos');
@@ -125,7 +122,7 @@ export const HelpSupportModal: React.FC<HelpSupportModalProps> = ({
                 </span>
               </h2>
               <p className="text-xs text-zinc-400">
-                Tire dúvidas com a Smart IA, faça um tour guiado ou consulte o guia rápido
+                Faça um tour guiado, consulte o guia rápido ou fale com o suporte
               </p>
             </div>
           </div>
@@ -142,37 +139,8 @@ export const HelpSupportModal: React.FC<HelpSupportModalProps> = ({
         {/* Corpo com Scroll */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
           
-          {/* CARDS PRINCIPAIS: SMART IA & TOUR DO SISTEMA */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Card Smart IA */}
-            <div className="bg-gradient-to-br from-amber-500/15 via-zinc-900 to-zinc-900 border border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
-                    <Bot className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
-                    IA Gratuita 24h
-                  </span>
-                </div>
-                <h3 className="text-sm sm:text-base font-black text-white">Smart IA Assistente</h3>
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  Converse com a inteligência artificial para calcular folgas, tirar dúvidas de fórmulas, normas e funções do sistema.
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenSmartIA();
-                }}
-                className="mt-4 w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Perguntar ao Smart IA</span>
-              </button>
-            </div>
-
+          {/* CARD PRINCIPAL: TOUR DO SISTEMA */}
+          <div className="grid grid-cols-1 gap-3.5">
             {/* Card Tour Interativo */}
             <div className="bg-gradient-to-br from-indigo-500/15 via-zinc-900 to-zinc-900 border border-indigo-500/40 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
               <div className="space-y-2">
@@ -280,7 +248,7 @@ export const HelpSupportModal: React.FC<HelpSupportModalProps> = ({
                 })
               ) : (
                 <div className="text-center py-6 text-xs text-zinc-500">
-                  Nenhuma dúvida encontrada para "{searchQuery}". Experimente perguntar ao **Smart IA** acima!
+                  Nenhuma dúvida encontrada para "{searchQuery}". Fale com o suporte pelo WhatsApp abaixo.
                 </div>
               )}
             </div>

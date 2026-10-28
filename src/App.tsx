@@ -33,12 +33,11 @@ import { PublicCatalogView } from './components/PublicCatalogView';
 import { ReportsModule } from './components/ReportsModule';
 import { CutCalculatorModule } from './components/CutCalculator/CutCalculatorModule';
 import { SystemTourModal } from './components/SystemTourModal';
-import { SmartIAChatDrawer } from './components/SmartIAChatDrawer';
 import { HelpSupportModal } from './components/HelpSupportModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { ResetDatabaseModal } from './components/ResetDatabaseModal';
 import { usePwaInstall } from './hooks/usePwaInstall';
-import { Bot, HelpCircle, Sparkles, Smartphone, Download } from 'lucide-react';
+import { HelpCircle, Sparkles, Smartphone, Download } from 'lucide-react';
 import {
   Quote,
   CompanyInfo,
@@ -76,7 +75,11 @@ import {
   getCurrentSessionUser,
   logoutUser,
   getUsers,
-  SUPERADMIN_EMAIL,
+  purgeLegacyCredentials,
+  restoreSupabaseSession,
+  subscribeToAuthChanges,
+  fetchUsersFromSupabase,
+  fetchPublicCatalog,
   initSupabaseKeepAlive,
   getContracts,
   deleteContract,
@@ -110,6 +113,8 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSupabaseSyncModalOpen, setIsSupabaseSyncModalOpen] = useState(false);
   const [pendingUsersCount, setPendingUsersCount] = useState(0);
+  // Só libera a interface depois de validar a sessão no servidor
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   // Aba Início/Dashboard como Padrão
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -147,9 +152,8 @@ export default function App() {
   // Toast Notificação
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Estados para Tour, Smart IA, Central de Dúvidas e Zerar Banco
+  // Estados para Tour, Central de Dúvidas e Zerar Banco
   const [isTourOpen, setIsTourOpen] = useState(false);
-  const [isSmartIAOpen, setIsSmartIAOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isResetDatabaseModalOpen, setIsResetDatabaseModalOpen] = useState(false);
 
@@ -193,10 +197,45 @@ export default function App() {
     };
   }, []);
 
+  // Vitrine pública: visitantes sem login recebem apenas catálogo e contato (RPC público)
+  useEffect(() => {
+    if (!isPublicCatalogView || currentUser) return;
+    let active = true;
+    fetchPublicCatalog().then((res) => {
+      if (!active || !res) return;
+      if (res.items.length > 0) setCatalog(res.items);
+      if (res.company) {
+        const publicCompany = Object.fromEntries(
+          Object.entries(res.company).filter(([, value]) => value !== '' && value !== null && value !== undefined)
+        );
+        setCompanyInfoState((prev) => ({ ...prev, ...publicCompany }));
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [isPublicCatalogView, currentUser]);
+
+
   // Carregar dados iniciais, disparar sincronização com o Supabase e iniciar Keep-Alive
   useEffect(() => {
+    purgeLegacyCredentials();
     initSupabaseKeepAlive();
     refreshData();
+
+    // Valida a sessão no Supabase (token + perfil aprovado) antes de liberar o sistema
+    restoreSupabaseSession()
+      .then((user) => {
+        setCurrentUser(user);
+        refreshData();
+        if (user) syncUsersFromCloud();
+      })
+      .finally(() => setIsAuthReady(true));
+
+    // Sessão encerrada (logout em outra aba, token expirado ou conta removida)
+    const unsubscribeAuth = subscribeToAuthChanges(() => {
+      setCurrentUser(null);
+    });
 
     // Sincronização inicial em nuvem para garantir que dispositivos novos baixem todos os dados
     pullAllFromSupabase()
@@ -238,6 +277,7 @@ export default function App() {
         setIsTourOpen(true);
       }, 1500);
       return () => {
+        unsubscribeAuth();
         clearTimeout(timer);
         clearInterval(syncInterval);
         window.removeEventListener('focus', handleWindowFocus);
@@ -245,10 +285,19 @@ export default function App() {
     }
 
     return () => {
+      unsubscribeAuth();
       clearInterval(syncInterval);
       window.removeEventListener('focus', handleWindowFocus);
     };
   }, []);
+
+  // Atualiza a lista de usuários da empresa a partir do banco (RLS limita à própria empresa)
+  const syncUsersFromCloud = () => {
+    fetchUsersFromSupabase()
+      .then(() => refreshData())
+      .catch((err) => console.warn('[App] Atualização de usuários:', err));
+  };
+
 
   const refreshData = () => {
     setQuotes(getQuotes());
@@ -282,6 +331,7 @@ export default function App() {
     } catch (err) {
       console.warn('[Login] Erro ao sincronizar dados pós-login:', err);
     }
+    syncUsersFromCloud();
   };
 
   const handleLogout = () => {
@@ -645,6 +695,19 @@ export default function App() {
     );
   }
 
+  // Enquanto a sessão é validada no servidor, não exibe o sistema nem a tela de login
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center" role="status" aria-live="polite">
+        <div className="flex flex-col items-center gap-3 text-slate-400 text-xs font-semibold">
+          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <span>Verificando sua sessão...</span>
+        </div>
+      </div>
+    );
+  }
+
+
   // Bloqueio de Segurança / Rota de Login: se o usuário não estiver autenticado, exibir a LoginPage com opção de ver o catálogo público
   if (!currentUser) {
     return (
@@ -689,7 +752,6 @@ export default function App() {
         }}
         onOpenPdvClick={handleOpenPdvDirect}
         onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
-        onOpenSmartIA={() => setIsSmartIAOpen(true)}
         onOpenTour={() => setIsTourOpen(true)}
       />
 
@@ -729,7 +791,6 @@ export default function App() {
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
           onOpenSupabaseSyncModal={() => setIsSupabaseSyncModalOpen(true)}
           onOpenPublicCatalog={() => setIsPublicCatalogView(true)}
-          onOpenSmartIA={() => setIsSmartIAOpen(true)}
           onOpenHelp={() => setIsHelpModalOpen(true)}
           onOpenTour={() => setIsTourOpen(true)}
           onLogout={handleLogout}
@@ -1153,17 +1214,6 @@ export default function App() {
           onClose={() => setIsTourOpen(false)}
           companyInfo={companyInfo}
           onNavigateToTab={(tab) => setActiveTab(tab)}
-          onOpenSmartIA={() => setIsSmartIAOpen(true)}
-        />
-
-        {/* GAVETA LATERAL / WIDGET DO CHAT SMART IA */}
-        <SmartIAChatDrawer
-          isOpen={isSmartIAOpen}
-          onClose={() => setIsSmartIAOpen(false)}
-          currentUser={currentUser}
-          companyInfo={companyInfo}
-          onNavigateToTab={(tab) => setActiveTab(tab)}
-          onShowToast={showToast}
         />
 
         {/* MODAL DA CENTRAL DE AJUDA & DÚVIDAS */}
@@ -1172,7 +1222,6 @@ export default function App() {
           onClose={() => setIsHelpModalOpen(false)}
           companyInfo={companyInfo}
           onStartTour={() => setIsTourOpen(true)}
-          onOpenSmartIA={() => setIsSmartIAOpen(true)}
         />
 
         {/* MODAL DE ZERAR BANCO DE DADOS */}
@@ -1185,19 +1234,16 @@ export default function App() {
           }}
         />
 
-        {/* BOTÃO FLUTUANTE DE DÚVIDAS & SMART IA (Canto Inferior Direito) */}
+        {/* BOTÃO FLUTUANTE DA CENTRAL DE DÚVIDAS (Canto Inferior Direito) */}
         <div className="fixed bottom-4 left-4 sm:left-auto sm:right-5 z-40 flex items-center gap-2 print:hidden">
           <button
-            onClick={() => setIsSmartIAOpen(true)}
+            onClick={() => setIsHelpModalOpen(true)}
             className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black px-3.5 py-2.5 rounded-2xl shadow-xl shadow-amber-500/25 border border-amber-300 transition-all hover:scale-105 active:scale-95 text-xs group"
-            title="Dúvidas? Pergunte ao Smart IA (Grátis)"
+            title="Central de Ajuda e Dúvidas"
           >
-            <div className="relative">
-              <Bot className="w-4 h-4 text-slate-950 group-hover:animate-spin" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-600 rounded-full animate-ping" />
-            </div>
-            <span className="hidden sm:inline">Dúvidas? Smart IA</span>
-            <span className="sm:hidden">Smart IA</span>
+            <HelpCircle className="w-4 h-4 text-slate-950" />
+            <span className="hidden sm:inline">Dúvidas? Central de Ajuda</span>
+            <span className="sm:hidden">Ajuda</span>
           </button>
         </div>
 

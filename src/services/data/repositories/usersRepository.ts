@@ -1,89 +1,145 @@
-import { UserAccount, UserRole, UserPermissions } from '../../../types';
+import { UserAccount, UserRole, UserPermissions, UserStatus } from '../../../types';
 import { storageAdapter } from '../storageAdapter';
-import { generateUUID } from '../uuid';
-import { autoSyncEntityChange } from '../supabaseSync';
 import { getDefaultPermissions } from '../../../utils/permissions';
 import { getSupabaseClient } from '../../../lib/supabase';
 
+/**
+ * REPOSITÓRIO DE USUÁRIOS
+ * -----------------------------------------------------------------------------
+ * Fonte da verdade: tabela public.user_accounts (Supabase), protegida por RLS.
+ * Credenciais (senhas) ficam EXCLUSIVAMENTE no Supabase Auth — nunca neste app,
+ * nunca no banco de dados da aplicação e nunca no armazenamento do navegador.
+ *
+ * O armazenamento local guarda apenas uma cópia (cache) dos perfis da empresa
+ * para exibição rápida e uso offline.
+ */
+
 export const USERS_KEY = 'smart_vidros_users';
-export const SUPERADMIN_EMAIL = 'amaryelcc@gmail.com';
-const DEFAULT_COMPANY_ID = 'comp-smart-vidros-001';
+const MIN_PASSWORD_LENGTH = 8;
 
-export const INITIAL_USERS: UserAccount[] = [
-  {
-    id: 'usr-superadmin-001',
-    companyId: DEFAULT_COMPANY_ID,
-    name: 'Amaryel (Super Admin)',
-    email: SUPERADMIN_EMAIL,
-    username: 'amaryel',
-    password: 'admin',
-    role: 'superadmin',
-    status: 'aprovado',
-    permissions: getDefaultPermissions('superadmin'),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    approvedAt: new Date().toISOString(),
-    approvedBy: 'Sistema',
-  },
-  {
-    id: 'usr-admin-001',
-    companyId: DEFAULT_COMPANY_ID,
-    name: 'James Clayton (Admin)',
-    email: 'contato.smartvidros@gmail.com',
-    username: 'smartvidros',
-    password: '123',
-    role: 'admin',
-    status: 'aprovado',
-    permissions: getDefaultPermissions('admin'),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    approvedAt: new Date().toISOString(),
-    approvedBy: 'Amaryel',
-  },
-  {
-    id: 'usr-vendedor-001',
-    companyId: DEFAULT_COMPANY_ID,
-    name: 'Carlos Mendes (Vendedor)',
-    email: 'vendedor@smartvidros.com',
-    username: 'vendedor',
-    password: '123',
-    role: 'vendedor',
-    status: 'aprovado',
-    permissions: {
-      ...getDefaultPermissions('vendedor'),
-      maxDiscountPercent: 10,
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    approvedAt: new Date().toISOString(),
-    approvedBy: 'James Clayton',
-  },
-];
+/** Mantido por compatibilidade: não existem mais usuários pré-cadastrados no código. */
+export const INITIAL_USERS: UserAccount[] = [];
 
-export function getUsers(): UserAccount[] {
-  const data = storageAdapter.getItem<UserAccount[]>(USERS_KEY, null);
-  if (!data) {
-    storageAdapter.setItem(USERS_KEY, INITIAL_USERS);
-    return INITIAL_USERS;
+type RepoResult = { success: boolean; message: string; user?: UserAccount };
+
+// -----------------------------------------------------------------------------
+// Utilitários internos
+// -----------------------------------------------------------------------------
+
+function sanitizeUser(user: UserAccount): UserAccount {
+  // Remove qualquer resquício de senha que possa existir em caches antigos
+  const { password: _ignored, ...rest } = user as UserAccount & { password?: unknown };
+  return rest as UserAccount;
+}
+
+function normalizeUsername(value?: string): string {
+  return (value || '').trim().toLowerCase().replace(/\s+/g, '');
+}
+
+/** Converte uma linha da tabela user_accounts no modelo usado pelo app. */
+export function mapUserRow(row: any): UserAccount {
+  const role: UserRole = row.role || 'vendedor';
+  return {
+    id: row.id,
+    companyId: row.company_id || '',
+    name: row.name || '',
+    email: (row.email || '').toLowerCase(),
+    username: row.username || undefined,
+    role,
+    status: (row.status || 'pendente') as UserStatus,
+    permissions: row.permissions || undefined,
+    createdAt: row.created_at || new Date().toISOString(),
+    updatedAt: row.updated_at || row.created_at || new Date().toISOString(),
+    approvedAt: row.approved_at || undefined,
+    approvedBy: row.approved_by || undefined,
+  };
+}
+
+function saveLocalUsers(users: UserAccount[]): void {
+  storageAdapter.setItem(USERS_KEY, users.map(sanitizeUser));
+}
+
+function requireClient() {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error('Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.');
   }
-  // Garantir que o superadmin sempre exista
-  const hasSuperAdmin = data.some((u) => u.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
-  if (!hasSuperAdmin) {
-    data.unshift(INITIAL_USERS[0]);
-    storageAdapter.setItem(USERS_KEY, data);
+  return client;
+}
+
+function friendlyError(err: unknown, fallback: string): string {
+  const message = (err as any)?.message || '';
+  if (/failed to fetch|network/i.test(message)) {
+    return 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
   }
+  if (/row-level security|permission denied/i.test(message)) {
+    return 'Você não tem permissão para realizar esta ação.';
+  }
+  if (/duplicate key|unique/i.test(message) && /username/i.test(message)) {
+    return 'Este nome de usuário já está em uso.';
+  }
+  return message || fallback;
+}
+
+/**
+ * Atualiza campos do perfil no banco. Se a coluna "permissions" ainda não existir
+ * (script 01b não executado), tenta novamente sem ela para não bloquear o uso.
+ */
+async function updateProfileRow(id: string, fields: Record<string, unknown>): Promise<void> {
+  const client = requireClient();
+  const payload = { ...fields, updated_at: new Date().toISOString() };
+
+  let { error } = await client.from('user_accounts').update(payload).eq('id', id);
+
+  if (error && 'permissions' in payload && /permissions/i.test(error.message || '')) {
+    const { permissions: _skip, ...withoutPermissions } = payload;
+    ({ error } = await client.from('user_accounts').update(withoutPermissions).eq('id', id));
+  }
+
+  if (error) throw error;
+}
+
+/** Chama a Edge Function "admin-users" (operações que exigem privilégio de servidor). */
+async function invokeAdminUsers(body: Record<string, unknown>): Promise<any> {
+  const client = requireClient();
+  const { data, error } = await client.functions.invoke('admin-users', { body });
+
+  if (error) {
+    let message = '';
+    try {
+      const ctx = (error as any).context;
+      if (ctx && typeof ctx.json === 'function') {
+        const parsed = await ctx.json();
+        message = parsed?.error || '';
+      }
+    } catch {
+      // resposta sem corpo JSON
+    }
+    if (!message && /Failed to send a request|Failed to fetch/i.test(error.message || '')) {
+      message = 'Serviço de usuários indisponível. Confirme se a função "admin-users" foi publicada no Supabase.';
+    }
+    throw new Error(message || error.message || 'Não foi possível concluir a operação.');
+  }
+
+  if (data && data.error) throw new Error(data.error);
   return data;
 }
 
-export function upsertUserInRepository(user: UserAccount): void {
-  const users = getUsers();
-  const idx = users.findIndex((u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
-  if (idx !== -1) {
-    users[idx] = { ...users[idx], ...user };
-  } else {
-    users.push(user);
+function validatePassword(password: string): string | null {
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return `A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`;
   }
-  storageAdapter.setItem(USERS_KEY, users);
+  return null;
+}
+
+// -----------------------------------------------------------------------------
+// Leitura
+// -----------------------------------------------------------------------------
+
+/** Perfis em cache local (somente leitura rápida / offline). */
+export function getUsers(): UserAccount[] {
+  const data = storageAdapter.getItem<UserAccount[]>(USERS_KEY, []);
+  return Array.isArray(data) ? data.map(sanitizeUser) : [];
 }
 
 export function getUserById(id: string): UserAccount | undefined {
@@ -94,13 +150,107 @@ export function findUserByEmailOrUsername(identifier: string): UserAccount | und
   if (!identifier || !identifier.trim()) return undefined;
   const target = identifier.trim().toLowerCase();
   return getUsers().find(
-    (u) =>
-      u.email.toLowerCase() === target ||
-      (u.username && u.username.toLowerCase() === target)
+    (u) => u.email.toLowerCase() === target || (u.username && u.username.toLowerCase() === target)
   );
 }
 
-export function createUser(userData: {
+export function upsertUserInRepository(user: UserAccount): void {
+  const users = getUsers();
+  const clean = sanitizeUser(user);
+  const idx = users.findIndex((u) => u.id === clean.id);
+  if (idx !== -1) {
+    users[idx] = { ...users[idx], ...clean };
+  } else {
+    users.push(clean);
+  }
+  saveLocalUsers(users);
+}
+
+/**
+ * Busca os perfis visíveis para o usuário logado (a RLS limita à própria empresa)
+ * e atualiza o cache local.
+ */
+export async function fetchUsersFromSupabase(): Promise<UserAccount[]> {
+  const client = getSupabaseClient();
+  if (!client) return getUsers();
+
+  const { data: sessionData } = await client.auth.getSession();
+  if (!sessionData?.session) return getUsers();
+
+  const { data, error } = await client
+    .from('user_accounts')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+
+  const users = (data || []).map(mapUserRow);
+  saveLocalUsers(users);
+  return users;
+}
+
+// -----------------------------------------------------------------------------
+// Cadastro público ("Solicitar Cadastro" na tela de login)
+// -----------------------------------------------------------------------------
+
+export async function registerUser(userData: {
+  name: string;
+  email: string;
+  username?: string;
+  password?: string;
+}): Promise<RepoResult> {
+  const name = (userData.name || '').trim();
+  const email = (userData.email || '').trim().toLowerCase();
+  const username = normalizeUsername(userData.username) || email.split('@')[0];
+  const password = userData.password || '';
+
+  if (!name || !email.includes('@')) {
+    return { success: false, message: 'Informe seu nome completo e um e-mail válido.' };
+  }
+  const passwordError = validatePassword(password);
+  if (passwordError) return { success: false, message: passwordError };
+
+  try {
+    const client = requireClient();
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      options: { data: { name, username } },
+    });
+
+    if (error) {
+      if (/already registered|already exists/i.test(error.message)) {
+        return { success: false, message: 'Este e-mail já está cadastrado. Use a opção "Entrar".' };
+      }
+      if (/password/i.test(error.message)) {
+        return { success: false, message: 'Senha muito fraca. Use pelo menos 8 caracteres, misturando letras e números.' };
+      }
+      return { success: false, message: friendlyError(error, 'Não foi possível enviar sua solicitação.') };
+    }
+
+    // O perfil é criado como PENDENTE pelo banco. Encerramos a sessão criada pelo cadastro:
+    // o acesso só é liberado depois da aprovação do administrador.
+    if (data?.session) {
+      await client.auth.signOut();
+    }
+
+    const needsEmailConfirmation = !data?.session;
+    return {
+      success: true,
+      message: needsEmailConfirmation
+        ? 'Solicitação enviada! Confirme seu e-mail pelo link que enviamos e aguarde a aprovação do administrador.'
+        : 'Solicitação enviada! Você poderá entrar assim que o administrador aprovar seu acesso.',
+    };
+  } catch (err) {
+    return { success: false, message: friendlyError(err, 'Não foi possível enviar sua solicitação.') };
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Gestão de usuários (painel do administrador)
+// -----------------------------------------------------------------------------
+
+export async function createUser(userData: {
   name: string;
   email: string;
   username?: string;
@@ -108,340 +258,130 @@ export function createUser(userData: {
   role: UserRole;
   permissions?: UserPermissions;
   createdBy?: string;
-}): { success: boolean; message: string; user?: UserAccount } {
-  const users = getUsers();
-  const cleanEmail = userData.email.trim().toLowerCase();
-  
-  if (!cleanEmail) {
-    return {
-      success: false,
-      message: 'O e-mail do colaborador é obrigatório.',
-    };
-  }
-
-  if (!userData.name || !userData.name.trim()) {
-    return {
-      success: false,
-      message: 'O nome do colaborador é obrigatório.',
-    };
-  }
-
-  // Resolver username limpo e único
-  let cleanUsername = userData.username ? userData.username.trim().toLowerCase().replace(/\s+/g, '') : '';
-  if (!cleanUsername) {
-    const base = userData.name.trim().split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '') || 'usuario';
-    cleanUsername = base;
-    let counter = 1;
-    while (users.some((u) => u.username && u.username.toLowerCase() === cleanUsername)) {
-      counter++;
-      cleanUsername = `${base}${counter}`;
-    }
-  } else {
-    // Se o usuário digitou um username que já existe
-    const existingUsername = users.find((u) => u.username && u.username.toLowerCase() === cleanUsername);
-    if (existingUsername) {
-      return {
-        success: false,
-        message: `O nome de usuário "@${cleanUsername}" já está em uso por outro colaborador. Escolha outro username.`,
-      };
-    }
-  }
-
+}): Promise<RepoResult> {
+  const name = (userData.name || '').trim();
+  const email = (userData.email || '').trim().toLowerCase();
   const role = userData.role || 'vendedor';
-  const permissions = userData.permissions || getDefaultPermissions(role);
-  const now = new Date().toISOString();
+  const password = userData.password || '';
 
-  // Verificar se o e-mail já existe
-  const existingIdx = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-  if (existingIdx !== -1) {
-    const existing = users[existingIdx];
-    if (existing.status === 'aprovado') {
-      return {
-        success: false,
-        message: `Já existe um colaborador ativo cadastrado com o e-mail "${cleanEmail}".`,
-      };
+  if (!name) return { success: false, message: 'O nome do colaborador é obrigatório.' };
+  if (!email.includes('@')) return { success: false, message: 'Informe um e-mail válido para o colaborador.' };
+
+  const passwordError = validatePassword(password);
+  if (passwordError) return { success: false, message: passwordError };
+
+  let username = normalizeUsername(userData.username);
+  if (!username) {
+    const base = name.split(' ')[0].toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '') || 'usuario';
+    const taken = new Set(getUsers().map((u) => (u.username || '').toLowerCase()));
+    username = base;
+    let counter = 1;
+    while (taken.has(username)) {
+      counter += 1;
+      username = `${base}${counter}`;
+    }
+  }
+
+  try {
+    const result = await invokeAdminUsers({ action: 'create', name, email, username, password, role });
+    const userId: string = result?.userId;
+
+    if (userId && userData.permissions) {
+      await updateProfileRow(userId, { permissions: userData.permissions });
     }
 
-    // Se estava pendente ou rejeitado, ativa e atualiza
-    const updatedUser: UserAccount = {
-      ...existing,
-      name: userData.name.trim(),
-      username: cleanUsername,
-      role,
-      password: userData.password || existing.password || '123456',
-      status: 'aprovado',
-      permissions,
-      approvedAt: now,
-      approvedBy: userData.createdBy || 'Administrador',
-      updatedAt: now,
-    };
-
-    users[existingIdx] = updatedUser;
-    storageAdapter.setItem(USERS_KEY, users);
-    autoSyncEntityChange('user_accounts', 'upsert', updatedUser);
+    const users = await fetchUsersFromSupabase();
+    const created = users.find((u) => u.id === userId);
 
     return {
       success: true,
-      message: `Colaborador "${updatedUser.name}" aprovado e ativado com sucesso como ${updatedUser.role.toUpperCase()}!`,
-      user: updatedUser,
+      message: `Colaborador "${name}" cadastrado com sucesso como ${role.toUpperCase()}!`,
+      user: created,
     };
-  }
-
-  const newUser: UserAccount = {
-    id: generateUUID(),
-    companyId: DEFAULT_COMPANY_ID,
-    name: userData.name.trim(),
-    email: cleanEmail,
-    username: cleanUsername,
-    password: userData.password || '123456',
-    role,
-    status: 'aprovado',
-    permissions,
-    approvedAt: now,
-    approvedBy: userData.createdBy || 'Administrador',
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  users.push(newUser);
-  storageAdapter.setItem(USERS_KEY, users);
-  autoSyncEntityChange('user_accounts', 'upsert', newUser);
-
-  return {
-    success: true,
-    message: `Colaborador "${newUser.name}" cadastrado com sucesso como ${newUser.role.toUpperCase()}!`,
-    user: newUser,
-  };
-}
-
-export function registerUser(userData: {
-  name: string;
-  email: string;
-  username?: string;
-  password?: string;
-}): { success: boolean; message: string; user?: UserAccount } {
-  const users = getUsers();
-  const cleanEmail = userData.email.trim().toLowerCase();
-  const cleanUsername = userData.username ? userData.username.trim().toLowerCase().replace(/\s+/g, '') : undefined;
-
-  // Se for o email do super admin, aprova automaticamente
-  const isSuper = cleanEmail === SUPERADMIN_EMAIL.toLowerCase();
-
-  const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
-  if (existing) {
-    if (existing.status === 'pendente') {
-      return {
-        success: false,
-        message: 'Este e-mail já possui um cadastro pendente aguardando aprovação do Administrador.',
-      };
-    }
-    return {
-      success: false,
-      message: 'Este e-mail já está cadastrado no sistema.',
-    };
-  }
-
-  if (cleanUsername) {
-    const existingUsername = users.find((u) => u.username && u.username.toLowerCase() === cleanUsername);
-    if (existingUsername) {
-      return {
-        success: false,
-        message: `O nome de usuário "@${cleanUsername}" já está em uso por outro usuário.`,
-      };
-    }
-  }
-
-  const now = new Date().toISOString();
-  const role: UserRole = isSuper ? 'superadmin' : 'vendedor';
-  const newUser: UserAccount = {
-    id: generateUUID(),
-    companyId: DEFAULT_COMPANY_ID,
-    name: userData.name.trim(),
-    email: cleanEmail,
-    username: cleanUsername,
-    password: userData.password || '123456',
-    role,
-    status: isSuper ? 'aprovado' : 'pendente',
-    permissions: getDefaultPermissions(role),
-    createdAt: now,
-    updatedAt: now,
-    approvedAt: isSuper ? now : undefined,
-    approvedBy: isSuper ? 'Sistema' : undefined,
-  };
-
-  users.unshift(newUser);
-  storageAdapter.setItem(USERS_KEY, users);
-  autoSyncEntityChange('user_accounts', 'upsert', newUser);
-
-  // Sincronização direta e imediata com o Supabase
-  try {
-    const client = getSupabaseClient();
-    if (client) {
-      client
-        .from('user_accounts')
-        .upsert([
-          {
-            id: newUser.id,
-            company_id: newUser.companyId || 'comp-smart-vidros-001',
-            name: newUser.name,
-            email: newUser.email,
-            username: newUser.username || newUser.email.split('@')[0],
-            password: newUser.password || '123456',
-            role: newUser.role,
-            status: newUser.status,
-            approved_at: newUser.approvedAt || null,
-            approved_by: newUser.approvedBy || null,
-            created_at: newUser.createdAt,
-            updated_at: newUser.updatedAt,
-          },
-        ])
-        .then(({ error }: any) => {
-          if (error) console.warn('[Supabase] Erro ao cadastrar usuário na nuvem:', error);
-          else console.log('[Supabase] Novo usuário salvo na nuvem com sucesso:', newUser.email);
-        });
-    }
   } catch (err) {
-    console.warn('[Supabase] Exceção ao persistir usuário:', err);
+    return { success: false, message: friendlyError(err, 'Não foi possível cadastrar o colaborador.') };
   }
-
-  return {
-    success: true,
-    message: isSuper
-      ? 'Conta de Super Admin cadastrada e aprovada automaticamente!'
-      : 'Cadastro realizado com sucesso! Sua solicitação foi enviada para aprovação do Administrador.',
-    user: newUser,
-  };
 }
 
-export function approveUser(
+export async function approveUser(
   userId: string,
   approvalData?: {
     username?: string;
     role?: UserRole;
-    password?: string;
     permissions?: UserPermissions;
   },
   approvedBy: string = 'Administrador'
-): UserAccount | null {
-  const users = getUsers();
-  const idx = users.findIndex((u) => u.id === userId);
-  if (idx === -1) return null;
+): Promise<UserAccount | null> {
+  const current = getUserById(userId);
+  const role = approvalData?.role || current?.role || 'vendedor';
+  const username = normalizeUsername(approvalData?.username) || current?.username;
+
+  if (username) {
+    const conflict = getUsers().find((u) => u.id !== userId && (u.username || '').toLowerCase() === username);
+    if (conflict) throw new Error(`O nome de usuário "@${username}" já está em uso.`);
+  }
 
   const now = new Date().toISOString();
-  const user = users[idx];
-
-  let cleanUsername = approvalData?.username
-    ? approvalData.username.trim().toLowerCase().replace(/\s+/g, '')
-    : user.username;
-
-  if (!cleanUsername) {
-    const firstName = user.name.split(' ')[0].toLowerCase().replace(/[^a-z0-0]/g, '');
-    cleanUsername = firstName + Math.floor(100 + Math.random() * 900);
-  }
-
-  const role = approvalData?.role || user.role || 'vendedor';
-  const permissions = approvalData?.permissions || user.permissions || getDefaultPermissions(role);
-
-  const updatedUser: UserAccount = {
-    ...user,
+  await updateProfileRow(userId, {
     status: 'aprovado',
-    username: cleanUsername,
     role,
-    password: approvalData?.password || user.password || '123456',
-    permissions,
-    approvedAt: now,
-    approvedBy,
-    updatedAt: now,
-  };
+    ...(username ? { username } : {}),
+    permissions: approvalData?.permissions || getDefaultPermissions(role),
+    approved_at: now,
+    approved_by: approvedBy,
+  });
 
-  users[idx] = updatedUser;
-  storageAdapter.setItem(USERS_KEY, users);
-  autoSyncEntityChange('user_accounts', 'upsert', updatedUser);
-  return updatedUser;
+  const users = await fetchUsersFromSupabase();
+  return users.find((u) => u.id === userId) || null;
 }
 
-export function rejectUser(userId: string): UserAccount | null {
-  const users = getUsers();
-  const idx = users.findIndex((u) => u.id === userId);
-  if (idx === -1) return null;
-
-  users[idx].status = 'rejeitado';
-  users[idx].updatedAt = new Date().toISOString();
-  storageAdapter.setItem(USERS_KEY, users);
-  autoSyncEntityChange('user_accounts', 'upsert', users[idx]);
-  return users[idx];
+export async function rejectUser(userId: string): Promise<UserAccount | null> {
+  await updateProfileRow(userId, { status: 'rejeitado' });
+  const users = await fetchUsersFromSupabase();
+  return users.find((u) => u.id === userId) || null;
 }
 
-export function updateUser(
+/** Atualiza dados do perfil (nunca senha nem e-mail de login). */
+export async function updateUser(
   id: string,
-  updates: Partial<Omit<UserAccount, 'id' | 'createdAt'>>
-): UserAccount | null {
-  const users = getUsers();
-  const idx = users.findIndex((u) => u.id === id);
-  if (idx === -1) return null;
-
-  users[idx] = {
-    ...users[idx],
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  };
-
-  storageAdapter.setItem(USERS_KEY, users);
-  autoSyncEntityChange('user_accounts', 'upsert', users[idx]);
-
-  // Sincronização direta e imediata com o Supabase (para troca de senha e perfil em tempo real)
-  try {
-    const client = getSupabaseClient();
-    if (client) {
-      const u = users[idx];
-      client
-        .from('user_accounts')
-        .upsert([
-          {
-            id: u.id,
-            company_id: u.companyId || 'comp-smart-vidros-001',
-            name: u.name,
-            email: u.email,
-            username: u.username || u.email.split('@')[0],
-            password: u.password || '123456',
-            role: u.role || 'vendedor',
-            status: u.status || 'aprovado',
-            approved_at: u.approvedAt || null,
-            approved_by: u.approvedBy || null,
-            created_at: u.createdAt || new Date().toISOString(),
-            updated_at: u.updatedAt || new Date().toISOString(),
-          },
-        ])
-        .then(({ error }: any) => {
-          if (error) console.warn('[Supabase] Erro ao sincronizar atualização de usuário:', error);
-          else console.log('[Supabase] Perfil/Senha atualizados na nuvem com sucesso:', u.email);
-        });
+  updates: Partial<Pick<UserAccount, 'name' | 'username' | 'role' | 'status' | 'permissions'>>
+): Promise<UserAccount | null> {
+  const fields: Record<string, unknown> = {};
+  if (updates.name !== undefined) fields.name = updates.name.trim();
+  if (updates.username !== undefined) {
+    const username = normalizeUsername(updates.username);
+    if (username) {
+      const conflict = getUsers().find((u) => u.id !== id && (u.username || '').toLowerCase() === username);
+      if (conflict) throw new Error(`O nome de usuário "@${username}" já está em uso.`);
+      fields.username = username;
     }
-  } catch (err) {
-    console.warn('[Supabase] Exceção ao persistir atualização de usuário:', err);
+  }
+  if (updates.role !== undefined) fields.role = updates.role;
+  if (updates.status !== undefined) fields.status = updates.status;
+  if (updates.permissions !== undefined) fields.permissions = updates.permissions;
+
+  if (Object.keys(fields).length > 0) {
+    await updateProfileRow(id, fields);
   }
 
-  return users[idx];
+  const users = await fetchUsersFromSupabase();
+  return users.find((u) => u.id === id) || null;
 }
 
-export function deleteUser(id: string): UserAccount[] {
-  const users = getUsers().filter((u) => u.id !== id);
-  storageAdapter.setItem(USERS_KEY, users);
-  autoSyncEntityChange('user_accounts', 'delete', id);
+/** Define uma nova senha para outro usuário (somente administradores). */
+export async function setUserPassword(userId: string, newPassword: string): Promise<void> {
+  const passwordError = validatePassword(newPassword);
+  if (passwordError) throw new Error(passwordError);
+  await invokeAdminUsers({ action: 'set_password', userId, password: newPassword });
+}
 
+/** Exclui o perfil e a conta de login do usuário (somente administradores). */
+export async function deleteUser(id: string): Promise<UserAccount[]> {
+  await invokeAdminUsers({ action: 'delete', userId: id });
+  saveLocalUsers(getUsers().filter((u) => u.id !== id));
   try {
-    const client = getSupabaseClient();
-    if (client) {
-      client
-        .from('user_accounts')
-        .delete()
-        .eq('id', id)
-        .then(({ error }: any) => {
-          if (error) console.warn('[Supabase] Erro ao excluir usuário na nuvem:', error);
-        });
-    }
-  } catch {}
-
-  return users;
+    return await fetchUsersFromSupabase();
+  } catch {
+    return getUsers();
+  }
 }
-

@@ -120,7 +120,12 @@ export {
   getCurrentSessionUser,
   setSessionUser,
   isSuperAdmin,
-  SUPERADMIN_EMAIL,
+  purgeLegacyCredentials,
+  restoreSupabaseSession,
+  subscribeToAuthChanges,
+  changeOwnPassword,
+  fetchUsersFromSupabase,
+  setUserPassword,
 
   // Sincronização Supabase
   getSupabaseConfig,
@@ -131,6 +136,7 @@ export {
   syncAllWithSupabase,
   getLastSyncTime,
   initSupabaseKeepAlive,
+  fetchPublicCatalog,
 
   // Contratos
   getContracts,

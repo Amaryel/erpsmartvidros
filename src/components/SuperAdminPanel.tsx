@@ -13,7 +13,8 @@ import {
   rejectUser,
   deleteUser,
   updateUser,
-  SUPERADMIN_EMAIL,
+  setUserPassword,
+  fetchUsersFromSupabase,
 } from '../services/storage';
 import {
   ALL_SYSTEM_MODULES,
@@ -55,8 +56,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
   onShowToast,
 }) => {
   const isSuper =
-    currentUser?.role === 'superadmin' ||
-    (currentUser?.email && currentUser.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
+    currentUser?.role === 'superadmin';
 
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [activeTab, setActiveTab] = useState<'users' | 'pending' | 'system'>('users');
@@ -68,7 +68,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserUsername, setNewUserUsername] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('123456');
+  const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('vendedor');
   const [newUserMaxDiscount, setNewUserMaxDiscount] = useState<number>(10);
   const [newUserModules, setNewUserModules] = useState<SystemModuleId[]>(
@@ -93,7 +93,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
   const [approvingUser, setApprovingUser] = useState<UserAccount | null>(null);
   const [approvalUsername, setApprovalUsername] = useState('');
   const [approvalRole, setApprovalRole] = useState<UserRole>('vendedor');
-  const [approvalPassword, setApprovalPassword] = useState('123456');
+  const [approvalPassword, setApprovalPassword] = useState('');
   const [approvalMaxDiscount, setApprovalMaxDiscount] = useState<number>(10);
   const [approvalModules, setApprovalModules] = useState<SystemModuleId[]>(
     getDefaultPermissions('vendedor').allowedModules
@@ -104,9 +104,16 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
     loadUsers();
   }, []);
 
-  const loadUsers = () => {
-    const list = getUsers();
-    setUsers(list);
+  const loadUsers = async () => {
+    // Exibe o cache local imediatamente e atualiza com os dados do banco
+    setUsers(getUsers());
+    try {
+      const list = await fetchUsersFromSupabase();
+      setUsers(list);
+    } catch (err: any) {
+      console.warn('[Usuários] Não foi possível atualizar a lista:', err);
+      onShowToast(err?.message || 'Não foi possível atualizar a lista de usuários.');
+    }
     if (onRefreshUsers) onRefreshUsers();
   };
 
@@ -131,13 +138,14 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
   const [approvalModalError, setApprovalModalError] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserAccount | null>(null);
   const [userToReject, setUserToReject] = useState<{ id: string; name: string } | null>(null);
+  const [isSavingUser, setIsSavingUser] = useState(false);
 
   // Abrir Modal de Criação com Presets de Cargo
   const handleOpenCreateModal = () => {
     setNewUserName('');
     setNewUserEmail('');
     setNewUserUsername('');
-    setNewUserPassword('123456');
+    setNewUserPassword('');
     setNewUserRole('vendedor');
     const defaultPerms = getDefaultPermissions('vendedor');
     setNewUserMaxDiscount(defaultPerms.maxDiscountPercent);
@@ -165,8 +173,9 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
   };
 
   // Salvar Novo Usuário
-  const handleCreateUserSubmit = (e: React.FormEvent) => {
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingUser) return;
     setCreateModalError(null);
 
     const trimmedName = newUserName.trim();
@@ -187,15 +196,27 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
       canAccessSensitiveSettings: newUserRole === 'superadmin',
     };
 
-    const res = createUser({
+    if (newUserPassword.trim().length < 8) {
+
+      setCreateModalError('A senha inicial precisa ter pelo menos 8 caracteres.');
+
+      return;
+
+    }
+
+
+    setIsSavingUser(true);
+
+    const res = await createUser({
       name: trimmedName,
       email: trimmedEmail,
       username: newUserUsername.trim() || undefined,
-      password: newUserPassword.trim() || '123456',
+      password: newUserPassword.trim(),
       role: newUserRole,
       permissions,
       createdBy: currentUser?.name || 'Administrador',
     });
+    setIsSavingUser(false);
 
     if (!res.success) {
       setCreateModalError(res.message);
@@ -219,7 +240,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
     setEditEmail(u.email);
     setEditUsername(u.username || '');
     setEditRole(u.role || 'vendedor');
-    setEditPassword(u.password || '');
+    setEditPassword('');
     setEditModalError(null);
 
     const perms = getUserPermissions(u);
@@ -246,7 +267,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
   };
 
   // Salvar Edição
-  const handleSaveUserEdit = (e: React.FormEvent) => {
+  const handleSaveUserEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
     setEditModalError(null);
@@ -266,17 +287,32 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
       canAccessSensitiveSettings: editRole === 'superadmin',
     };
 
-    updateUser(editingUser.id, {
-      name: editName.trim(),
-      username: editUsername.trim().toLowerCase() || undefined,
-      role: editRole,
-      password: editPassword.trim() || editingUser.password,
-      permissions,
-    });
+    const newPassword = editPassword.trim();
+    if (newPassword && newPassword.length < 8) {
+      setEditModalError('A nova senha precisa ter pelo menos 8 caracteres.');
+      return;
+    }
+    if (isSavingUser) return;
 
-    onShowToast(`Permissões e dados de "${editName}" atualizados com sucesso!`);
-    setEditingUser(null);
-    loadUsers();
+    setIsSavingUser(true);
+    try {
+      await updateUser(editingUser.id, {
+        name: editName.trim(),
+        username: editUsername.trim().toLowerCase() || undefined,
+        role: editRole,
+        permissions,
+      });
+      if (newPassword) {
+        await setUserPassword(editingUser.id, newPassword);
+      }
+      onShowToast(`Permissões e dados de "${editName}" atualizados com sucesso!`);
+      setEditingUser(null);
+      loadUsers();
+    } catch (err: any) {
+      setEditModalError(err?.message || 'Não foi possível salvar as alterações.');
+    } finally {
+      setIsSavingUser(false);
+    }
   };
 
   // Abrir Modal de Aprovação de Solicitação
@@ -288,7 +324,6 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
       .replace(/[^a-z0-9]/g, '');
     setApprovalUsername(suggestedUsername);
     setApprovalRole('vendedor');
-    setApprovalPassword(user.password || '123456');
     setApprovalModalError(null);
 
     const defaultPerms = getDefaultPermissions('vendedor');
@@ -298,7 +333,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
   };
 
   // Confirmar Aprovação
-  const handleConfirmApproval = (e: React.FormEvent) => {
+  const handleConfirmApproval = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!approvingUser) return;
     setApprovalModalError(null);
@@ -318,16 +353,21 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
       canAccessSensitiveSettings: approvalRole === 'superadmin',
     };
 
-    const updated = approveUser(
+    let updated: UserAccount | null = null;
+    try {
+      updated = await approveUser(
       approvingUser.id,
       {
         username: approvalUsername.trim(),
         role: approvalRole,
-        password: approvalPassword.trim(),
         permissions,
       },
       currentUser.name || 'Administrador'
     );
+    } catch (err: any) {
+      setApprovalModalError(err?.message || 'Não foi possível aprovar o cadastro.');
+      return;
+    }
 
     if (updated) {
       onShowToast(
@@ -339,18 +379,29 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
   };
 
   // Rejeitar Solicitação
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (!userToReject) return;
-    rejectUser(userToReject.id);
+    try {
+      await rejectUser(userToReject.id);
+    } catch (err: any) {
+      onShowToast(err?.message || 'Não foi possível rejeitar o cadastro.');
+      return;
+    }
     onShowToast(`Cadastro de "${userToReject.name}" foi rejeitado.`);
     setUserToReject(null);
     loadUsers();
   };
 
   // Excluir Usuário
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!userToDelete) return;
-    deleteUser(userToDelete.id);
+    try {
+      await deleteUser(userToDelete.id);
+    } catch (err: any) {
+      onShowToast(err?.message || 'Não foi possível excluir o usuário.');
+      setUserToDelete(null);
+      return;
+    }
     onShowToast(`Usuário "${userToDelete.name}" foi removido do sistema.`);
     setUserToDelete(null);
     loadUsers();
@@ -572,8 +623,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
                 {filteredUsers.map((u) => {
                   const perms = getUserPermissions(u);
                   const isUserSuper =
-                    u.role === 'superadmin' ||
-                    u.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
+                    u.role === 'superadmin';
 
                   const canManage = canActorManageTarget(currentUser, u);
 
@@ -801,7 +851,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
                     <h3 className="font-extrabold text-sm text-amber-400">Super Admin Master</h3>
                   </div>
                   <p className="text-xs text-slate-300 mb-1">
-                    E-mail Primário: <strong>{SUPERADMIN_EMAIL}</strong>
+                    E-mail Primário: <strong>{currentUser?.email}</strong>
                   </p>
                   <p className="text-[11px] text-slate-400 leading-relaxed">
                     Você possui autoridade irrestrita para alterar qualquer parâmetro do Administrador, gerenciar todas as credenciais Supabase e controlar os dados de toda a vidraçaria.
@@ -844,7 +894,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
                 Acesso Restrito a Infraestrutura Sensível
               </h3>
               <p className="text-xs text-amber-800 max-w-md mx-auto leading-relaxed">
-                As configurações de chaves de API do Supabase e infraestrutura de servidores são exclusivas do Super Administrador (<strong>{SUPERADMIN_EMAIL}</strong>).
+                As configurações de chaves de API do Supabase e infraestrutura de servidores são exclusivas do Super Administrador.
                 <br />
                 Como Administrador, você possui controle total sobre o cadastro de colaboradores, orçamentos, vendas, clientes e limites de desconto na aba <strong>"Usuários & Equipe Ativa"</strong>.
               </p>
@@ -941,6 +991,8 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
                     type="text"
                     required
                     value={newUserPassword}
+                    placeholder="Mínimo 8 caracteres"
+                    minLength={8}
                     onChange={(e) => setNewUserPassword(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none font-mono"
                   />
@@ -1237,7 +1289,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="Digite nova senha (ou deixe em branco)"
+                    placeholder="Nova senha (mín. 8 caracteres) ou deixe em branco"
                     value={editPassword}
                     onChange={(e) => setEditPassword(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none font-mono"
@@ -1504,15 +1556,11 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Senha de Acesso *
+                    Senha de Acesso
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={approvalPassword}
-                    onChange={(e) => setApprovalPassword(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none font-mono"
-                  />
+                  <p className="px-3.5 py-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-[11px] text-slate-600 leading-relaxed">
+                    A pessoa usará a senha que ela mesma definiu ao solicitar o cadastro.
+                  </p>
                 </div>
               </div>
 

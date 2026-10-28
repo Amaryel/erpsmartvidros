@@ -1,7 +1,4 @@
 import { AppUser, UserAccount, UserRole, SystemModuleId, UserPermissions } from '../types';
-import { SUPERADMIN_EMAIL } from '../services/data/repositories/usersRepository';
-
-export { SUPERADMIN_EMAIL };
 
 export interface ModuleDefinition {
   id: SystemModuleId;
@@ -237,8 +234,8 @@ export function getUserPermissions(user?: AppUser | UserAccount | null): UserPer
     return getDefaultPermissions('operador');
   }
 
-  // Super Admin supremo (por e-mail fixo) sempre tem todas as permissões
-  if (user.email && user.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase()) {
+  // Super Admin (papel definido no banco de dados) sempre tem todas as permissões
+  if (user.role === 'superadmin') {
     return getDefaultPermissions('superadmin');
   }
 
@@ -283,7 +280,7 @@ export function hasModuleAccess(
   if (!user) return true;
 
   // Super Admin ou Admin tem acesso completo a todos os módulos operacionais e de gestão
-  if (user.role === 'superadmin' || (user.email && user.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase())) {
+  if (user.role === 'superadmin') {
     return true;
   }
 
@@ -321,14 +318,14 @@ export function canActorManageTarget(
   if (!actor) return false;
 
   const isActorSuper =
-    actor.role === 'superadmin' || (actor.email && actor.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
+    actor.role === 'superadmin';
 
   // Superadmin pode gerenciar qualquer um
   if (isActorSuper) return true;
 
   // Se o alvo for Superadmin, apenas Superadmin pode alterar
   const isTargetSuper =
-    target.role === 'superadmin' || (target.email && target.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
+    target.role === 'superadmin';
   if (isTargetSuper) return false;
 
   // Admin pode gerenciar Vendedor, Funcionário e Operador (e a si próprio se for seu perfil)
@@ -345,8 +342,7 @@ export function canActorManageTarget(
 export function canAccessSensitiveSettings(user: AppUser | UserAccount | null | undefined): boolean {
   if (!user) return false;
   return (
-    user.role === 'superadmin' ||
-    (user.email && user.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase())
+    user.role === 'superadmin'
   );
 }
 

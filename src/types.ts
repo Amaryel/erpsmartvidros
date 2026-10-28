@@ -422,7 +422,6 @@ export interface UserAccount {
   name: string;
   email: string;
   username?: string; // Nome de usuário para acesso sem e-mail após aprovação
-  password?: string;
   role: UserRole;
   status: UserStatus;
   permissions?: UserPermissions;

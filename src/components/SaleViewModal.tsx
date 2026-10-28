@@ -18,6 +18,10 @@ import { Sale, CompanyInfo } from '../types';
 import { downloadPdfElement } from '../utils/pdfGenerator';
 import SMART_VIDROS_OFFICIAL_LOGO_BASE64 from '../assets/logoBase64';
 
+/** Formata valores monetários no padrão brasileiro (R$ 1.234,56), igual aos demais documentos. */
+const formatBRL = (value: number): string =>
+  (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
 interface SaleViewModalProps {
   sale: Sale;
   companyInfo: CompanyInfo;
@@ -75,7 +79,7 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
       sale.clientName || 'Cliente'
     }\n*Data:* ${formatDate(sale.date)}\n*Total:* R$ ${(sale.total || 0).toFixed(
       2
-    )}\n*Pago:* R$ ${(sale.totalPaid || 0).toFixed(2)}\n*Fiado:* R$ ${(sale.totalFiado || 0).toFixed(2)}`;
+    )}\n*Pago:* ${formatBRL(sale.totalPaid || 0)}\n*Fiado:* ${formatBRL(sale.totalFiado || 0)}`;
 
     if (navigator.share) {
       navigator.share({ title: `Venda ${sale.code}`, text: summary }).catch(() => {});
@@ -305,10 +309,10 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
                         )}
                       </td>
                       <td className="p-2.5 text-right">
-                        R$ {((item.type === 'dimensao' ? item.pricePerM2 : item.unitPrice) || 0).toFixed(2)}
+                        {formatBRL((item.type === 'dimensao' ? item.pricePerM2 : item.unitPrice) || 0)}
                       </td>
                       <td className="p-2.5 text-right font-bold text-slate-900">
-                        R$ {(item.totalPrice || 0).toFixed(2)}
+                        {formatBRL(item.totalPrice || 0)}
                       </td>
                     </tr>
                   ))}
@@ -334,7 +338,7 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
                       {p.notes ? ` (${p.notes})` : ''}
                     </span>
                     <span className="font-black text-slate-900">
-                      R$ {(p.amount || 0).toFixed(2)}
+                      {formatBRL(p.amount || 0)}
                     </span>
                   </div>
                 ))}
@@ -345,31 +349,31 @@ export const SaleViewModal: React.FC<SaleViewModalProps> = ({
             <div className="border-2 border-slate-900 rounded-xl p-4 bg-slate-950 text-white space-y-2">
               <div className="flex justify-between text-xs text-slate-300">
                 <span>Subtotal dos Itens:</span>
-                <span>R$ {(sale.subtotal || 0).toFixed(2)}</span>
+                <span>{formatBRL(sale.subtotal || 0)}</span>
               </div>
 
               {(sale.discountAmount || 0) > 0 && (
                 <div className="flex justify-between text-xs text-emerald-400">
                   <span>Desconto Aplicado:</span>
-                  <span>- R$ {(sale.discountAmount || 0).toFixed(2)}</span>
+                  <span>- {formatBRL(sale.discountAmount || 0)}</span>
                 </div>
               )}
 
               <div className="border-t border-slate-800 pt-2 flex justify-between text-base font-black text-amber-400">
                 <span>Total da Venda:</span>
-                <span>R$ {(sale.total || 0).toFixed(2)}</span>
+                <span>{formatBRL(sale.total || 0)}</span>
               </div>
 
               <div className="pt-2 border-t border-slate-800/60 space-y-1 text-xs">
                 <div className="flex justify-between text-emerald-400 font-bold">
                   <span>Total Pago no Ato:</span>
-                  <span>R$ {(sale.totalPaid || 0).toFixed(2)}</span>
+                  <span>{formatBRL(sale.totalPaid || 0)}</span>
                 </div>
 
                 {(sale.totalFiado || 0) > 0 && (
                   <div className="flex justify-between text-amber-400 font-bold">
                     <span>Fiado / A Receber:</span>
-                    <span>R$ {(sale.totalFiado || 0).toFixed(2)}</span>
+                    <span>{formatBRL(sale.totalFiado || 0)}</span>
                   </div>
                 )}
               </div>
