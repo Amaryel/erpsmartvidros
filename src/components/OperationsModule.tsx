@@ -149,9 +149,9 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({
   const filteredObras = allObras.filter((o) => {
     // Busca por nome do cliente ou código
     const matchesSearch =
-      o.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.internalNotes.toLowerCase().includes(searchTerm.toLowerCase());
+      (o.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (o.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (o.internalNotes || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     if (!matchesSearch) return false;
 
@@ -213,7 +213,7 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({
   });
 
   // Ordenar parcelas por data de vencimento
-  pendingInstallments.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  pendingInstallments.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
 
   const cobrancasAtrasadas = pendingInstallments.filter((i) => i.dueDate < todayStr);
   const cobrancasHoje = pendingInstallments.filter((i) => i.dueDate === todayStr);
@@ -312,7 +312,7 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({
   };
 
   const formatCurrency = (val: number) =>
-    val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    (Number(val) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Não definida';
@@ -499,8 +499,10 @@ export const OperationsModule: React.FC<OperationsModuleProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredObras.map((obra) => {
                 const isOverdue = obra.deliveryDate && obra.deliveryDate < todayStr && obra.workStatus !== 'entregue';
-                const hasWhatsApp = obra.clientPhone && obra.clientPhone.replace(/\D/g, '').length >= 10;
-                const cleanPhone = obra.clientPhone.replace(/\D/g, '');
+                // Telefone pode vir vazio (null) do banco: nunca chamar .replace em null
+                  const cleanPhone = (obra.clientPhone || '').replace(/\D/g, '');
+                  const hasWhatsApp = cleanPhone.length >= 10;
+                
 
                 return (
                   <div
